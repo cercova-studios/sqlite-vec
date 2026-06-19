@@ -1323,7 +1323,7 @@ def test_vec0_text_pk():
           create virtual table t using vec0(
             t_id text primary key,
             aaa float[1],
-            bbb float8[1],
+            bbb float[1],
             chunk_size=8
           );
         """
@@ -1440,7 +1440,7 @@ def test_vec0_best_index():
         """
           create virtual table t using vec0(
             aaa float[1],
-            bbb float8[1]
+            bbb float[1]
           );
         """
     )
