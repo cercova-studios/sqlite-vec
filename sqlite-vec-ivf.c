@@ -1026,8 +1026,10 @@ static int ivf_cmd_compute_centroids(vec0_vtab *p, int col_idx, int nlist_overri
 
   // The INSERT running this command is a write statement in progress, so no
   // savepoint can open here ("cannot open savepoint - SQL statements in
-  // progress"). Returning an error to it has SQLite undo every write below,
-  // with its statement or its transaction.
+  // progress"). An error returned to it rolls back every write below with the
+  // transaction, in autocommit mode or when the error is an interrupt or a
+  // memory, I/O or full-disk error; any other error inside BEGIN leaves them,
+  // as it leaves the writes of any vec0 statement.
   sqlite3_stmt *stmt = NULL;
   char *zSql;
 
