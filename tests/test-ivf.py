@@ -340,6 +340,114 @@ def test_ivf_command_interrupted_at_each_step(command, quantizer):
     assert n > 1
 
 
+def _ivf_interrupt_table(trained, options):
+    db = sqlite3.connect(":memory:", isolation_level=None)
+    db.enable_load_extension(True)
+    db.load_extension("dist/vec0")
+    db.enable_load_extension(False)
+    db.execute(
+        "CREATE VIRTUAL TABLE t USING vec0("
+        f"v float[4] indexed by ivf(nlist=2, nprobe=2, {options}))"
+    )
+    for i in range(20):
+        db.execute(
+            "INSERT INTO t(rowid, v) VALUES (?, ?)",
+            [i, _f32([i / 20, (i % 7) / 7, 0, 1])],
+        )
+    if trained:
+        db.execute("INSERT INTO t(t) VALUES ('compute-centroids')")
+    return db
+
+
+@pytest.mark.parametrize(
+    "trained,options",
+    [(False, "quantizer=none"), (True, "quantizer=none"), (True, "quantizer=int8")],
+)
+def test_ivf_delete_interrupted_at_each_step(trained, options):
+    """However far a delete gets before one of its statements is
+    interrupted, a delete that reports success takes its row out of the
+    index, and one that fails leaves the row in the table and the index, or,
+    when the interrupt comes after the row is gone, as it can for any SQLite
+    table, in neither."""
+    knn = "SELECT rowid FROM t WHERE v MATCH ? AND k = 20"
+    query = _f32([0.5, 0.5, 0, 1])
+    kept = (list(range(20)), 1)
+    deleted = ([i for i in range(20) if i != 5], 0)
+    n = 1
+    while True:
+        db = _ivf_interrupt_table(trained, options)
+        steps = 0
+
+        def interrupt_step_n():
+            nonlocal steps
+            steps += 1
+            return steps == n
+
+        db.set_progress_handler(interrupt_step_n, 1)
+        try:
+            db.execute("DELETE FROM t WHERE rowid = 5")
+            failed = False
+        except sqlite3.OperationalError:
+            failed = True
+        db.set_progress_handler(None, 0)
+
+        state = (
+            sorted(row[0] for row in db.execute(knn, [query])),
+            db.execute("SELECT count(*) FROM t WHERE rowid = 5").fetchone()[0],
+        )
+        if failed:
+            assert state in (kept, deleted)
+        else:
+            assert state == deleted
+        if steps < n:
+            break
+        n += 1
+    assert n > 1
+
+
+@pytest.mark.parametrize(
+    "trained,options",
+    [
+        (False, "quantizer=none"),
+        (True, "quantizer=none"),
+        (True, "quantizer=int8"),
+        (True, "quantizer=int8, oversample=4"),
+    ],
+)
+def test_ivf_knn_interrupted_at_each_step(trained, options):
+    """However far a KNN query gets before one of its statements is
+    interrupted, it reports the interrupt or returns every row it should."""
+    db = _ivf_interrupt_table(trained, options)
+    knn = "SELECT rowid, distance FROM t WHERE v MATCH ? AND k = 20"
+    query = _f32([0.5, 0.5, 0, 1])
+    expected = db.execute(knn, [query]).fetchall()
+    assert len(expected) == 20
+    n = 1
+    while True:
+        steps = 0
+
+        def interrupt_step_n():
+            nonlocal steps
+            steps += 1
+            return steps == n
+
+        db.set_progress_handler(interrupt_step_n, 1)
+        try:
+            rows = db.execute(knn, [query]).fetchall()
+            error = None
+        except sqlite3.OperationalError as e:
+            error = str(e)
+        db.set_progress_handler(None, 0)
+
+        assert error in (None, "interrupted")
+        if error is None:
+            assert rows == expected
+        if steps < n:
+            break
+        n += 1
+    assert n > 1
+
+
 # ============================================================================
 # Insert after training (assigned mode)
 # ============================================================================
