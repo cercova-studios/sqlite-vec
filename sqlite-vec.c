@@ -8478,7 +8478,8 @@ int vec0Filter_knn(vec0_cursor *pCur, vec0_vtab *p, int idxNum,
   // IVF dispatch: if vector column has IVF, use IVF query instead of chunk scan
   if (vector_column->index_type == VEC0_INDEX_TYPE_IVF) {
     rc = ivf_query_knn(p, vectorColumnIdx, queryVector,
-                       (int)vector_column_byte_size(*vector_column), k, knn_data);
+                       (int)vector_column_byte_size(*vector_column),
+                       arrayRowidsIn, k, knn_data);
     if (rc != SQLITE_OK) {
       goto cleanup;
     }

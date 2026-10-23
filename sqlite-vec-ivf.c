@@ -1430,8 +1430,38 @@ static int ivf_scan_cells_from_stmt(vec0_vtab *p, int col_idx,
   return SQLITE_OK;
 }
 
+/**
+ * Rank the rows a `rowid in (...)` constraint names by their exact distances
+ * to the query. A rowid the table does not have is skipped.
+ */
+static int ivf_rank_rowids(vec0_vtab *p, int col_idx, const void *queryVector,
+                            struct Array *rowidsIn,
+                            struct IvfCandidate **candidates,
+                            int *nCandidates, int *cap) {
+  for (size_t i = 0; i < rowidsIn->length; i++) {
+    i64 rowid = ((const i64 *)rowidsIn->z)[i];
+    void *vec = NULL;
+    int rc = ivf_get_vector_data(p, rowid, col_idx, &vec, NULL);
+    if (rc == SQLITE_EMPTY) continue;
+    if (rc != SQLITE_OK) return rc;
+    if (*nCandidates >= *cap) {
+      *cap *= 2;
+      struct IvfCandidate *tmp = sqlite3_realloc64(*candidates, (i64)*cap * sizeof(struct IvfCandidate));
+      if (!tmp) { sqlite3_free(vec); return SQLITE_NOMEM; }
+      *candidates = tmp;
+    }
+    (*candidates)[*nCandidates].rowid = rowid;
+    (*candidates)[*nCandidates].distance = ivf_distance_float(p, col_idx,
+        (const float *)queryVector, (const float *)vec);
+    (*nCandidates)++;
+    sqlite3_free(vec);
+  }
+  return SQLITE_OK;
+}
+
 static int ivf_query_knn(vec0_vtab *p, int col_idx,
                           const void *queryVector, int queryVectorSize,
+                          struct Array *arrayRowidsIn,
                           i64 k, struct vec0_query_knn_data *knn_data) {
   UNUSED_PARAMETER(queryVectorSize);
   int rc;
@@ -1455,7 +1485,14 @@ static int ivf_query_knn(vec0_vtab *p, int col_idx,
   struct IvfCandidate *candidates = sqlite3_malloc64((i64)cap * sizeof(struct IvfCandidate));
   if (!candidates) { sqlite3_free(queryQ); return SQLITE_NOMEM; }
 
-  if (trained) {
+  if (arrayRowidsIn) {
+    // A rowid filter names its candidates, so each is ranked by its exact
+    // distance; the probed cells hold only the rows near the query, which
+    // the filter may not name.
+    rc = ivf_rank_rowids(p, col_idx, queryVector, arrayRowidsIn,
+                         &candidates, &nCandidates, &cap);
+    if (rc != SQLITE_OK) { sqlite3_free(queryQ); sqlite3_free(candidates); return rc; }
+  } else if (trained) {
     // Find top nprobe centroids using quantized distance
     int nlist = 0;
     rc = ivf_ensure_stmt(p, &p->stmtIvfCentroidsAll[col_idx],
@@ -1542,7 +1579,8 @@ static int ivf_query_knn(vec0_vtab *p, int col_idx,
   qsort(candidates, nCandidates, sizeof(struct IvfCandidate), ivf_candidate_cmp);
 
   // Oversample re-ranking: re-score top (oversample*k) with full-precision vectors
-  if (oversample > 1 && quantizer != VEC0_IVF_QUANTIZER_NONE && nCandidates > 0) {
+  if (oversample > 1 && quantizer != VEC0_IVF_QUANTIZER_NONE && nCandidates > 0 &&
+      !arrayRowidsIn) {
     i64 rescore_n = collect_k < nCandidates ? collect_k : nCandidates;
     sqlite3_stmt *stmtVec = NULL;
     char *zSql = sqlite3_mprintf(
