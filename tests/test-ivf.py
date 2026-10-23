@@ -271,6 +271,74 @@ def test_compute_centroids_recompute(db):
     assert ivf_assigned_count(db) == 20
 
 
+@pytest.mark.parametrize(
+    "command,quantizer",
+    [
+        ("compute-centroids", "none"),
+        ("compute-centroids", "int8"),
+        ("clear-centroids", "none"),
+        ("assign-vectors", "none"),
+    ],
+)
+def test_ivf_command_interrupted_at_each_step(command, quantizer):
+    """However far a command gets before one of its statements is
+    interrupted, it reports the interrupt and loses no row: every row is
+    still found, and found again once the command is run to the end."""
+    knn = "SELECT rowid FROM t WHERE v MATCH ? AND k = 20"
+    query = _f32([0.5, 0.5, 0, 1])
+
+    def table():
+        db = sqlite3.connect(":memory:", isolation_level=None)
+        db.enable_load_extension(True)
+        db.load_extension("dist/vec0")
+        db.enable_load_extension(False)
+        db.execute(
+            "CREATE VIRTUAL TABLE t USING vec0("
+            f"v float[4] indexed by ivf(nlist=2, nprobe=2, quantizer={quantizer}))"
+        )
+        for i in range(20):
+            db.execute(
+                "INSERT INTO t(rowid, v) VALUES (?, ?)",
+                [i, _f32([i / 20, (i % 7) / 7, 0, 1])],
+            )
+        if command == "clear-centroids":
+            db.execute("INSERT INTO t(t) VALUES ('compute-centroids')")
+        if command == "assign-vectors":
+            for cid, v in [(0, [0.2, 0.2, 0, 1]), (1, [0.8, 0.8, 0, 1])]:
+                db.execute(
+                    "INSERT INTO t(t, v) VALUES (?, ?)", [f"set-centroid:{cid}", _f32(v)]
+                )
+        return db
+
+    n = 1
+    while True:
+        db = table()
+        steps = 0
+
+        def interrupt_step_n():
+            nonlocal steps
+            steps += 1
+            return steps == n
+
+        db.set_progress_handler(interrupt_step_n, 1)
+        try:
+            db.execute("INSERT INTO t(t) VALUES (?)", [command])
+            error = None
+        except sqlite3.OperationalError as e:
+            error = str(e)
+        db.set_progress_handler(None, 0)
+
+        assert error in (None, "interrupted")
+        assert len(db.execute(knn, [query]).fetchall()) == 20
+        if steps < n:
+            break
+        if error is not None:
+            db.execute("INSERT INTO t(t) VALUES (?)", [command])
+            assert len(db.execute(knn, [query]).fetchall()) == 20
+        n += 1
+    assert n > 1
+
+
 # ============================================================================
 # Insert after training (assigned mode)
 # ============================================================================
