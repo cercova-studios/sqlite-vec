@@ -1,0 +1,23 @@
+tests/test-loadable.py
+  s_73c6da876dccec::t_4e3c1d7fe39e5a 2580-2620
+reference.yaml
+  s_73c6da876dccec::t_379919c3db4721 466-467
+site/guides/hybrid-search.md
+  s_73c6da876dccec::t_4b52a5d17c6b29 1-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4b6cdf80eb96f19737f0b0efb1579864954a623a",
+  "prompts": {},
+  "sessions": {
+    "s_73c6da876dccec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2db5337b-6d4f-49a3-bab8-8a4e560ddd84",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
