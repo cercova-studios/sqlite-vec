@@ -191,6 +191,8 @@ static f32 diskann_distance_quantized_precomputed(
           return distance_cosine_int8(query_quantized, quantized_neighbor, &dimensions);
         case VEC0_DISTANCE_METRIC_L1:
           return (f32)distance_l1_int8(query_quantized, quantized_neighbor, &dimensions);
+        case VEC0_DISTANCE_METRIC_DOT:
+          return distance_dot_int8(query_quantized, quantized_neighbor, &dimensions);
       }
       break;
     }

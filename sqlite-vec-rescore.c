@@ -494,6 +494,9 @@ static int rescore_knn(vec0_vtab *p, vec0_cursor *pCur,
         case VEC0_DISTANCE_METRIC_L1:
           dist = (f32)distance_l1_int8(base_j, (i8 *)quantizedQuery, &qdim);
           break;
+        case VEC0_DISTANCE_METRIC_DOT:
+          dist = distance_dot_int8(base_j, (i8 *)quantizedQuery, &qdim);
+          break;
         }
         break;
       }

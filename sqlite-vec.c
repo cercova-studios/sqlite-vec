@@ -826,6 +826,64 @@ static f32 distance_hamming(const void *a, const void *b, const void *d) {
   return distance_hamming_u8((u8 *)a, (u8 *)b, n_bytes);
 }
 
+/**
+ * Negative inner product, so smaller = more similar like every other metric.
+ * Meant for vectors whose magnitude carries meaning (MIPS); for unit vectors
+ * it ranks identically to cosine without the two extra norms.
+ */
+static f32 dot_float(const f32 *a, const f32 *b, size_t d) {
+  f32 dot = 0;
+  for (size_t i = 0; i < d; i++) dot += a[i] * b[i];
+  return dot;
+}
+
+#ifdef SQLITE_VEC_ENABLE_NEON
+static f32 dot_float_neon(const f32 *a, const f32 *b, size_t d) {
+  float32x4_t s0 = vdupq_n_f32(0), s1 = vdupq_n_f32(0);
+  float32x4_t s2 = vdupq_n_f32(0), s3 = vdupq_n_f32(0);
+  size_t i = 0;
+  for (; i + 16 <= d; i += 16) {
+    s0 = vfmaq_f32(s0, vld1q_f32(a + i), vld1q_f32(b + i));
+    s1 = vfmaq_f32(s1, vld1q_f32(a + i + 4), vld1q_f32(b + i + 4));
+    s2 = vfmaq_f32(s2, vld1q_f32(a + i + 8), vld1q_f32(b + i + 8));
+    s3 = vfmaq_f32(s3, vld1q_f32(a + i + 12), vld1q_f32(b + i + 12));
+  }
+  f32 dot = vaddvq_f32(vaddq_f32(vaddq_f32(s0, s1), vaddq_f32(s2, s3)));
+  for (; i < d; i++) dot += a[i] * b[i];
+  return dot;
+}
+#endif
+
+static f32 distance_dot_float(const void *a, const void *b, const void *d) {
+  size_t dims = *((const size_t *)d);
+#ifdef SQLITE_VEC_ENABLE_NEON
+  if (dims >= 16) return -dot_float_neon((const f32 *)a, (const f32 *)b, dims);
+#endif
+  return -dot_float((const f32 *)a, (const f32 *)b, dims);
+}
+
+static f32 distance_dot_int8(const void *a, const void *b, const void *d) {
+  const i8 *x = (const i8 *)a, *y = (const i8 *)b;
+  size_t dims = *((const size_t *)d);
+  i32 dot = 0;
+  for (size_t i = 0; i < dims; i++) dot += (i32)x[i] * (i32)y[i];
+  return -(f32)dot;
+}
+
+/**
+ * Jaccard distance over set bits: 1 - |a AND b| / |a OR b|. 0 if both empty.
+ */
+static f32 distance_jaccard(const void *a, const void *b, const void *d) {
+  const u8 *x = (const u8 *)a, *y = (const u8 *)b;
+  size_t n_bytes = *((const size_t *)d) / CHAR_BIT;
+  u32 inter = 0, uni = 0;
+  for (size_t i = 0; i < n_bytes; i++) {
+    inter += __builtin_popcountl((unsigned long)(x[i] & y[i]));
+    uni += __builtin_popcountl((unsigned long)(x[i] | y[i]));
+  }
+  return uni == 0 ? 0.0f : 1.0f - (f32)inter / (f32)uni;
+}
+
 #ifdef SQLITE_VEC_TEST
 f32 _test_distance_l2_sqr_float(const f32 *a, const f32 *b, size_t dims) {
   return distance_l2_sqr_float(a, b, &dims);
@@ -1584,6 +1642,107 @@ finish:
   aCleanup(a);
   bCleanup(b);
   return;
+}
+
+static void vec_distance_dot(sqlite3_context *context, int argc,
+                             sqlite3_value **argv) {
+  assert(argc == 2);
+  void *a = NULL, *b = NULL;
+  size_t dimensions;
+  vector_cleanup aCleanup, bCleanup;
+  char *error;
+  enum VectorElementType elementType;
+  int rc = ensure_vector_match(argv[0], argv[1], &a, &b, &elementType,
+                               &dimensions, &aCleanup, &bCleanup, &error);
+  if (rc != SQLITE_OK) {
+    sqlite3_result_error(context, error, -1);
+    sqlite3_free(error);
+    return;
+  }
+  switch (elementType) {
+  case SQLITE_VEC_ELEMENT_TYPE_BIT:
+    sqlite3_result_error(
+        context, "Cannot calculate dot distance between two bitvectors.", -1);
+    break;
+  case SQLITE_VEC_ELEMENT_TYPE_FLOAT32:
+    sqlite3_result_double(context, distance_dot_float(a, b, &dimensions));
+    break;
+  case SQLITE_VEC_ELEMENT_TYPE_INT8:
+    sqlite3_result_double(context, distance_dot_int8(a, b, &dimensions));
+    break;
+  }
+  aCleanup(a);
+  bCleanup(b);
+}
+
+static void vec_distance_jaccard(sqlite3_context *context, int argc,
+                                 sqlite3_value **argv) {
+  assert(argc == 2);
+  void *a = NULL, *b = NULL;
+  size_t dimensions;
+  vector_cleanup aCleanup, bCleanup;
+  char *error;
+  enum VectorElementType elementType;
+  int rc = ensure_vector_match(argv[0], argv[1], &a, &b, &elementType,
+                               &dimensions, &aCleanup, &bCleanup, &error);
+  if (rc != SQLITE_OK) {
+    sqlite3_result_error(context, error, -1);
+    sqlite3_free(error);
+    return;
+  }
+  if (elementType == SQLITE_VEC_ELEMENT_TYPE_BIT) {
+    sqlite3_result_double(context, distance_jaccard(a, b, &dimensions));
+  } else {
+    sqlite3_result_error(
+        context, "Jaccard distance is only defined for bitvectors.", -1);
+  }
+  aCleanup(a);
+  bCleanup(b);
+}
+
+size_t vector_byte_size(enum VectorElementType elementType,
+                               size_t dimensions);
+
+static void vec_concat(sqlite3_context *context, int argc,
+                       sqlite3_value **argv) {
+  assert(argc == 2);
+  void *a = NULL, *b = NULL;
+  size_t aDims, bDims;
+  vector_cleanup aCleanup, bCleanup;
+  char *error;
+  enum VectorElementType aType, bType;
+  if (vector_from_value(argv[0], &a, &aDims, &aType, &aCleanup, &error) !=
+      SQLITE_OK) {
+    sqlite3_result_error(context, error, -1);
+    sqlite3_free(error);
+    return;
+  }
+  if (vector_from_value(argv[1], &b, &bDims, &bType, &bCleanup, &error) !=
+      SQLITE_OK) {
+    sqlite3_result_error(context, error, -1);
+    sqlite3_free(error);
+    aCleanup(a);
+    return;
+  }
+  if (aType != bType) {
+    sqlite3_result_error(context,
+                         "Cannot concatenate vectors of different types.", -1);
+    goto finish;
+  }
+  size_t aBytes = vector_byte_size(aType, aDims);
+  size_t bBytes = vector_byte_size(bType, bDims);
+  u8 *out = sqlite3_malloc64(aBytes + bBytes);
+  if (!out) {
+    sqlite3_result_error_nomem(context);
+    goto finish;
+  }
+  memcpy(out, a, aBytes);
+  memcpy(out + aBytes, b, bBytes);
+  sqlite3_result_blob64(context, out, aBytes + bBytes, sqlite3_free);
+  sqlite3_result_subtype(context, aType);
+finish:
+  aCleanup(a);
+  bCleanup(b);
 }
 
 char *vec_type_name(enum VectorElementType elementType) {
@@ -2533,6 +2692,7 @@ enum Vec0DistanceMetrics {
   VEC0_DISTANCE_METRIC_L2 = 1,
   VEC0_DISTANCE_METRIC_COSINE = 2,
   VEC0_DISTANCE_METRIC_L1 = 3,
+  VEC0_DISTANCE_METRIC_DOT = 4,
 };
 
 /**
@@ -2553,6 +2713,8 @@ static f32 vec0_distance_full(
           return distance_cosine_float(a, b, &dimensions);
         case VEC0_DISTANCE_METRIC_L1:
           return (f32)distance_l1_f32(a, b, &dimensions);
+        case VEC0_DISTANCE_METRIC_DOT:
+          return distance_dot_float(a, b, &dimensions);
       }
       break;
     case SQLITE_VEC_ELEMENT_TYPE_INT8:
@@ -2563,6 +2725,8 @@ static f32 vec0_distance_full(
           return distance_cosine_int8(a, b, &dimensions);
         case VEC0_DISTANCE_METRIC_L1:
           return (f32)distance_l1_int8(a, b, &dimensions);
+        case VEC0_DISTANCE_METRIC_DOT:
+          return distance_dot_int8(a, b, &dimensions);
       }
       break;
     case SQLITE_VEC_ELEMENT_TYPE_BIT:
@@ -2598,6 +2762,7 @@ enum Vec0IvfQuantizer {
   VEC0_IVF_QUANTIZER_NONE = 0,
   VEC0_IVF_QUANTIZER_INT8 = 1,
   VEC0_IVF_QUANTIZER_BINARY = 2,
+  VEC0_IVF_QUANTIZER_RABITQ = 3,
 };
 
 struct Vec0IvfConfig {
@@ -3089,6 +3254,8 @@ int vec0_parse_vector_column(const char *source, int source_length,
         distanceMetric = VEC0_DISTANCE_METRIC_L1;
       } else if (sqlite3_strnicmp(value, "cosine", valueLength) == 0) {
         distanceMetric = VEC0_DISTANCE_METRIC_COSINE;
+      } else if (sqlite3_strnicmp(value, "dot", valueLength) == 0) {
+        distanceMetric = VEC0_DISTANCE_METRIC_DOT;
       } else {
         return SQLITE_ERROR;
       }
@@ -3156,7 +3323,8 @@ int vec0_parse_vector_column(const char *source, int source_length,
         if (rc != SQLITE_OK) {
           return SQLITE_ERROR;
         }
-        if (ivfConfig.quantizer == VEC0_IVF_QUANTIZER_BINARY && (dimensions % 8) != 0) {
+        if ((ivfConfig.quantizer == VEC0_IVF_QUANTIZER_BINARY ||
+             ivfConfig.quantizer == VEC0_IVF_QUANTIZER_RABITQ) && (dimensions % 8) != 0) {
           return SQLITE_ERROR;
         }
 #else
@@ -3188,6 +3356,14 @@ int vec0_parse_vector_column(const char *source, int source_length,
     return SQLITE_ERROR;
   }
   outColumn->name_length = nameLength;
+#if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
+  // RaBitQ estimates inner products, which covers L2 and cosine but not L1
+  if (indexType == VEC0_INDEX_TYPE_IVF &&
+      ivfConfig.quantizer == VEC0_IVF_QUANTIZER_RABITQ &&
+      distanceMetric == VEC0_DISTANCE_METRIC_L1) {
+    return SQLITE_ERROR;
+  }
+#endif
   outColumn->distance_metric = distanceMetric;
   outColumn->element_type = elementType;
   outColumn->dimensions = dimensions;
@@ -7504,6 +7680,11 @@ int vec0Filter_knn_chunks_iter(vec0_vtab *p, sqlite3_stmt *stmtChunks,
                                          &vector_column->dimensions);
           break;
         }
+        case VEC0_DISTANCE_METRIC_DOT: {
+          result = distance_dot_float(base_i, (f32 *)queryVector,
+                                      &vector_column->dimensions);
+          break;
+        }
         }
         break;
       }
@@ -7524,6 +7705,11 @@ int vec0Filter_knn_chunks_iter(vec0_vtab *p, sqlite3_stmt *stmtChunks,
         case VEC0_DISTANCE_METRIC_COSINE: {
           result = distance_cosine_int8(base_i, (i8 *)queryVector,
                                         &vector_column->dimensions);
+          break;
+        }
+        case VEC0_DISTANCE_METRIC_DOT: {
+          result = distance_dot_int8(base_i, (i8 *)queryVector,
+                                     &vector_column->dimensions);
           break;
         }
         }
@@ -10663,6 +10849,9 @@ SQLITE_VEC_API int sqlite3_vec_init(sqlite3 *db, char **pzErrMsg,
     {"vec_distance_l1",     vec_distance_l1,      2, DEFAULT_FLAGS | SQLITE_SUBTYPE,                         },
     {"vec_distance_hamming",vec_distance_hamming, 2, DEFAULT_FLAGS | SQLITE_SUBTYPE,                         },
     {"vec_distance_cosine", vec_distance_cosine,  2, DEFAULT_FLAGS | SQLITE_SUBTYPE,                         },
+    {"vec_distance_dot",    vec_distance_dot,     2, DEFAULT_FLAGS | SQLITE_SUBTYPE,                         },
+    {"vec_distance_jaccard",vec_distance_jaccard, 2, DEFAULT_FLAGS | SQLITE_SUBTYPE,                         },
+    {"vec_concat",          vec_concat,           2, DEFAULT_FLAGS | SQLITE_SUBTYPE | SQLITE_RESULT_SUBTYPE, },
     {"vec_length",          vec_length,           1, DEFAULT_FLAGS | SQLITE_SUBTYPE,                         },
     {"vec_type",           vec_type,           1, DEFAULT_FLAGS,                         },
     {"vec_to_json",         vec_to_json,          1, DEFAULT_FLAGS | SQLITE_SUBTYPE | SQLITE_RESULT_SUBTYPE, },

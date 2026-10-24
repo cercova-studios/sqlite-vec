@@ -99,9 +99,12 @@ def spread_args(args):
 FUNCTIONS = [
     "vec_add",
     "vec_bit",
+    "vec_concat",
     "vec_debug",
     "vec_distance_cosine",
+    "vec_distance_dot",
     "vec_distance_hamming",
+    "vec_distance_jaccard",
     "vec_distance_l1",
     "vec_distance_l2",
     "vec_f32",
@@ -2286,6 +2289,45 @@ def test_coverage():
     funcs_with_tests = set([x.replace("test_", "") for x in test_methods])
     for func in [*FUNCTIONS, *MODULES]:
         assert func in funcs_with_tests, f"{func} is not tested"
+
+
+def _one(sql, *args):
+    return db.execute(sql, args).fetchone()[0]
+
+
+def _f32_pack(v):
+    return struct.pack("%sf" % len(v), *v)
+
+
+def test_vec_distance_dot():
+    assert _one("select vec_distance_dot('[1,2,3]', '[4,5,6]')") == -32.0
+    # NEON path (>=16 dims) plus scalar tail
+    import random as _random
+
+    rng = _random.Random(0)
+    a = [rng.uniform(-1, 1) for _ in range(37)]
+    b = [rng.uniform(-1, 1) for _ in range(37)]
+    got = _one("select vec_distance_dot(?, ?)", _f32_pack(a), _f32_pack(b))
+    assert got == pytest.approx(-sum(x * y for x, y in zip(a, b)), rel=1e-5)
+    assert _one("select vec_distance_dot(vec_int8('[1,2]'), vec_int8('[3,-4]'))") == 5.0
+    with pytest.raises(sqlite3.OperationalError, match="bitvectors"):
+        _one("select vec_distance_dot(vec_bit(X'FF'), vec_bit(X'0F'))")
+
+
+def test_vec_distance_jaccard():
+    # 0b11110000 vs 0b00110011: inter 2, union 6
+    assert _one("select vec_distance_jaccard(vec_bit(X'F0'), vec_bit(X'33'))") == pytest.approx(1 - 2 / 6)
+    assert _one("select vec_distance_jaccard(vec_bit(X'00'), vec_bit(X'00'))") == 0.0
+    with pytest.raises(sqlite3.OperationalError, match="bitvectors"):
+        _one("select vec_distance_jaccard('[1]', '[1]')")
+
+
+def test_vec_concat():
+    assert _one("select vec_to_json(vec_concat('[1,2]', '[3]'))") == "[1.000000,2.000000,3.000000]"
+    assert _one("select vec_type(vec_concat(vec_int8('[1]'), vec_int8('[2]')))") == "int8"
+    assert _one("select vec_length(vec_concat(vec_bit(X'FF'), vec_bit(X'00')))") == 16
+    with pytest.raises(sqlite3.OperationalError, match="different types"):
+        _one("select vec_concat('[1]', vec_int8('[1]'))")
 
 
 if __name__ == "__main__":

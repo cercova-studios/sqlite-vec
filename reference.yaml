@@ -189,6 +189,15 @@ op:
             vec_slice('[2, 3, 1, -4]', 0, 2)
           )
         );
+  vec_concat:
+    params: [a, b]
+    desc: |
+      Joins two vectors of the same element type into one vector. The dimensions do not need to match. Useful for combining embeddings, such as a text and an image embedding, into one column.
+
+      Returns an error if `a` and `b` have different element types.
+    example:
+      - select vec_to_json(vec_concat('[1, 2]', '[3]'));
+      - select vec_length(vec_concat(vec_bit(X'FF'), vec_bit(X'00')));
   vec_slice:
     params: [vector, start, end]
     desc: |
@@ -304,6 +313,28 @@ distance:
       - select vec_distance_hamming(vec_bit(X'FF'), vec_bit(X'FF'));
       - select vec_distance_hamming(vec_bit(X'F0'), vec_bit(X'44'));
       - select vec_distance_hamming('[1, 1]', '[0, 0]');
+  vec_distance_dot:
+    params: [a, b]
+    desc: |
+      Calculates the negative dot product between `a` and `b`, so smaller values mean more similar, like the other distance functions. Valid for float32 and int8 vectors. For unit-length vectors it ranks results the same as cosine distance, with less work.
+
+      Returns an error under the following conditions:
+      - `a` or `b` are bitvectors
+      - `a` and `b` do not share the same length or element type
+    example:
+      - select vec_distance_dot('[1, 2, 3]', '[4, 5, 6]');
+      - select vec_distance_dot(vec_int8('[1, 2]'), vec_int8('[3, -4]'));
+  vec_distance_jaccard:
+    params: [a, b]
+    desc: |
+      Calculates the Jaccard distance between two bitvectors: 1 minus the number of bits set in both, divided by the number of bits set in either. Returns 0 when neither vector has any bits set.
+
+      Returns an error under the following conditions:
+      - `a` or `b` are not bitvectors
+      - `a` and `b` do not share the same length
+    example:
+      - select vec_distance_jaccard(vec_bit(X'F0'), vec_bit(X'33'));
+      - select vec_distance_jaccard(vec_bit(X'FF'), vec_bit(X'FF'));
 
 quantization:
   vec_quantize_binary:

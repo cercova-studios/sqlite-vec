@@ -270,3 +270,62 @@ def test_ivf_binary_rejects_non_multiple_of_8_dims(db):
         "  v float[16] indexed by ivf(quantizer=binary)"
         ")"
     )
+
+
+# ============================================================================
+# RaBitQ
+# ============================================================================
+
+
+def test_ivf_rabitq_rejects_l1_and_bad_dims(db):
+    with pytest.raises(sqlite3.OperationalError):
+        db.execute(
+            "CREATE VIRTUAL TABLE t1 USING vec0("
+            "v float[8] distance_metric=l1 indexed by ivf(quantizer=rabitq))"
+        )
+    with pytest.raises(sqlite3.OperationalError):
+        db.execute(
+            "CREATE VIRTUAL TABLE t2 USING vec0("
+            "v float[12] indexed by ivf(quantizer=rabitq))"
+        )
+
+
+@pytest.mark.parametrize("metric", ["l2", "cosine"])
+def test_ivf_rabitq_recall(db, metric):
+    """RaBitQ estimate + oversample rerank should match brute force."""
+    import random
+
+    rng = random.Random(0)
+    D, N, K = 128, 1000, 10
+    # clustered data; isotropic gaussian has no real neighbors to find
+    centers = [[rng.gauss(0, 1) for _ in range(D)] for _ in range(30)]
+    point = lambda: [x + rng.gauss(0, 0.4) for x in rng.choice(centers)]
+    vecs = [point() for _ in range(N)]
+    ivf = "indexed by ivf(nlist=8, nprobe=8, quantizer=rabitq, oversample=4)"
+    for name, idx in [("t", ivf), ("ref", "")]:
+        db.execute(
+            f"CREATE VIRTUAL TABLE {name} USING vec0("
+            f"v float[{D}] distance_metric={metric} {idx})"
+        )
+        db.executemany(
+            f"INSERT INTO {name}(rowid, v) VALUES (?, ?)",
+            [(i, _f32(v)) for i, v in enumerate(vecs)],
+        )
+    db.execute("INSERT INTO t(t) VALUES ('compute-centroids')")
+    # rows inserted after training take the trained insert path
+    extra = point()
+    for name in ("t", "ref"):
+        db.execute(f"INSERT INTO {name}(rowid, v) VALUES (?, ?)", [N, _f32(extra)])
+
+    hits = 0
+    for _ in range(20):
+        q = _f32(point())
+        sql = "SELECT rowid FROM {} WHERE v MATCH ? AND k = ?"
+        got = {r[0] for r in db.execute(sql.format("t"), [q, K])}
+        want = {r[0] for r in db.execute(sql.format("ref"), [q, K])}
+        hits += len(got & want)
+    assert hits / (20 * K) >= 0.9
+
+    # Codes are D/8 bits + 2 floats per vector
+    cell = db.execute("SELECT n_vectors, length(vectors) FROM t_ivf_cells00 LIMIT 1").fetchone()
+    assert cell[1] % (D // 8 + 8) == 0

@@ -34,6 +34,11 @@ where contents_embedding match :query
   and k = 10;
 ```
 
+Supported values for `distance_metric` are `l2` (the default), `cosine`, `l1`,
+and `dot`. `dot` ranks by negative inner product. Use it for embeddings where
+vector length carries meaning, or as a cheaper equivalent of `cosine` for
+vectors that are already normalized.
+
 ```sql
 -- This example ONLY works in SQLite versions 3.41+
 -- Otherwise, use the `k = 10` method described above!

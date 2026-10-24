@@ -99,6 +99,8 @@ static int vec0_parse_ivf_options(struct Vec0Scanner *scanner,
         config->quantizer = VEC0_IVF_QUANTIZER_INT8;
       } else if (sqlite3_strnicmp(val, "binary", valLength) == 0) {
         config->quantizer = VEC0_IVF_QUANTIZER_BINARY;
+      } else if (sqlite3_strnicmp(val, "rabitq", valLength) == 0) {
+        config->quantizer = VEC0_IVF_QUANTIZER_RABITQ;
       } else {
         return SQLITE_ERROR;
       }
@@ -144,6 +146,7 @@ static int ivf_vec_size(vec0_vtab *p, int col_idx) {
   switch (p->vector_columns[col_idx].ivf.quantizer) {
   case VEC0_IVF_QUANTIZER_INT8:    return D;
   case VEC0_IVF_QUANTIZER_BINARY:  return D / 8;
+  case VEC0_IVF_QUANTIZER_RABITQ:  return D / 8 + 2 * (int)sizeof(float);
   default:                          return D * (int)sizeof(float);
   }
 }
@@ -182,6 +185,96 @@ IVF_STATIC void ivf_quantize_binary(const float *src, uint8_t *dst, int D) {
 }
 
 /**
+ * Random orthogonal transform shared by RaBitQ data and query vectors:
+ * 3 rounds of seeded sign flips + Walsh-Hadamard butterflies. Every
+ * butterfly is an orthonormal 2x2, so norms and inner products survive.
+ * ponytail: fixed seed (all tables share one rotation), store a per-table
+ * seed if adversarial data ever matters.
+ */
+IVF_STATIC void ivf_rabitq_rotate(float *v, int D) {
+  const float h = 0.70710678118654752f;
+  for (int round = 0; round < 3; round++) {
+    uint32_t x = 0x9E3779B9u ^ (uint32_t)(round + 1) * 0x85EBCA6Bu;
+    for (int i = 0; i < D; i++) {
+      x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+      if (x & 1) v[i] = -v[i];
+    }
+    for (int stride = 1; stride < D; stride <<= 1) {
+      for (int i = 0; i + stride < D; i++) {
+        if (i & stride) continue;
+        float a = v[i], b = v[i + stride];
+        v[i] = (a + b) * h;
+        v[i + stride] = (a - b) * h;
+      }
+    }
+  }
+}
+
+/**
+ * RaBitQ code (Gao & Long, SIGMOD'24), centered at the origin:
+ *   [D/8 sign bits of P*x][f32 ||x||][f32 x0 = <P*x/||x||, sign(P*x)/sqrt(D)>]
+ * x0 is the correction factor that makes the inner-product estimate unbiased.
+ * ponytail: origin-centered, not centroid-centered like PRISM; codes are
+ * centroid-independent so cells move freely. Center per-cell if recall needs it.
+ */
+IVF_STATIC void ivf_quantize_rabitq(const float *src, uint8_t *dst, int D) {
+  float *r = sqlite3_malloc(D * (int)sizeof(float));
+  float norm = 0.0f, abs_sum = 0.0f, x0 = 1.0f;
+  memset(dst, 0, D / 8);
+  if (r) {
+    memcpy(r, src, D * sizeof(float));
+    ivf_rabitq_rotate(r, D);
+    for (int i = 0; i < D; i++) {
+      norm += r[i] * r[i];
+      abs_sum += fabsf(r[i]);
+      if (r[i] > 0.0f) dst[i / 8] |= (1 << (i % 8));
+    }
+    sqlite3_free(r);
+  }
+  norm = sqrtf(norm);
+  if (norm > 0.0f) x0 = abs_sum / (sqrtf((float)D) * norm);
+  memcpy(dst + D / 8, &norm, sizeof(float));
+  memcpy(dst + D / 8 + sizeof(float), &x0, sizeof(float));
+}
+
+/**
+ * RaBitQ query side: [D f32 of P*q/||q||][f32 ||q||]. Size D*4+4.
+ */
+static int ivf_rabitq_query_size(int D) { return (D + 1) * (int)sizeof(float); }
+
+IVF_STATIC void ivf_rabitq_prepare_query(const float *src, float *dst, int D) {
+  memcpy(dst, src, D * sizeof(float));
+  ivf_rabitq_rotate(dst, D);
+  float norm = 0.0f;
+  for (int i = 0; i < D; i++) norm += dst[i] * dst[i];
+  norm = sqrtf(norm);
+  if (norm > 0.0f) for (int i = 0; i < D; i++) dst[i] /= norm;
+  dst[D] = norm;
+}
+
+/**
+ * Estimated distance between a prepared query and a RaBitQ code:
+ *   <o,q> ~= <sign(P*x)/sqrt(D), P*q/||q||> / x0
+ */
+IVF_STATIC float ivf_rabitq_distance(const float *q, const uint8_t *code,
+                                     int D, int metric) {
+  float dot = 0.0f;
+  for (int i = 0; i < D; i++) {
+    dot += (code[i / 8] & (1 << (i % 8))) ? q[i] : -q[i];
+  }
+  float norm, x0;
+  memcpy(&norm, code + D / 8, sizeof(float));
+  memcpy(&x0, code + D / 8 + sizeof(float), sizeof(float));
+  float est = dot / (sqrtf((float)D) * x0);
+  if (est > 1.0f) est = 1.0f;
+  if (est < -1.0f) est = -1.0f;
+  if (metric == VEC0_DISTANCE_METRIC_COSINE) return 1.0f - est;
+  float qn = q[D];
+  if (metric == VEC0_DISTANCE_METRIC_DOT) return -norm * qn * est;
+  return norm * norm + qn * qn - 2.0f * norm * qn * est;
+}
+
+/**
  * Quantize a float32 vector to the target type based on config.
  * dst must be pre-allocated to ivf_vec_size() bytes.
  * If quantizer=none, copies src as-is.
@@ -196,10 +289,30 @@ static void ivf_quantize(vec0_vtab *p, int col_idx,
   case VEC0_IVF_QUANTIZER_BINARY:
     ivf_quantize_binary(src, (uint8_t *)dst, D);
     break;
+  case VEC0_IVF_QUANTIZER_RABITQ:
+    ivf_quantize_rabitq(src, (uint8_t *)dst, D);
+    break;
   default:
     memcpy(dst, src, D * sizeof(float));
     break;
   }
+}
+
+/**
+ * Query-side representation passed as `a` to ivf_distance(). Same as the
+ * stored code for symmetric quantizers; RaBitQ is asymmetric (float query
+ * vs. bit code). Caller frees.
+ */
+static void *ivf_query_rep(vec0_vtab *p, int col_idx, const float *src) {
+  int D = (int)p->vector_columns[col_idx].dimensions;
+  if (p->vector_columns[col_idx].ivf.quantizer == VEC0_IVF_QUANTIZER_RABITQ) {
+    float *q = sqlite3_malloc(ivf_rabitq_query_size(D));
+    if (q) ivf_rabitq_prepare_query(src, q, D);
+    return q;
+  }
+  void *q = sqlite3_malloc(ivf_vec_size(p, col_idx));
+  if (q) ivf_quantize(p, col_idx, src, q);
+  return q;
 }
 
 // Forward declaration
@@ -236,6 +349,8 @@ static float ivf_distance_float(vec0_vtab *p, int col_idx,
     return distance_cosine_float(a, b, &dims);
   case VEC0_DISTANCE_METRIC_L1:
     return (float)distance_l1_f32(a, b, &dims);
+  case VEC0_DISTANCE_METRIC_DOT:
+    return distance_dot_float(a, b, &dims);
   case VEC0_DISTANCE_METRIC_L2:
   default:
     return distance_l2_sqr_float(a, b, &dims);
@@ -256,6 +371,9 @@ static float ivf_distance(vec0_vtab *p, int col_idx,
     return distance_l2_sqr_int8(a, b, &dims);
   case VEC0_IVF_QUANTIZER_BINARY:
     return distance_hamming(a, b, &dims);
+  case VEC0_IVF_QUANTIZER_RABITQ:
+    return ivf_rabitq_distance((const float *)a, (const uint8_t *)b, (int)dims,
+                               p->vector_columns[col_idx].distance_metric);
   default:
     return ivf_distance_float(p, col_idx, (const float *)a, (const float *)b);
   }
@@ -552,10 +670,12 @@ static int ivf_insert(vec0_vtab *p, int col_idx, i64 rowid,
     // Find nearest centroid using quantized distance
     int best_centroid = -1;
     float min_dist = FLT_MAX;
+    void *qrep = ivf_query_rep(p, col_idx, (const float *)vectorData);
+    if (!qrep) { sqlite3_free(qvec); return SQLITE_NOMEM; }
 
     rc = ivf_ensure_stmt(p, &p->stmtIvfCentroidsAll[col_idx],
         "SELECT centroid_id, centroid FROM " VEC0_SHADOW_IVF_CENTROIDS_NAME, col_idx);
-    if (rc != SQLITE_OK) { sqlite3_free(qvec); return rc; }
+    if (rc != SQLITE_OK) { sqlite3_free(qrep); sqlite3_free(qvec); return rc; }
     sqlite3_stmt *stmt = p->stmtIvfCentroidsAll[col_idx];
     sqlite3_reset(stmt);
     while (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -563,9 +683,10 @@ static int ivf_insert(vec0_vtab *p, int col_idx, i64 rowid,
       const void *c = sqlite3_column_blob(stmt, 1);
       int cBytes = sqlite3_column_bytes(stmt, 1);
       if (!c || cBytes != qvecSize) continue;
-      float dist = ivf_distance(p, col_idx, qvec, c);
+      float dist = ivf_distance(p, col_idx, qrep, c);
       if (dist < min_dist) { min_dist = dist; best_centroid = cid; }
     }
+    sqlite3_free(qrep);
     if (best_centroid < 0) { sqlite3_free(qvec); return SQLITE_ERROR; }
 
     rc = ivf_cell_insert(p, col_idx, best_centroid, rowid, qvec, qvecSize);
@@ -1234,9 +1355,8 @@ static int ivf_query_knn(vec0_vtab *p, int col_idx,
   int qvecSize = ivf_vec_size(p, col_idx);
 
   // Quantize query vector for scanning
-  void *queryQ = sqlite3_malloc(qvecSize);
+  void *queryQ = ivf_query_rep(p, col_idx, (const float *)queryVector);
   if (!queryQ) return SQLITE_NOMEM;
-  ivf_quantize(p, col_idx, (const float *)queryVector, queryQ);
 
   // With oversample, collect more candidates for re-ranking
   i64 collect_k = (oversample > 1) ? k * oversample : k;
