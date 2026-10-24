@@ -46,6 +46,28 @@ Very much a WIP.
 - `rowid INTEGER`
 - `data TEXT`
 
+#### `xyz_hnsw_nodesNN`
+
+One row per vector in an `indexed by hnsw(...)` column.
+
+- `rowid INTEGER PRIMARY KEY`
+- `level INTEGER`: the node's top HNSW layer
+- `vector BLOB`
+- `UNIQUE (level, rowid)`: the entry point is the first row of this index in
+  descending order, so it is never stored separately
+
+#### `xyz_hnsw_edgesNN`
+
+`WITHOUT ROWID`, one row per node per layer.
+
+- `rowid INTEGER`, `level INTEGER` (primary key)
+- `neighbors BLOB`: packed `i64` rowids
+
+Connections cache these rows in memory (`cache_mb`). The cache is cleared on
+`xRollback` and `xRollbackTo`, and when the pager's data version shows a commit
+by another connection. vec0 sets `xSavepoint` only so that SQLite calls
+`xRollbackTo` when a statement fails inside a transaction.
+
 ### idxStr
 
 The `vec0` idxStr is a string composed of single "header" character and 0 or

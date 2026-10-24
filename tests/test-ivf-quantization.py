@@ -355,3 +355,37 @@ def test_ivf_rabitq_recall(db, metric):
     # Codes are D/8 bits + 2 floats per vector
     cell = db.execute("SELECT n_vectors, length(vectors) FROM t_ivf_cells00 LIMIT 1").fetchone()
     assert cell[1] % (D // 8 + 8) == 0
+
+
+@pytest.mark.parametrize("qz,metric", [
+    ("fp16", "l2"), ("bf16", "cosine"), ("int4", "l2"), ("int4", "dot"), ("fp16", "l1"),
+])
+def test_ivf_compact_quantizers(db, qz, metric):
+    """fp16/bf16/int4 cells + rerank match brute force; codes are compact."""
+    import random
+
+    rng = random.Random(2)
+    D, N, K = 32, 400, 5
+    vecs = [[rng.uniform(-1, 1) for _ in range(D)] for _ in range(N)]
+    ivf = f"indexed by ivf(nlist=4, nprobe=4, quantizer={qz}, oversample=4)"
+    for name, idx in [("t", ivf), ("ref", "")]:
+        db.execute(f"CREATE VIRTUAL TABLE {name} USING vec0(v float[{D}] distance_metric={metric} {idx})")
+        db.executemany(f"INSERT INTO {name}(rowid, v) VALUES (?, ?)",
+                       [(i, _f32(v)) for i, v in enumerate(vecs)])
+    db.execute("INSERT INTO t(t) VALUES ('compute-centroids')")
+    hits = 0
+    for _ in range(10):
+        q = _f32([rng.uniform(-1, 1) for _ in range(D)])
+        sql = "SELECT rowid FROM {} WHERE v MATCH ? AND k = ?"
+        hits += len({r[0] for r in db.execute(sql.format("t"), [q, K])} &
+                    {r[0] for r in db.execute(sql.format("ref"), [q, K])})
+    assert hits / (10 * K) >= 0.9
+    per_vec = {"fp16": 2 * D, "bf16": 2 * D, "int4": D // 2}[qz]
+    assert db.execute("SELECT length(vectors) FROM t_ivf_cells00 LIMIT 1").fetchone()[0] % per_vec == 0
+    # point reads return the original float32 vector
+    assert db.execute("SELECT v FROM t WHERE rowid = 3").fetchone()[0] == _f32(vecs[3])
+
+
+def test_ivf_int4_rejects_odd_dims(db):
+    with pytest.raises(sqlite3.OperationalError):
+        db.execute("CREATE VIRTUAL TABLE t USING vec0(v float[7] indexed by ivf(quantizer=int4))")

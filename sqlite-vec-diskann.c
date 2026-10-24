@@ -145,22 +145,12 @@ int diskann_quantize_vector(
     u8 *out) {
 
   switch (quantizer_type) {
-    case VEC0_DISKANN_QUANTIZER_BINARY: {
-      memset(out, 0, dimensions / CHAR_BIT);
-      for (size_t i = 0; i < dimensions; i++) {
-        if (src[i] > 0.0f) {
-          out[i / CHAR_BIT] |= (1 << (i % CHAR_BIT));
-        }
-      }
+    case VEC0_DISKANN_QUANTIZER_BINARY:
+      vec0_quantize_binary_f32(src, out, dimensions);
       return SQLITE_OK;
-    }
-    case VEC0_DISKANN_QUANTIZER_INT8: {
-      f32 step = (1.0f - (-1.0f)) / 255.0f;
-      for (size_t i = 0; i < dimensions; i++) {
-        ((i8 *)out)[i] = (i8)(((src[i] - (-1.0f)) / step) - 128.0f);
-      }
+    case VEC0_DISKANN_QUANTIZER_INT8:
+      vec0_quantize_int8_unit(src, (i8 *)out, dimensions);
       return SQLITE_OK;
-    }
   }
   return SQLITE_ERROR;
 }
@@ -220,19 +210,9 @@ static f32 diskann_distance_quantized_precomputed(
   switch (quantizer_type) {
     case VEC0_DISKANN_QUANTIZER_BINARY:
       return distance_hamming(query_quantized, quantized_neighbor, &dimensions);
-    case VEC0_DISKANN_QUANTIZER_INT8: {
-      switch (distance_metric) {
-        case VEC0_DISTANCE_METRIC_L2:
-          return distance_l2_sqr_int8(query_quantized, quantized_neighbor, &dimensions);
-        case VEC0_DISTANCE_METRIC_COSINE:
-          return distance_cosine_int8(query_quantized, quantized_neighbor, &dimensions);
-        case VEC0_DISTANCE_METRIC_L1:
-          return (f32)distance_l1_int8(query_quantized, quantized_neighbor, &dimensions);
-        case VEC0_DISTANCE_METRIC_DOT:
-          return distance_dot_int8(query_quantized, quantized_neighbor, &dimensions);
-      }
-      break;
-    }
+    case VEC0_DISKANN_QUANTIZER_INT8:
+      return vec0_distance_full(query_quantized, quantized_neighbor, dimensions,
+                                SQLITE_VEC_ELEMENT_TYPE_INT8, distance_metric);
   }
   return FLT_MAX;
 }

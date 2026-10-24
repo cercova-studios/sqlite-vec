@@ -50,6 +50,10 @@ typedef size_t usize;
 #define SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE 0
 #endif
 
+#ifndef SQLITE_VEC_ENABLE_HNSW
+#define SQLITE_VEC_ENABLE_HNSW 1
+#endif
+
 #ifndef SQLITE_SUBTYPE
 #define SQLITE_SUBTYPE 0x000100000
 #endif
@@ -589,10 +593,51 @@ static double distance_l1_f32(const void *a, const void *b, const void *d) {
   return l1_f32(a, b, d);
 }
 
+#ifdef SQLITE_VEC_ENABLE_NEON
+/**
+ * Single-precision NEON cosine. Fast, but squares of very small (or large)
+ * elements underflow (or overflow) f32. Returns 0 and leaves *out untouched
+ * when that may have happened, so the caller can fall back to the double
+ * kernel; returns 1 otherwise.
+ */
+static int cosine_float_neon_f32(const f32 *a, const f32 *b, size_t n, f32 *out) {
+  float32x4_t dot0 = vdupq_n_f32(0), dot1 = vdupq_n_f32(0);
+  float32x4_t aa0 = vdupq_n_f32(0), aa1 = vdupq_n_f32(0);
+  float32x4_t bb0 = vdupq_n_f32(0), bb1 = vdupq_n_f32(0);
+  size_t i = 0;
+  for (; i + 8 <= n; i += 8) {
+    float32x4_t x0 = vld1q_f32(a + i), y0 = vld1q_f32(b + i);
+    float32x4_t x1 = vld1q_f32(a + i + 4), y1 = vld1q_f32(b + i + 4);
+    dot0 = vfmaq_f32(dot0, x0, y0);
+    dot1 = vfmaq_f32(dot1, x1, y1);
+    aa0 = vfmaq_f32(aa0, x0, x0);
+    aa1 = vfmaq_f32(aa1, x1, x1);
+    bb0 = vfmaq_f32(bb0, y0, y0);
+    bb1 = vfmaq_f32(bb1, y1, y1);
+  }
+  f32 dot = vaddvq_f32(vaddq_f32(dot0, dot1));
+  f32 aa = vaddvq_f32(vaddq_f32(aa0, aa1));
+  f32 bb = vaddvq_f32(vaddq_f32(bb0, bb1));
+  for (; i < n; i++) {
+    dot += a[i] * b[i];
+    aa += a[i] * a[i];
+    bb += b[i] * b[i];
+  }
+  // aa/bb >= 1e-30 rules out underflow that matters; finiteness rules out
+  // overflow. Anything else goes to the exact double kernel.
+  if (!(aa >= 1e-30f && bb >= 1e-30f && isfinite(aa) && isfinite(bb) && isfinite(dot)))
+    return 0;
+  *out = (f32)(1.0 - (double)dot / (sqrt((double)aa) * sqrt((double)bb)));
+  return 1;
+}
+#endif
+
 static f32 distance_cosine_float(const void *pVect1v, const void *pVect2v,
                                  const void *qty_ptr) {
 #ifdef SQLITE_VEC_ENABLE_NEON
   if ((*(const size_t *)qty_ptr) > 16) {
+    f32 d;
+    if (cosine_float_neon_f32(pVect1v, pVect2v, *(const size_t *)qty_ptr, &d)) return d;
     return cosine_float_neon(pVect1v, pVect2v, qty_ptr);
   }
 #endif
@@ -1901,6 +1946,33 @@ static void vec_type(sqlite3_context *context, int argc, sqlite3_value **argv) {
   sqlite3_result_text(context, vec_type_name(elementType), -1, SQLITE_STATIC);
   cleanup(vector);
 }
+/**
+ * Sign-bit quantization shared by the IVF and DiskANN binary quantizers and
+ * vec_quantize_binary(): bit i is set when src[i] > 0. (The rescore bit
+ * quantizer sets it for src[i] >= 0; its stored format keeps that rule.)
+ */
+static void vec0_quantize_binary_f32(const f32 *src, u8 *dst, size_t n) {
+  memset(dst, 0, n / CHAR_BIT);
+  for (size_t i = 0; i < n; i++) {
+    if (src[i] > 0.0f) dst[i / CHAR_BIT] |= (u8)(1 << (i % CHAR_BIT));
+  }
+}
+
+/**
+ * Map [-1, 1] onto int8 [-128, 127], clamping outside values (and NaN) so the
+ * float -> int8 conversion is always defined. Shared by the rescore and
+ * DiskANN int8 quantizers.
+ */
+static void vec0_quantize_int8_unit(const f32 *src, i8 *dst, size_t n) {
+  const f32 step = 2.0f / 255.0f;
+  for (size_t i = 0; i < n; i++) {
+    f32 v = (src[i] + 1.0f) / step - 128.0f;
+    if (!(v <= 127.0f)) v = 127.0f;
+    if (!(v >= -128.0f)) v = -128.0f;
+    dst[i] = (i8)v;
+  }
+}
+
 static void vec_quantize_binary(sqlite3_context *context, int argc,
                                 sqlite3_value **argv) {
   assert(argc == 1);
@@ -1942,11 +2014,7 @@ static void vec_quantize_binary(sqlite3_context *context, int argc,
 
   switch (elementType) {
   case SQLITE_VEC_ELEMENT_TYPE_FLOAT32: {
-
-    for (size_t i = 0; i < dimensions; i++) {
-      int res = ((f32 *)vector)[i] > 0.0;
-      out[i / 8] |= (res << (i % 8));
-    }
+    vec0_quantize_binary_f32((const f32 *)vector, out, dimensions);
     break;
   }
   case SQLITE_VEC_ELEMENT_TYPE_INT8: {
@@ -2824,44 +2892,53 @@ enum Vec0DistanceMetrics {
   VEC0_DISTANCE_METRIC_DOT = 4,
 };
 
+typedef f32 (*vec0_distance_fn)(const void *a, const void *b, const void *dims);
+
+static f32 distance_l1_f32_as_f32(const void *a, const void *b, const void *d) {
+  return (f32)distance_l1_f32(a, b, d);
+}
+static f32 distance_l1_int8_as_f32(const void *a, const void *b, const void *d) {
+  return (f32)distance_l1_int8(a, b, d);
+}
+
 /**
- * Compute distance between two full-precision vectors using the appropriate
- * distance function for the given element type and metric.
- * Shared utility used by ANN index implementations.
+ * The distance kernel for an element type and metric: the one table every
+ * exact distance in vec0 goes through. Hot loops resolve it once.
+ */
+static vec0_distance_fn vec0_distance_resolve(enum VectorElementType elementType,
+                                              enum Vec0DistanceMetrics metric) {
+  switch (elementType) {
+    case SQLITE_VEC_ELEMENT_TYPE_FLOAT32:
+      switch (metric) {
+        case VEC0_DISTANCE_METRIC_L2: return distance_l2_sqr_float;
+        case VEC0_DISTANCE_METRIC_COSINE: return distance_cosine_float;
+        case VEC0_DISTANCE_METRIC_L1: return distance_l1_f32_as_f32;
+        case VEC0_DISTANCE_METRIC_DOT: return distance_dot_float;
+      }
+      break;
+    case SQLITE_VEC_ELEMENT_TYPE_INT8:
+      switch (metric) {
+        case VEC0_DISTANCE_METRIC_L2: return distance_l2_sqr_int8;
+        case VEC0_DISTANCE_METRIC_COSINE: return distance_cosine_int8;
+        case VEC0_DISTANCE_METRIC_L1: return distance_l1_int8_as_f32;
+        case VEC0_DISTANCE_METRIC_DOT: return distance_dot_int8;
+      }
+      break;
+    case SQLITE_VEC_ELEMENT_TYPE_BIT:
+      return distance_hamming;
+  }
+  return distance_l2_sqr_float;  // unreachable: types and metrics are validated
+}
+
+/**
+ * Distance between two full-precision vectors of the given element type and
+ * metric. Shared by every index implementation.
  */
 static f32 vec0_distance_full(
     const void *a, const void *b, size_t dimensions,
     enum VectorElementType elementType,
     enum Vec0DistanceMetrics metric) {
-  switch (elementType) {
-    case SQLITE_VEC_ELEMENT_TYPE_FLOAT32:
-      switch (metric) {
-        case VEC0_DISTANCE_METRIC_L2:
-          return distance_l2_sqr_float(a, b, &dimensions);
-        case VEC0_DISTANCE_METRIC_COSINE:
-          return distance_cosine_float(a, b, &dimensions);
-        case VEC0_DISTANCE_METRIC_L1:
-          return (f32)distance_l1_f32(a, b, &dimensions);
-        case VEC0_DISTANCE_METRIC_DOT:
-          return distance_dot_float(a, b, &dimensions);
-      }
-      break;
-    case SQLITE_VEC_ELEMENT_TYPE_INT8:
-      switch (metric) {
-        case VEC0_DISTANCE_METRIC_L2:
-          return distance_l2_sqr_int8(a, b, &dimensions);
-        case VEC0_DISTANCE_METRIC_COSINE:
-          return distance_cosine_int8(a, b, &dimensions);
-        case VEC0_DISTANCE_METRIC_L1:
-          return (f32)distance_l1_int8(a, b, &dimensions);
-        case VEC0_DISTANCE_METRIC_DOT:
-          return distance_dot_int8(a, b, &dimensions);
-      }
-      break;
-    case SQLITE_VEC_ELEMENT_TYPE_BIT:
-      return distance_hamming(a, b, &dimensions);
-  }
-  return 0.0f;
+  return vec0_distance_resolve(elementType, metric)(a, b, &dimensions);
 }
 
 enum Vec0IndexType {
@@ -2871,6 +2948,7 @@ enum Vec0IndexType {
 #endif
   VEC0_INDEX_TYPE_IVF = 3,
   VEC0_INDEX_TYPE_DISKANN = 4,
+  VEC0_INDEX_TYPE_HNSW = 5,
 };
 
 #if SQLITE_VEC_ENABLE_RESCORE
@@ -2892,6 +2970,9 @@ enum Vec0IvfQuantizer {
   VEC0_IVF_QUANTIZER_INT8 = 1,
   VEC0_IVF_QUANTIZER_BINARY = 2,
   VEC0_IVF_QUANTIZER_RABITQ = 3,
+  VEC0_IVF_QUANTIZER_FP16 = 4,
+  VEC0_IVF_QUANTIZER_BF16 = 5,
+  VEC0_IVF_QUANTIZER_INT4 = 6,
 };
 
 struct Vec0IvfConfig {
@@ -2919,6 +3000,18 @@ struct Vec0IvfConfig { char _unused; };
 enum Vec0DiskannQuantizerType {
   VEC0_DISKANN_QUANTIZER_BINARY = 1,   // 1 bit per dimension (1/32 compression)
   VEC0_DISKANN_QUANTIZER_INT8   = 2,   // 1 byte per dimension (1/4 compression)
+};
+
+/**
+ * Configuration for an HNSW index on a single vector column.
+ * Parsed from `INDEXED BY hnsw(m=16, ef_construction=200, ef_search=64)`.
+ */
+struct Vec0HnswConfig {
+  int m;                // max neighbors per node above level 0 (2*m at level 0)
+  int ef_construction;  // beam width while inserting
+  int ef_search;        // beam width while querying; at least k
+  int cache_mb;         // per-connection vector/edge cache budget; 0 disables
+  int quantizer;        // VEC0_HNSW_QUANTIZER_*: search on codes, rerank exactly
 };
 
 /**
@@ -2986,7 +3079,19 @@ struct VectorColumnDefinition {
 #endif
   struct Vec0IvfConfig ivf;
   struct Vec0DiskannConfig diskann;
+  struct Vec0HnswConfig hnsw;
 };
+
+/**
+ * Compute pairwise distance between two vectors stored in the vec0 table's
+ * native format, with the column's element type and metric.
+ */
+static f32 vec0_compute_distance(struct VectorColumnDefinition *vector_column,
+                                 const void *a, const void *b) {
+  return vec0_distance_full(a, b, vector_column->dimensions,
+                            vector_column->element_type,
+                            vector_column->distance_metric);
+}
 
 struct Vec0PartitionColumnDefinition {
   int type;
@@ -3142,6 +3247,11 @@ static int vec0_parse_rescore_options(struct Vec0Scanner *scanner,
 static int vec0_parse_ivf_options(struct Vec0Scanner *scanner,
                                    struct Vec0IvfConfig *config);
 #endif
+#if SQLITE_VEC_ENABLE_HNSW
+// Forward declaration — defined in sqlite-vec-hnsw.c
+static int vec0_parse_hnsw_options(struct Vec0Scanner *scanner,
+                                   struct Vec0HnswConfig *config);
+#endif
 
 /**
  * Parse the options inside diskann(...) parentheses.
@@ -3285,6 +3395,8 @@ int vec0_parse_vector_column(const char *source, int source_length,
   memset(&ivfConfig, 0, sizeof(ivfConfig));
   struct Vec0DiskannConfig diskannConfig;
   memset(&diskannConfig, 0, sizeof(diskannConfig));
+  struct Vec0HnswConfig hnswConfig;
+  memset(&hnswConfig, 0, sizeof(hnswConfig));
   int dimensions;
   vec0_scanner_init(&scanner, source, source_length);
 
@@ -3465,6 +3577,9 @@ int vec0_parse_vector_column(const char *source, int source_length,
              ivfConfig.quantizer == VEC0_IVF_QUANTIZER_RABITQ) && (dimensions % 8) != 0) {
           return SQLITE_ERROR;
         }
+        if (ivfConfig.quantizer == VEC0_IVF_QUANTIZER_INT4 && (dimensions % 2) != 0) {
+          return SQLITE_ERROR;
+        }
 #else
         return SQLITE_ERROR; // IVF not compiled in
 #endif
@@ -3472,6 +3587,16 @@ int vec0_parse_vector_column(const char *source, int source_length,
 #if SQLITE_VEC_ENABLE_DISKANN
         indexType = VEC0_INDEX_TYPE_DISKANN;
         rc = vec0_parse_diskann_options(&scanner, &diskannConfig);
+        if (rc != SQLITE_OK) {
+          return rc;
+        }
+#else
+        return SQLITE_ERROR;
+#endif
+      } else if (indexNameLen == 4 && sqlite3_strnicmp(token.start, "hnsw", 4) == 0) {
+#if SQLITE_VEC_ENABLE_HNSW
+        indexType = VEC0_INDEX_TYPE_HNSW;
+        rc = vec0_parse_hnsw_options(&scanner, &hnswConfig);
         if (rc != SQLITE_OK) {
           return rc;
         }
@@ -3511,6 +3636,7 @@ int vec0_parse_vector_column(const char *source, int source_length,
 #endif
   outColumn->ivf = ivfConfig;
   outColumn->diskann = diskannConfig;
+  outColumn->hnsw = hnswConfig;
   return SQLITE_OK;
 }
 
@@ -3707,6 +3833,8 @@ static sqlite3_module vec_eachModule = {
 };
 
 #pragma endregion
+
+#include "sqlite-vec-sparse.c"
 
 
 
@@ -3971,6 +4099,17 @@ struct vec0_vtab {
   sqlite3_stmt *stmtVectorsRead[VEC0_MAX_VECTOR_COLUMNS];
   sqlite3_stmt *stmtVectorsInsert[VEC0_MAX_VECTOR_COLUMNS];
 #endif
+#if SQLITE_VEC_ENABLE_HNSW
+  // Prepared statements for HNSW operations (per vector column), lazily
+  // prepared on first use.
+  sqlite3_stmt *stmtHnswNodeRead[VEC0_MAX_VECTOR_COLUMNS];
+  sqlite3_stmt *stmtHnswNodeInsert[VEC0_MAX_VECTOR_COLUMNS];
+  sqlite3_stmt *stmtHnswEdgesRead[VEC0_MAX_VECTOR_COLUMNS];
+  sqlite3_stmt *stmtHnswEdgesWrite[VEC0_MAX_VECTOR_COLUMNS];
+  sqlite3_stmt *stmtHnswEntry[VEC0_MAX_VECTOR_COLUMNS];
+  // Per-connection vector/edge cache (sqlite-vec-hnsw.c), per vector column.
+  struct HnswCache *hnswCache[VEC0_MAX_VECTOR_COLUMNS];
+#endif
 };
 
 #if SQLITE_VEC_ENABLE_RESCORE
@@ -4022,6 +4161,15 @@ void vec0_free_resources(vec0_vtab *p) {
     sqlite3_finalize(p->stmtVectorsInsert[i]); p->stmtVectorsInsert[i] = NULL;
   }
 #endif
+#if SQLITE_VEC_ENABLE_HNSW
+  for (int i = 0; i < VEC0_MAX_VECTOR_COLUMNS; i++) {
+    sqlite3_finalize(p->stmtHnswNodeRead[i]); p->stmtHnswNodeRead[i] = NULL;
+    sqlite3_finalize(p->stmtHnswNodeInsert[i]); p->stmtHnswNodeInsert[i] = NULL;
+    sqlite3_finalize(p->stmtHnswEdgesRead[i]); p->stmtHnswEdgesRead[i] = NULL;
+    sqlite3_finalize(p->stmtHnswEdgesWrite[i]); p->stmtHnswEdgesWrite[i] = NULL;
+    sqlite3_finalize(p->stmtHnswEntry[i]); p->stmtHnswEntry[i] = NULL;
+  }
+#endif
 }
 
 /**
@@ -4029,8 +4177,14 @@ void vec0_free_resources(vec0_vtab *p) {
  *
  * @param p vec0_vtab pointer
  */
+#if SQLITE_VEC_ENABLE_HNSW
+static void hnsw_cache_free_all(vec0_vtab *p);  // sqlite-vec-hnsw.c
+#endif
 void vec0_free(vec0_vtab *p) {
   vec0_free_resources(p);
+#if SQLITE_VEC_ENABLE_HNSW
+  hnsw_cache_free_all(p);
+#endif
 
   sqlite3_free(p->schemaName);
   p->schemaName = NULL;
@@ -4361,6 +4515,11 @@ int vec0_result_id(vec0_vtab *p, sqlite3_context *context, i64 rowid) {
 static int ivf_get_vector_data(vec0_vtab *p, i64 rowid, int col_idx,
                                 void **outVector, int *outVectorSize);
 #endif
+#if SQLITE_VEC_ENABLE_HNSW
+// Forward declarations — defined in sqlite-vec-hnsw.c (included later)
+static int hnsw_get_vector_data(vec0_vtab *p, i64 rowid, int col,
+                                void **outVector, int *outVectorSize);
+#endif
 
 int vec0_get_vector_data(vec0_vtab *pVtab, i64 rowid, int vector_column_idx,
                          void **outVector, int *outVectorSize) {
@@ -4397,6 +4556,12 @@ int vec0_get_vector_data(vec0_vtab *pVtab, i64 rowid, int vector_column_idx,
     *outVector = vec;
     if (outVectorSize) *outVectorSize = vecSize;
     return SQLITE_OK;
+  }
+#endif
+
+#if SQLITE_VEC_ENABLE_HNSW
+  if (p->vector_columns[vector_column_idx].index_type == VEC0_INDEX_TYPE_HNSW) {
+    return hnsw_get_vector_data(p, rowid, vector_column_idx, outVector, outVectorSize);
   }
 #endif
 
@@ -5225,10 +5390,41 @@ void vec0_cursor_clear(vec0_cursor *pCur) {
   }
 }
 
+/**
+ * Prepare a statement once and cache it in *pStmt. `fmt` is formatted with
+ * the schema name, table name and vector column index, in that order.
+ */
+static int vec0_ensure_stmt(vec0_vtab *p, sqlite3_stmt **pStmt, const char *fmt,
+                            int col_idx) {
+  if (*pStmt) return SQLITE_OK;
+  char *zSql = sqlite3_mprintf(fmt, p->schemaName, p->tableName, col_idx);
+  if (!zSql) return SQLITE_NOMEM;
+  int rc = sqlite3_prepare_v2(p->db, zSql, -1, pStmt, NULL);
+  sqlite3_free(zSql);
+  return rc;
+}
+
+/** Run a one-off statement whose only parameter is a rowid. */
+static int vec0_exec_rowid(vec0_vtab *p, const char *fmt, int col_idx, i64 rowid) {
+  sqlite3_stmt *s = NULL;
+  char *zSql = sqlite3_mprintf(fmt, p->schemaName, p->tableName, col_idx);
+  if (!zSql) return SQLITE_NOMEM;
+  int rc = sqlite3_prepare_v2(p->db, zSql, -1, &s, NULL);
+  sqlite3_free(zSql);
+  if (rc != SQLITE_OK) return rc;
+  sqlite3_bind_int64(s, 1, rowid);
+  rc = sqlite3_step(s);
+  sqlite3_finalize(s);
+  return rc == SQLITE_DONE ? SQLITE_OK : rc;
+}
+
 // IVF index implementation — #include'd here after all struct/helper definitions
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
 #include "sqlite-vec-ivf-kmeans.c"
 #include "sqlite-vec-ivf.c"
+#endif
+#if SQLITE_VEC_ENABLE_HNSW
+#include "sqlite-vec-hnsw.c"
 #endif
 
 #define VEC_CONSTRUCTOR_ERROR "vec0 constructor error: "
@@ -5530,19 +5726,22 @@ static int vec0_init(sqlite3 *db, void *pAux, int argc, const char *const *argv,
     }
   }
 
-  // DiskANN columns cannot coexist with aux/metadata/partition columns
+  // Graph-indexed (DiskANN, HNSW) columns cannot coexist with metadata or
+  // partition columns: the graph search cannot apply their filters.
   for (int i = 0; i < numVectorColumns; i++) {
-    if (pNew->vector_columns[i].index_type == VEC0_INDEX_TYPE_DISKANN) {
+    enum Vec0IndexType t = pNew->vector_columns[i].index_type;
+    if (t == VEC0_INDEX_TYPE_DISKANN || t == VEC0_INDEX_TYPE_HNSW) {
+      const char *name = t == VEC0_INDEX_TYPE_DISKANN ? "DiskANN" : "HNSW";
       if (numMetadataColumns > 0) {
         *pzErr = sqlite3_mprintf(
             VEC_CONSTRUCTOR_ERROR
-            "Metadata columns are not supported with DiskANN-indexed vector columns");
+            "Metadata columns are not supported with %s-indexed vector columns", name);
         goto error;
       }
       if (numPartitionColumns > 0) {
         *pzErr = sqlite3_mprintf(
             VEC_CONSTRUCTOR_ERROR
-            "Partition key columns are not supported with DiskANN-indexed vector columns");
+            "Partition key columns are not supported with %s-indexed vector columns", name);
         goto error;
       }
       break;
@@ -5923,6 +6122,17 @@ static int vec0_init(sqlite3 *db, void *pAux, int argc, const char *const *argv,
     }
 #endif
 
+#if SQLITE_VEC_ENABLE_HNSW
+    for (int i = 0; i < pNew->numVectorColumns; i++) {
+      if (pNew->vector_columns[i].index_type != VEC0_INDEX_TYPE_HNSW) continue;
+      rc = hnsw_create_shadow_tables(pNew, i);
+      if (rc != SQLITE_OK) {
+        *pzErr = sqlite3_mprintf("Could not create HNSW shadow tables for column %d", i);
+        goto error;
+      }
+    }
+#endif
+
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
     // Create IVF shadow tables for IVF-indexed vector columns
     for (int i = 0; i < pNew->numVectorColumns; i++) {
@@ -6207,6 +6417,13 @@ static int vec0Destroy(sqlite3_vtab *pVtab) {
   }
 #endif
 
+#if SQLITE_VEC_ENABLE_HNSW
+  for (int i = 0; i < p->numVectorColumns; i++) {
+    if (p->vector_columns[i].index_type != VEC0_INDEX_TYPE_HNSW) continue;
+    hnsw_drop_shadow_tables(p, i);
+  }
+#endif
+
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   // Drop IVF shadow tables
   for (int i = 0; i < p->numVectorColumns; i++) {
@@ -6408,6 +6625,26 @@ static int vec0_distance_constraints_satisfied(f32 distance, const char *idxStr,
     }
   }
   return 1;
+}
+
+/**
+ * Drop the rows of an index backend's KNN result that fail the query's
+ * `distance` constraints, keeping the order. vec0BestIndex() omits these
+ * constraints from the plan, so SQLite will not re-check them.
+ */
+static void vec0_knn_apply_distance_constraints(struct vec0_query_knn_data *knn,
+                                                const char *idxStr, int argc,
+                                                sqlite3_value **argv) {
+  i64 kept = 0;
+  for (i64 j = 0; j < knn->k_used; j++) {
+    if (!vec0_distance_constraints_satisfied(knn->distances[j], idxStr, argc, argv))
+      continue;
+    knn->rowids[kept] = knn->rowids[j];
+    knn->distances[kept] = knn->distances[j];
+    kept++;
+  }
+  knn->k = kept;
+  knn->k_used = kept;
 }
 
 static int vec0BestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pIdxInfo) {
@@ -7906,71 +8143,11 @@ int vec0Filter_knn_chunks_iter(vec0_vtab *p, sqlite3_stmt *stmtChunks,
         continue;
       };
 
-      f32 result;
-      switch (vector_column->element_type) {
-      case SQLITE_VEC_ELEMENT_TYPE_FLOAT32: {
-        const f32 *base_i =
-            ((f32 *)baseVectors) + (i * vector_column->dimensions);
-        switch (vector_column->distance_metric) {
-        case VEC0_DISTANCE_METRIC_L2: {
-          result = distance_l2_sqr_float(base_i, (f32 *)queryVector,
-                                         &vector_column->dimensions);
-          break;
-        }
-        case VEC0_DISTANCE_METRIC_L1: {
-          result = distance_l1_f32(base_i, (f32 *)queryVector,
-                                   &vector_column->dimensions);
-          break;
-        }
-        case VEC0_DISTANCE_METRIC_COSINE: {
-          result = distance_cosine_float(base_i, (f32 *)queryVector,
-                                         &vector_column->dimensions);
-          break;
-        }
-        case VEC0_DISTANCE_METRIC_DOT: {
-          result = distance_dot_float(base_i, (f32 *)queryVector,
-                                      &vector_column->dimensions);
-          break;
-        }
-        }
-        break;
-      }
-      case SQLITE_VEC_ELEMENT_TYPE_INT8: {
-        const i8 *base_i =
-            ((i8 *)baseVectors) + (i * vector_column->dimensions);
-        switch (vector_column->distance_metric) {
-        case VEC0_DISTANCE_METRIC_L2: {
-          result = distance_l2_sqr_int8(base_i, (i8 *)queryVector,
-                                        &vector_column->dimensions);
-          break;
-        }
-        case VEC0_DISTANCE_METRIC_L1: {
-          result = distance_l1_int8(base_i, (i8 *)queryVector,
-                                    &vector_column->dimensions);
-          break;
-        }
-        case VEC0_DISTANCE_METRIC_COSINE: {
-          result = distance_cosine_int8(base_i, (i8 *)queryVector,
-                                        &vector_column->dimensions);
-          break;
-        }
-        case VEC0_DISTANCE_METRIC_DOT: {
-          result = distance_dot_int8(base_i, (i8 *)queryVector,
-                                     &vector_column->dimensions);
-          break;
-        }
-        }
-
-        break;
-      }
-      case SQLITE_VEC_ELEMENT_TYPE_BIT: {
-        const u8 *base_i =
-            ((u8 *)baseVectors) + (i * (vector_column->dimensions / CHAR_BIT));
-        result = distance_hamming(base_i, (u8 *)queryVector,
-                                  &vector_column->dimensions);
-        break;
-      }
-      }
+      size_t stride = vector_column_byte_size(*vector_column);
+      f32 result = vec0_distance_full((const u8 *)baseVectors + i * stride,
+                                      queryVector, vector_column->dimensions,
+                                      vector_column->element_type,
+                                      vector_column->distance_metric);
 
       chunk_distances[i] = result;
     }
@@ -8301,40 +8478,6 @@ static int vec0Filter_knn_diskann(
 }
 #endif /* SQLITE_VEC_ENABLE_DISKANN */
 
-/**
- * Compute pairwise distance between two vectors stored in the vec0 table's
- * native format.  Handles float32, int8, and bit element types with the
- * appropriate metric (L2, cosine, L1, hamming).
- */
-static f32 vec0_compute_distance(struct VectorColumnDefinition *vector_column,
-                                 const void *a, const void *b) {
-  size_t dims = vector_column->dimensions;
-  switch (vector_column->element_type) {
-  case SQLITE_VEC_ELEMENT_TYPE_FLOAT32:
-    switch (vector_column->distance_metric) {
-    case VEC0_DISTANCE_METRIC_L2:
-      return distance_l2_sqr_float(a, b, &dims);
-    case VEC0_DISTANCE_METRIC_L1:
-      return (f32)distance_l1_f32(a, b, &dims);
-    case VEC0_DISTANCE_METRIC_COSINE:
-      return distance_cosine_float(a, b, &dims);
-    }
-    break;
-  case SQLITE_VEC_ELEMENT_TYPE_INT8:
-    switch (vector_column->distance_metric) {
-    case VEC0_DISTANCE_METRIC_L2:
-      return distance_l2_sqr_int8(a, b, &dims);
-    case VEC0_DISTANCE_METRIC_L1:
-      return (f32)distance_l1_int8(a, b, &dims);
-    case VEC0_DISTANCE_METRIC_COSINE:
-      return distance_cosine_int8(a, b, &dims);
-    }
-    break;
-  case SQLITE_VEC_ELEMENT_TYPE_BIT:
-    return distance_hamming(a, b, &dims);
-  }
-  return 0.0f;
-}
 
 /**
  * MMR greedy reranking of KNN results.
@@ -8745,6 +8888,20 @@ int vec0Filter_knn(vec0_cursor *pCur, vec0_vtab *p, int idxNum,
   }
 #endif
 
+#if SQLITE_VEC_ENABLE_HNSW
+  if (vector_column->index_type == VEC0_INDEX_TYPE_HNSW) {
+    rc = hnsw_query_knn(p, vectorColumnIdx, queryVector, arrayRowidsIn, k, knn_data);
+    if (rc != SQLITE_OK) {
+      goto cleanup;
+    }
+    vec0_knn_apply_distance_constraints(knn_data, idxStr, argc, argv);
+    pCur->knn_data = knn_data;
+    pCur->query_plan = VEC0_QUERY_PLAN_KNN;
+    rc = SQLITE_OK;
+    goto cleanup;
+  }
+#endif
+
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   // IVF dispatch: if vector column has IVF, use IVF query instead of chunk scan
   if (vector_column->index_type == VEC0_INDEX_TYPE_IVF) {
@@ -8754,22 +8911,7 @@ int vec0Filter_knn(vec0_cursor *pCur, vec0_vtab *p, int idxNum,
     if (rc != SQLITE_OK) {
       goto cleanup;
     }
-    // Apply any `distance` constraints from the WHERE clause. vec0BestIndex()
-    // omits these from the query plan, so SQLite will not re-check them.
-    {
-      i64 kept = 0;
-      for (i64 j = 0; j < knn_data->k_used; j++) {
-        if (!vec0_distance_constraints_satisfied(knn_data->distances[j], idxStr,
-                                                 argc, argv)) {
-          continue;
-        }
-        knn_data->rowids[kept] = knn_data->rowids[j];
-        knn_data->distances[kept] = knn_data->distances[j];
-        kept++;
-      }
-      knn_data->k = kept;
-      knn_data->k_used = kept;
-    }
+    vec0_knn_apply_distance_constraints(knn_data, idxStr, argc, argv);
     pCur->knn_data = knn_data;
     pCur->query_plan = VEC0_QUERY_PLAN_KNN;
     rc = SQLITE_OK;
@@ -10184,6 +10326,16 @@ int vec0Update_Insert(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv,
   }
 #endif
 
+#if SQLITE_VEC_ENABLE_HNSW
+  for (int i = 0; i < p->numVectorColumns; i++) {
+    if (p->vector_columns[i].index_type != VEC0_INDEX_TYPE_HNSW) continue;
+    rc = hnsw_insert(p, i, rowid, vectorDatas[i]);
+    if (rc != SQLITE_OK) {
+      goto cleanup;
+    }
+  }
+#endif
+
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   // Step #4: IVF index insert (if any vector column uses IVF)
   for (int i = 0; i < p->numVectorColumns; i++) {
@@ -10778,6 +10930,14 @@ int vec0Update_Delete(sqlite3_vtab *pVTab, sqlite3_value *idValue) {
     }
   }
 
+#if SQLITE_VEC_ENABLE_HNSW
+  for (int i = 0; i < p->numVectorColumns; i++) {
+    if (p->vector_columns[i].index_type != VEC0_INDEX_TYPE_HNSW) continue;
+    rc = hnsw_delete(p, i, rowid);
+    if (rc != SQLITE_OK) return rc;
+  }
+#endif
+
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   // 7. delete from IVF index
   for (int i = 0; i < p->numVectorColumns; i++) {
@@ -11062,6 +11222,35 @@ int vec0Update_Update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv) {
           idx_name);
         return SQLITE_ERROR;
       }
+#if SQLITE_VEC_ENABLE_HNSW
+      // HNSW re-links the node: delete it from the graph, insert it again.
+      if (idx_type == VEC0_INDEX_TYPE_HNSW) {
+        struct VectorColumnDefinition *col = &p->vector_columns[vector_idx];
+        void *vec;
+        size_t dims;
+        enum VectorElementType type;
+        vector_cleanup cleanup;
+        char *err;
+        rc = vector_from_value(valueVector, &vec, &dims, &type, &cleanup, &err);
+        if (rc != SQLITE_OK) {
+          vtab_set_error(&p->base, "Updated vector for the \"%.*s\" column is invalid: %z",
+                         col->name_length, col->name, err);
+          return SQLITE_ERROR;
+        }
+        if (type != col->element_type || dims != col->dimensions) {
+          cleanup(vec);
+          vtab_set_error(&p->base,
+                         "Updated vector for the \"%.*s\" column must be %s[%lld]",
+                         col->name_length, col->name, vector_subtype_name(col->element_type),
+                         (i64)col->dimensions);
+          return SQLITE_ERROR;
+        }
+        rc = hnsw_update(p, vector_idx, rowid, vec);
+        cleanup(vec);
+        if (rc != SQLITE_OK) return rc;
+        continue;
+      }
+#endif
     }
 
     rc = vec0Update_UpdateVectorColumn(p, chunk_id, chunk_offset, vector_idx,
@@ -11099,6 +11288,10 @@ static int vec0Update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv,
 #if SQLITE_VEC_ENABLE_DISKANN
         if (cmdRc == SQLITE_EMPTY)
           cmdRc = diskann_handle_command(p, cmd);
+#endif
+#if SQLITE_VEC_ENABLE_HNSW
+        if (cmdRc == SQLITE_EMPTY)
+          cmdRc = hnsw_handle_command(p, cmd);
 #endif
         if (cmdRc == SQLITE_EMPTY) {
           vtab_set_error(pVTab, "unknown vec0 command: '%s'", cmd);
@@ -11177,12 +11370,33 @@ static int vec0Sync(sqlite3_vtab *pVTab) {
   return SQLITE_OK;
 }
 static int vec0Commit(sqlite3_vtab *pVTab) {
+#if SQLITE_VEC_ENABLE_HNSW
+  hnsw_cache_after_commit((vec0_vtab *)pVTab);
+#else
   UNUSED_PARAMETER(pVTab);
+#endif
   return SQLITE_OK;
 }
+// Rollbacks undo shadow-table writes that in-memory index caches mirror.
 static int vec0Rollback(sqlite3_vtab *pVTab) {
+#if SQLITE_VEC_ENABLE_HNSW
+  hnsw_cache_clear_all((vec0_vtab *)pVTab);
+#else
   UNUSED_PARAMETER(pVTab);
+#endif
   return SQLITE_OK;
+}
+// SQLite only tracks a vtab's statement savepoints (and so only calls
+// xRollbackTo) when xSavepoint is set; vec0 needs no work to open one.
+static int vec0Savepoint(sqlite3_vtab *pVTab, int iSavepoint) {
+  UNUSED_PARAMETER(pVTab);
+  UNUSED_PARAMETER(iSavepoint);
+  return SQLITE_OK;
+}
+// Called when a statement fails inside a transaction, and on ROLLBACK TO.
+static int vec0RollbackTo(sqlite3_vtab *pVTab, int iSavepoint) {
+  UNUSED_PARAMETER(iSavepoint);
+  return vec0Rollback(pVTab);
 }
 
 /**
@@ -11271,6 +11485,18 @@ static int vec0Rename(sqlite3_vtab *pVtab, const char *zNew) {
           p->schemaName, p->tableName, i, zNew, i);
       }
     }
+  }
+#endif
+
+#if SQLITE_VEC_ENABLE_HNSW
+  for (int i = 0; i < p->numVectorColumns; i++) {
+    if (p->vector_columns[i].index_type != VEC0_INDEX_TYPE_HNSW) continue;
+    sqlite3_str_appendf(s,
+      "ALTER TABLE \"%w\".\"%w_hnsw_nodes%02d\" RENAME TO \"%w_hnsw_nodes%02d\";",
+      p->schemaName, p->tableName, i, zNew, i);
+    sqlite3_str_appendf(s,
+      "ALTER TABLE \"%w\".\"%w_hnsw_edges%02d\" RENAME TO \"%w_hnsw_edges%02d\";",
+      p->schemaName, p->tableName, i, zNew, i);
   }
 #endif
 
@@ -11380,9 +11606,9 @@ static sqlite3_module vec0Module = {
     /* xRollback     */ vec0Rollback,
     /* xFindFunction */ 0,
     /* xRename       */ vec0Rename,
-    /* xSavepoint    */ 0,
+    /* xSavepoint    */ vec0Savepoint,
     /* xRelease      */ 0,
-    /* xRollbackTo   */ 0,
+    /* xRollbackTo   */ vec0RollbackTo,
     /* xShadowName   */ vec0ShadowName,
 #if SQLITE_VERSION_NUMBER >= 3044000
     /* xIntegrity    */ 0, // https://github.com/asg017/sqlite-vec/issues/44
@@ -11469,6 +11695,11 @@ SQLITE_VEC_API int sqlite3_vec_init(sqlite3 *db, char **pzErrMsg,
     {"vec_distance_dot",    vec_distance_dot,     2, DEFAULT_FLAGS | SQLITE_SUBTYPE,                         },
     {"vec_distance_jaccard",vec_distance_jaccard, 2, DEFAULT_FLAGS | SQLITE_SUBTYPE,                         },
     {"vec_concat",          vec_concat,           2, DEFAULT_FLAGS | SQLITE_SUBTYPE | SQLITE_RESULT_SUBTYPE, },
+    {"vec_sparse",          vec_sparse,           1, DEFAULT_FLAGS,                                          },
+    {"vec_sparse_distance_dot",    vec_sparse_distance_dot,    2, DEFAULT_FLAGS,                         },
+    {"vec_sparse_distance_cosine", vec_sparse_distance_cosine, 2, DEFAULT_FLAGS,                         },
+    {"vec_sparse_to_json",  vec_sparse_to_json,   1, DEFAULT_FLAGS,                                          },
+    {"vec_rrf",             vec_rrf,             -1, DEFAULT_FLAGS,                                          },
     {"vec_length",          vec_length,           1, DEFAULT_FLAGS | SQLITE_SUBTYPE,                         },
     {"vec_type",           vec_type,           1, DEFAULT_FLAGS,                         },
     {"vec_to_json",         vec_to_json,          1, DEFAULT_FLAGS | SQLITE_SUBTYPE | SQLITE_RESULT_SUBTYPE, },
@@ -11493,6 +11724,7 @@ SQLITE_VEC_API int sqlite3_vec_init(sqlite3 *db, char **pzErrMsg,
       // clang-format off
     {"vec0",          &vec0Module,          NULL, NULL},
     {"vec_each",      &vec_eachModule,      NULL, NULL},
+    {"vec_sparse_each", &vec_sparse_eachModule, NULL, NULL},
       // clang-format on
   };
 

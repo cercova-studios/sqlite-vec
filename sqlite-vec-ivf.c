@@ -101,6 +101,12 @@ static int vec0_parse_ivf_options(struct Vec0Scanner *scanner,
         config->quantizer = VEC0_IVF_QUANTIZER_BINARY;
       } else if (sqlite3_strnicmp(val, "rabitq", valLength) == 0) {
         config->quantizer = VEC0_IVF_QUANTIZER_RABITQ;
+      } else if (sqlite3_strnicmp(val, "fp16", valLength) == 0) {
+        config->quantizer = VEC0_IVF_QUANTIZER_FP16;
+      } else if (sqlite3_strnicmp(val, "bf16", valLength) == 0) {
+        config->quantizer = VEC0_IVF_QUANTIZER_BF16;
+      } else if (sqlite3_strnicmp(val, "int4", valLength) == 0) {
+        config->quantizer = VEC0_IVF_QUANTIZER_INT4;
       } else {
         return SQLITE_ERROR;
       }
@@ -147,6 +153,9 @@ static int ivf_vec_size(vec0_vtab *p, int col_idx) {
   case VEC0_IVF_QUANTIZER_INT8:    return D;
   case VEC0_IVF_QUANTIZER_BINARY:  return D / 8;
   case VEC0_IVF_QUANTIZER_RABITQ:  return D / 8 + 2 * (int)sizeof(float);
+  case VEC0_IVF_QUANTIZER_FP16:
+  case VEC0_IVF_QUANTIZER_BF16:    return D * 2;
+  case VEC0_IVF_QUANTIZER_INT4:    return D / 2;
   default:                          return D * (int)sizeof(float);
   }
 }
@@ -176,12 +185,7 @@ IVF_STATIC void ivf_quantize_int8(const float *src, int8_t *dst, int D) {
  * Each bit = 1 if src[i] > 0, else 0.
  */
 IVF_STATIC void ivf_quantize_binary(const float *src, uint8_t *dst, int D) {
-  memset(dst, 0, D / 8);
-  for (int i = 0; i < D; i++) {
-    if (src[i] > 0.0f) {
-      dst[i / 8] |= (1 << (i % 8));
-    }
-  }
+  vec0_quantize_binary_f32(src, dst, (size_t)D);
 }
 
 /**
@@ -275,6 +279,118 @@ IVF_STATIC float ivf_rabitq_distance(const float *q, const uint8_t *code,
 }
 
 /**
+ * IEEE half precision, round-to-nearest-even. Values past 65504 become inf.
+ */
+IVF_STATIC uint16_t ivf_f32_to_f16(float f) {
+  uint32_t x;
+  memcpy(&x, &f, 4);
+  uint32_t sign = (x >> 16) & 0x8000;
+  uint32_t mag = x & 0x7FFFFFFF;
+  if (mag >= 0x7F800000) return (uint16_t)(sign | 0x7C00 | (mag > 0x7F800000 ? 0x200 : 0));
+  if (mag >= 0x477FF000) return (uint16_t)(sign | 0x7C00);  // overflow -> inf
+  if (mag < 0x38800000) {                                    // subnormal / zero
+    if (mag < 0x33000000) return (uint16_t)sign;
+    uint32_t m = (mag & 0x7FFFFF) | 0x800000;
+    int shift = 113 - (int)(mag >> 23);
+    uint32_t h = m >> (shift + 13);
+    uint32_t rem = m & ((1u << (shift + 13)) - 1), half = 1u << (shift + 12);
+    if (rem > half || (rem == half && (h & 1))) h++;
+    return (uint16_t)(sign | h);
+  }
+  uint32_t h = ((mag - 0x38000000) >> 13);
+  uint32_t rem = mag & 0x1FFF;
+  if (rem > 0x1000 || (rem == 0x1000 && (h & 1))) h++;
+  return (uint16_t)(sign | h);
+}
+
+IVF_STATIC float ivf_f16_to_f32(uint16_t h) {
+  uint32_t sign = (uint32_t)(h & 0x8000) << 16;
+  uint32_t exp = (h >> 10) & 0x1F, man = h & 0x3FF, x;
+  if (exp == 0) {
+    float f = (float)man * (1.0f / 16777216.0f);  // man * 2^-24
+    return sign ? -f : f;
+  }
+  if (exp == 31) x = sign | 0x7F800000 | (man << 13);
+  else x = sign | ((exp + 112) << 23) | (man << 13);
+  float f;
+  memcpy(&f, &x, 4);
+  return f;
+}
+
+/** bfloat16: top 16 bits of float32, round-to-nearest-even. */
+IVF_STATIC uint16_t ivf_f32_to_bf16(float f) {
+  uint32_t x;
+  memcpy(&x, &f, 4);
+  if ((x & 0x7FFFFFFF) > 0x7F800000) return (uint16_t)((x >> 16) | 0x40);  // NaN
+  x += 0x7FFF + ((x >> 16) & 1);
+  return (uint16_t)(x >> 16);
+}
+
+IVF_STATIC float ivf_bf16_to_f32(uint16_t h) {
+  uint32_t x = (uint32_t)h << 16;
+  float f;
+  memcpy(&f, &x, 4);
+  return f;
+}
+
+/**
+ * int4: clamp to [-1,1] like int8, scale to [-7,7], two per byte
+ * (low nibble = even index). Same unit-range assumption as int8.
+ */
+IVF_STATIC void ivf_quantize_int4(const float *src, uint8_t *dst, int D) {
+  for (int i = 0; i < D; i += 2) {
+    int q[2];
+    for (int j = 0; j < 2; j++) {
+      float v = src[i + j];
+      if (v > 1.0f) v = 1.0f;
+      if (v < -1.0f) v = -1.0f;
+      q[j] = (int)lrintf(v * 7.0f);
+    }
+    dst[i / 2] = (uint8_t)((q[0] & 0xF) | ((q[1] & 0xF) << 4));
+  }
+}
+
+static inline float ivf_int4_at(const uint8_t *code, int i) {
+  int nib = (code[i / 2] >> ((i & 1) * 4)) & 0xF;
+  return (float)(nib >= 8 ? nib - 16 : nib) * (1.0f / 7.0f);
+}
+
+/**
+ * Asymmetric distance between a float32 query and an fp16/bf16/int4 code:
+ * the code is decoded element by element, never materialized.
+ */
+static float ivf_decoded_distance(const float *q, const uint8_t *code, int D,
+                                  int quantizer, int metric) {
+  double dot = 0, qq = 0, xx = 0, l1 = 0, l2 = 0;
+  for (int i = 0; i < D; i++) {
+    float x;
+    if (quantizer == VEC0_IVF_QUANTIZER_INT4) {
+      x = ivf_int4_at(code, i);
+    } else {
+      uint16_t h;
+      memcpy(&h, code + 2 * i, 2);
+      x = quantizer == VEC0_IVF_QUANTIZER_FP16 ? ivf_f16_to_f32(h) : ivf_bf16_to_f32(h);
+    }
+    float d = q[i] - x;
+    dot += (double)q[i] * x;
+    qq += (double)q[i] * q[i];
+    xx += (double)x * x;
+    l1 += fabsf(d);
+    l2 += (double)d * d;
+  }
+  switch (metric) {
+  case VEC0_DISTANCE_METRIC_COSINE:
+    return (qq == 0 || xx == 0) ? 1.0f : (float)(1.0 - dot / (sqrt(qq) * sqrt(xx)));
+  case VEC0_DISTANCE_METRIC_L1:
+    return (float)l1;
+  case VEC0_DISTANCE_METRIC_DOT:
+    return (float)-dot;
+  default:
+    return (float)l2;
+  }
+}
+
+/**
  * Quantize a float32 vector to the target type based on config.
  * dst must be pre-allocated to ivf_vec_size() bytes.
  * If quantizer=none, copies src as-is.
@@ -291,6 +407,18 @@ static void ivf_quantize(vec0_vtab *p, int col_idx,
     break;
   case VEC0_IVF_QUANTIZER_RABITQ:
     ivf_quantize_rabitq(src, (uint8_t *)dst, D);
+    break;
+  case VEC0_IVF_QUANTIZER_FP16:
+  case VEC0_IVF_QUANTIZER_BF16: {
+    int fp16 = p->vector_columns[col_idx].ivf.quantizer == VEC0_IVF_QUANTIZER_FP16;
+    for (int i = 0; i < D; i++) {
+      uint16_t h = fp16 ? ivf_f32_to_f16(src[i]) : ivf_f32_to_bf16(src[i]);
+      memcpy((uint8_t *)dst + 2 * i, &h, 2);
+    }
+    break;
+  }
+  case VEC0_IVF_QUANTIZER_INT4:
+    ivf_quantize_int4(src, (uint8_t *)dst, D);
     break;
   default:
     memcpy(dst, src, D * sizeof(float));
@@ -309,6 +437,15 @@ static void *ivf_query_rep(vec0_vtab *p, int col_idx, const float *src) {
     float *q = sqlite3_malloc(ivf_rabitq_query_size(D));
     if (q) ivf_rabitq_prepare_query(src, q, D);
     return q;
+  }
+  switch (p->vector_columns[col_idx].ivf.quantizer) {
+  case VEC0_IVF_QUANTIZER_FP16:
+  case VEC0_IVF_QUANTIZER_BF16:
+  case VEC0_IVF_QUANTIZER_INT4: {
+    float *q = sqlite3_malloc(D * (int)sizeof(float));
+    if (q) memcpy(q, src, D * sizeof(float));
+    return q;
+  }
   }
   void *q = sqlite3_malloc(ivf_vec_size(p, col_idx));
   if (q) ivf_quantize(p, col_idx, src, q);
@@ -336,32 +473,12 @@ static int ivf_find_nearest_centroid(vec0_vtab *p, int col_idx,
   return best;
 }
 
-/**
- * Compute distance between two vectors using the column's distance_metric.
- * Dispatches to SIMD-optimized functions (NEON/AVX) via distance_*_float().
- * For float32 (non-quantized) vectors.
- */
-static float ivf_distance_float(vec0_vtab *p, int col_idx,
-                                 const float *a, const float *b) {
-  size_t dims = p->vector_columns[col_idx].dimensions;
-  switch (p->vector_columns[col_idx].distance_metric) {
-  case VEC0_DISTANCE_METRIC_COSINE:
-    return distance_cosine_float(a, b, &dims);
-  case VEC0_DISTANCE_METRIC_L1:
-    return (float)distance_l1_f32(a, b, &dims);
-  case VEC0_DISTANCE_METRIC_DOT:
-    return distance_dot_float(a, b, &dims);
-  case VEC0_DISTANCE_METRIC_L2:
-  default:
-    return distance_l2_sqr_float(a, b, &dims);
-  }
-}
 
 /**
  * Compute distance between two quantized vectors.
  * For int8: uses L2 or cosine on int8.
  * For binary: uses hamming distance.
- * For none: delegates to ivf_distance_float.
+ * For none: the column's exact distance.
  */
 static float ivf_distance(vec0_vtab *p, int col_idx,
                            const void *a, const void *b) {
@@ -374,19 +491,15 @@ static float ivf_distance(vec0_vtab *p, int col_idx,
   case VEC0_IVF_QUANTIZER_RABITQ:
     return ivf_rabitq_distance((const float *)a, (const uint8_t *)b, (int)dims,
                                p->vector_columns[col_idx].distance_metric);
+  case VEC0_IVF_QUANTIZER_FP16:
+  case VEC0_IVF_QUANTIZER_BF16:
+  case VEC0_IVF_QUANTIZER_INT4:
+    return ivf_decoded_distance((const float *)a, (const uint8_t *)b, (int)dims,
+                                p->vector_columns[col_idx].ivf.quantizer,
+                                p->vector_columns[col_idx].distance_metric);
   default:
-    return ivf_distance_float(p, col_idx, (const float *)a, (const float *)b);
+    return vec0_compute_distance(&p->vector_columns[col_idx], a, b);
   }
-}
-
-static int ivf_ensure_stmt(vec0_vtab *p, sqlite3_stmt **pStmt, const char *fmt,
-                            int col_idx) {
-  if (*pStmt) return SQLITE_OK;
-  char *zSql = sqlite3_mprintf(fmt, p->schemaName, p->tableName, col_idx);
-  if (!zSql) return SQLITE_NOMEM;
-  int rc = sqlite3_prepare_v2(p->db, zSql, -1, pStmt, NULL);
-  sqlite3_free(zSql);
-  return rc;
 }
 
 static int ivf_exec(vec0_vtab *p, const char *fmt, int col_idx) {
@@ -458,11 +571,11 @@ static int ivf_cell_find_or_create(vec0_vtab *p, int col_idx, i64 centroid_id,
                                      i64 *out_cell_id, int *out_n) {
   int rc;
   // Find existing cell with space
-  rc = ivf_ensure_stmt(p, &p->stmtIvfCellMeta[col_idx],
+  rc = vec0_ensure_stmt(p, &p->stmtIvfCellMeta[col_idx],
       "SELECT rowid, n_vectors FROM " VEC0_SHADOW_IVF_CELLS_NAME
       " WHERE centroid_id = ? AND n_vectors < %d LIMIT 1",
       col_idx);
-  // The %d in the format won't work with ivf_ensure_stmt since it only has 3
+  // The %d in the format won't work with vec0_ensure_stmt since it only has 3
   // format args. Use a direct approach instead.
   sqlite3_finalize(p->stmtIvfCellMeta[col_idx]);
   p->stmtIvfCellMeta[col_idx] = NULL;
@@ -544,7 +657,7 @@ static int ivf_cell_insert(vec0_vtab *p, int col_idx, i64 centroid_id,
   if (rc != SQLITE_OK) return rc;
 
   // Increment n_vectors (cached)
-  rc = ivf_ensure_stmt(p, &p->stmtIvfCellUpdateN[col_idx],
+  rc = vec0_ensure_stmt(p, &p->stmtIvfCellUpdateN[col_idx],
       "UPDATE " VEC0_SHADOW_IVF_CELLS_NAME
       " SET n_vectors = n_vectors + 1 WHERE rowid = ?", col_idx);
   if (rc != SQLITE_OK) return rc;
@@ -555,7 +668,7 @@ static int ivf_cell_insert(vec0_vtab *p, int col_idx, i64 centroid_id,
   if (rc != SQLITE_DONE) return rc;
 
   // Insert rowid_map (cached)
-  rc = ivf_ensure_stmt(p, &p->stmtIvfRowidMapInsert[col_idx],
+  rc = vec0_ensure_stmt(p, &p->stmtIvfRowidMapInsert[col_idx],
       "INSERT INTO " VEC0_SHADOW_IVF_ROWID_MAP_NAME
       " (rowid, cell_id, slot) VALUES (?, ?, ?)", col_idx);
   if (rc != SQLITE_OK) return rc;
@@ -676,7 +789,7 @@ static int ivf_insert(vec0_vtab *p, int col_idx, i64 rowid,
     void *qrep = ivf_query_rep(p, col_idx, (const float *)vectorData);
     if (!qrep) { sqlite3_free(qvec); return SQLITE_NOMEM; }
 
-    rc = ivf_ensure_stmt(p, &p->stmtIvfCentroidsAll[col_idx],
+    rc = vec0_ensure_stmt(p, &p->stmtIvfCentroidsAll[col_idx],
         "SELECT centroid_id, centroid FROM " VEC0_SHADOW_IVF_CENTROIDS_NAME, col_idx);
     if (rc != SQLITE_OK) { sqlite3_free(qrep); sqlite3_free(qvec); return rc; }
     sqlite3_stmt *stmt = p->stmtIvfCentroidsAll[col_idx];
@@ -722,7 +835,7 @@ static int ivf_delete(vec0_vtab *p, int col_idx, i64 rowid) {
   i64 cell_id = 0;
   int slot = -1;
 
-  rc = ivf_ensure_stmt(p, &p->stmtIvfRowidMapLookup[col_idx],
+  rc = vec0_ensure_stmt(p, &p->stmtIvfRowidMapLookup[col_idx],
       "SELECT cell_id, slot FROM " VEC0_SHADOW_IVF_ROWID_MAP_NAME
       " WHERE rowid = ?", col_idx);
   if (rc != SQLITE_OK) return rc;
@@ -776,7 +889,7 @@ static int ivf_delete(vec0_vtab *p, int col_idx, i64 rowid) {
   }
 
   // Delete from rowid_map
-  rc = ivf_ensure_stmt(p, &p->stmtIvfRowidMapDelete[col_idx],
+  rc = vec0_ensure_stmt(p, &p->stmtIvfRowidMapDelete[col_idx],
       "DELETE FROM " VEC0_SHADOW_IVF_ROWID_MAP_NAME " WHERE rowid = ?", col_idx);
   if (rc != SQLITE_OK) return rc;
   sqlite3_stmt *sd = p->stmtIvfRowidMapDelete[col_idx];
@@ -814,7 +927,7 @@ static int ivf_delete(vec0_vtab *p, int col_idx, i64 rowid) {
 static int ivf_full_vector_read(vec0_vtab *p, i64 rowid, int col_idx,
                                  void **outVector, int *outVectorSize) {
   int vecSize = ivf_full_vec_size(p, col_idx);
-  int rc = ivf_ensure_stmt(p, &p->stmtIvfVectorsRead[col_idx],
+  int rc = vec0_ensure_stmt(p, &p->stmtIvfVectorsRead[col_idx],
       "SELECT vector FROM " VEC0_SHADOW_IVF_VECTORS_NAME " WHERE rowid = ?",
       col_idx);
   if (rc != SQLITE_OK) return rc;
@@ -856,7 +969,7 @@ static int ivf_get_vector_data(vec0_vtab *p, i64 rowid, int col_idx,
     return ivf_full_vector_read(p, rowid, col_idx, outVector, outVectorSize);
   }
 
-  rc = ivf_ensure_stmt(p, &p->stmtIvfRowidMapLookup[col_idx],
+  rc = vec0_ensure_stmt(p, &p->stmtIvfRowidMapLookup[col_idx],
       "SELECT cell_id, slot FROM " VEC0_SHADOW_IVF_ROWID_MAP_NAME
       " WHERE rowid = ?", col_idx);
   if (rc != SQLITE_OK) return rc;
@@ -1071,7 +1184,7 @@ static int ivf_cmd_compute_centroids(vec0_vtab *p, int col_idx, int nlist_overri
     float min_d = FLT_MAX;
     int best = 0;
     for (int c = 0; c < nlist; c++) {
-      float d = ivf_distance_float(p, col_idx, &vectors[i * D], &centroids[c * D]);
+      float d = vec0_compute_distance(&p->vector_columns[col_idx], &vectors[i * D], &centroids[c * D]);
       if (d < min_d) { min_d = d; best = c; }
     }
     assignments[i] = best;
@@ -1467,7 +1580,7 @@ static int ivf_rank_rowids(vec0_vtab *p, int col_idx, const void *queryVector,
       *candidates = tmp;
     }
     (*candidates)[*nCandidates].rowid = rowid;
-    (*candidates)[*nCandidates].distance = ivf_distance_float(p, col_idx,
+    (*candidates)[*nCandidates].distance = vec0_compute_distance(&p->vector_columns[col_idx],
         (const float *)queryVector, (const float *)vec);
     (*nCandidates)++;
     sqlite3_free(vec);
@@ -1511,7 +1624,7 @@ static int ivf_query_knn(vec0_vtab *p, int col_idx,
   } else if (trained) {
     // Find top nprobe centroids using quantized distance
     int nlist = 0;
-    rc = ivf_ensure_stmt(p, &p->stmtIvfCentroidsAll[col_idx],
+    rc = vec0_ensure_stmt(p, &p->stmtIvfCentroidsAll[col_idx],
         "SELECT centroid_id, centroid FROM " VEC0_SHADOW_IVF_CENTROIDS_NAME, col_idx);
     if (rc != SQLITE_OK) { sqlite3_free(queryQ); sqlite3_free(candidates); return rc; }
     sqlite3_stmt *stmt = p->stmtIvfCentroidsAll[col_idx];
@@ -1614,7 +1727,7 @@ static int ivf_query_knn(vec0_vtab *p, int col_idx,
         const float *fullVec = (const float *)sqlite3_column_blob(stmtVec, 0);
         int fullVecBytes = sqlite3_column_bytes(stmtVec, 0);
         if (fullVec && fullVecBytes == (int)p->vector_columns[col_idx].dimensions * (int)sizeof(float)) {
-          candidates[i].distance = ivf_distance_float(p, col_idx,
+          candidates[i].distance = vec0_compute_distance(&p->vector_columns[col_idx],
               (const float *)queryVector, fullVec);
         }
       } else if (rc != SQLITE_DONE) {

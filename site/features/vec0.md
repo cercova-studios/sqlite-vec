@@ -238,3 +238,41 @@ datatypes that won't be a part of a `WHERE` clause of a KNN query. Auxiliary col
 that will appear often in a `SELECT` clause but not in the `WHERE` clause.
 
 A maximum of 16 auxiliary columns can be declared in a `vec0` virtual table.
+
+## HNSW index {#hnsw}
+
+By default, a KNN query compares the query with every vector in the table. For large tables, an HNSW (Hierarchical Navigable Small World) index finds approximate nearest neighbors much faster, at a small cost in recall.
+
+```sql
+create virtual table vec_items using vec0(
+  embedding float[768] distance_metric=cosine
+    indexed by hnsw(m=16, ef_construction=200, ef_search=64)
+);
+```
+
+Queries use the same `match` and `k` syntax as other `vec0` tables.
+
+| Option | Default | Meaning |
+|---|---|---|
+| `m` | 16 | Neighbors kept per node (twice as many on the bottom layer). Higher values improve recall and use more storage. Range 2–256. |
+| `ef_construction` | 200 | Search width while inserting. Higher values build a better graph more slowly. |
+| `ef_search` | 64 | Search width while querying. Higher values improve recall and slow queries. Queries always use at least `k`. |
+| `cache_mb` | 256 | Memory per connection for cached vectors and neighbor lists. `0` disables the cache. |
+| `quantizer` | `none` | `int8` searches the graph on 1-byte-per-dimension codes, then re-ranks the candidates with exact distances. Faster for high-dimensional vectors. Applies to `float` columns with the `l2`, `cosine` or `dot` metric. |
+
+Queries run at in-memory speed when the whole index fits in `cache_mb`. Each node needs about `4 × dimensions + 8 × m + 40` bytes, plus `dimensions + 8` with `quantizer=int8`. For example, 100,000 768-dimension vectors with `m=16` need about 330 MB. When the cache is over budget, it is emptied at the start of the next operation and refilled from the database, which is several times slower.
+
+Change `ef_search` or `cache_mb` for the current connection with a command:
+
+```sql
+insert into vec_items(vec_items) values ('ef_search=128');
+```
+
+The index is stored in the database file, in the shadow tables `<table>_hnsw_nodesNN` and `<table>_hnsw_edgesNN`. It follows SQLite transactions: rolled-back inserts never reach the index, and you never need to save or load it.
+
+- `insert`, `update` and `delete` keep the index current. Deleting a row reconnects its neighbors.
+- `insert into vec_items(vec_items) values ('hnsw-rebuild')` rebuilds the graph from the stored vectors in one statement. Use it after deleting many rows. It holds the whole graph in memory while it runs.
+- `rowid in (...)` filters of up to 4096 rows are ranked exactly. Larger filters are applied while searching the graph.
+- `distance` constraints are applied to the results.
+- Metadata and partition key columns are not supported on HNSW-indexed columns. Auxiliary columns are supported.
+- `distance_metric=dot` works best with unit-length vectors. With vectors of different lengths, recall is lower.

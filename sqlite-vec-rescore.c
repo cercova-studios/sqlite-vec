@@ -156,13 +156,7 @@ static void rescore_quantize_float_to_bit(const float *src, uint8_t *dst,
 
 static void rescore_quantize_float_to_int8(const float *src, int8_t *dst,
                                            size_t dimensions) {
-  float step = 2.0f / 255.0f;
-  for (size_t i = 0; i < dimensions; i++) {
-    float v = (src[i] - (-1.0f)) / step - 128.0f;
-    if (!(v <= 127.0f)) v = 127.0f;
-    if (!(v >= -128.0f)) v = -128.0f;
-    dst[i] = (int8_t)v;
-  }
+  vec0_quantize_int8_unit(src, dst, dimensions);
 }
 
 // ============================================================================
@@ -483,20 +477,9 @@ static int rescore_knn(vec0_vtab *p, vec0_cursor *pCur,
       }
       case VEC0_RESCORE_QUANTIZER_INT8: {
         const i8 *base_j = ((i8 *)baseVectors) + (j * qdim);
-        switch (vector_column->distance_metric) {
-        case VEC0_DISTANCE_METRIC_L2:
-          dist = distance_l2_sqr_int8(base_j, (i8 *)quantizedQuery, &qdim);
-          break;
-        case VEC0_DISTANCE_METRIC_COSINE:
-          dist = distance_cosine_int8(base_j, (i8 *)quantizedQuery, &qdim);
-          break;
-        case VEC0_DISTANCE_METRIC_L1:
-          dist = (f32)distance_l1_int8(base_j, (i8 *)quantizedQuery, &qdim);
-          break;
-        case VEC0_DISTANCE_METRIC_DOT:
-          dist = distance_dot_int8(base_j, (i8 *)quantizedQuery, &qdim);
-          break;
-        }
+        dist = vec0_distance_full(base_j, quantizedQuery, qdim,
+                                  SQLITE_VEC_ELEMENT_TYPE_INT8,
+                                  vector_column->distance_metric);
         break;
       }
       }

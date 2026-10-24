@@ -113,7 +113,12 @@ FUNCTIONS = [
     "vec_normalize",
     "vec_quantize_binary",
     "vec_quantize_int8",
+    "vec_rrf",
     "vec_slice",
+    "vec_sparse",
+    "vec_sparse_distance_cosine",
+    "vec_sparse_distance_dot",
+    "vec_sparse_to_json",
     "vec_sub",
     "vec_to_json",
     "vec_type",
@@ -122,6 +127,7 @@ FUNCTIONS = [
 MODULES = [
     "vec0",
     "vec_each",
+    "vec_sparse_each",
 ]
 
 
@@ -2510,6 +2516,65 @@ def test_vec_concat():
     assert _one("select vec_length(vec_concat(vec_bit(X'FF'), vec_bit(X'00')))") == 16
     with pytest.raises(sqlite3.OperationalError, match="different types"):
         _one("select vec_concat('[1]', vec_int8('[1]'))")
+
+
+def test_vec_sparse():
+    assert _one("select vec_sparse_to_json(vec_sparse('{\"7\": 2, \"3\": 0.5, \"9\": 0}'))") == '{"3":0.5,"7":2.0}'
+    # dense input keeps nonzero elements with their positions
+    assert _one("select vec_sparse_to_json(vec_sparse('[0, 1.5, 0, -2]'))") == '{"1":1.5,"3":-2.0}'
+    assert _one("select length(vec_sparse('{}'))") == 0
+    for bad in ['{"-1": 1}', '{"a": 1}', '{"1": 1, "1": 2}', '{"1" 1}']:
+        with pytest.raises(sqlite3.OperationalError):
+            _one("select vec_sparse(?)", bad)
+
+
+def test_vec_sparse_to_json():
+    assert _one("select vec_sparse_to_json(vec_sparse('{\"4294967295\": 1}'))") == '{"4294967295":1.0}'
+    with pytest.raises(sqlite3.OperationalError, match="malformed"):
+        _one("select vec_sparse_to_json(X'0102')")
+
+
+def test_vec_sparse_distance_dot():
+    a = "vec_sparse('{\"1\": 2, \"5\": 3, \"9\": 1}')"
+    b = "vec_sparse('{\"5\": 4, \"9\": -1, \"12\": 7}')"
+    assert _one(f"select vec_sparse_distance_dot({a}, {b})") == -11.0
+    assert _one(f"select vec_sparse_distance_dot({a}, vec_sparse('{{}}'))") == 0.0
+
+
+def test_vec_sparse_distance_cosine():
+    a = "vec_sparse('{\"1\": 1, \"2\": 1}')"
+    assert _one(f"select vec_sparse_distance_cosine({a}, {a})") == pytest.approx(0.0)
+    assert _one(f"select vec_sparse_distance_cosine({a}, vec_sparse('{{\"3\": 1}}'))") == pytest.approx(1.0)
+    assert _one(f"select vec_sparse_distance_cosine({a}, vec_sparse('{{}}'))") is None
+
+
+def test_vec_sparse_each():
+    rows = db.execute(
+        "select idx, value from vec_sparse_each(vec_sparse('{\"10\": 0.25, \"2\": 4}'))"
+    ).fetchall()
+    assert [tuple(r) for r in rows] == [(2, 4.0), (10, 0.25)]
+    # an inverted index over sparse vectors is a plain SQLite table
+    d = connect(EXT_PATH)
+    d.execute("create table docs(id integer primary key, sv blob)")
+    d.executemany("insert into docs values (?, vec_sparse(?))",
+                  [(1, '{"1": 1, "2": 1}'), (2, '{"2": 3}'), (3, '{"7": 5}')])
+    d.execute("create table postings(term, doc, w, primary key (term, doc)) without rowid")
+    d.execute("insert into postings select e.idx, docs.id, e.value from docs, vec_sparse_each(docs.sv) e")
+    got = d.execute("""
+      select p.doc, sum(p.w * q.value) as score
+      from vec_sparse_each(vec_sparse('{"2": 1, "7": 0.1}')) q
+      join postings p on p.term = q.idx
+      group by p.doc order by score desc
+    """).fetchall()
+    assert [tuple(r) for r in got] == [(2, 3.0), (1, 1.0), (3, pytest.approx(0.5))]
+
+
+def test_vec_rrf():
+    assert _one("select vec_rrf(1, 1)") == pytest.approx(2 / 61)
+    assert _one("select vec_rrf(1, null)") == pytest.approx(1 / 61)
+    assert _one("select vec_rrf()") == 0.0
+    with pytest.raises(sqlite3.OperationalError, match="start at 1"):
+        _one("select vec_rrf(0)")
 
 
 if __name__ == "__main__":

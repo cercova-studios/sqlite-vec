@@ -16,6 +16,13 @@ sections:
   quantization:
     title: Quantization
     desc: Various techniques to "compress" a vector by reducing precision and accuracy.
+  sparse:
+    title: Sparse vectors
+    desc: |
+      Sparse vectors store only their nonzero elements, as sorted `(index, value)` pairs. Use them for learned sparse embeddings like SPLADE, or for term weights. To index them, expand each vector into rows with `vec_sparse_each()` and store the rows in an ordinary `WITHOUT ROWID` table keyed on `(term, doc)`. SQLite's B-tree is then the inverted index.
+  hybrid:
+    title: Hybrid search
+    desc: Functions to combine ranked results from several searches, such as a `vec0` KNN query and an FTS5 query.
   numpy:
     title: "NumPy Utilities"
     desc: Functions to read data from or work with [NumPy arrays](https://numpy.org/doc/stable/reference/generated/numpy.array.html).
@@ -370,3 +377,93 @@ vec0:
         values (1, '[1, 1, 1, 1]'),
           (2, '[2, 2, 2, 2]'),
           (3, '[3, 3, 3, 3]');
+
+sparse:
+  vec_sparse:
+    params: [vector]
+    desc: |
+      Creates a sparse vector from a JSON object of `{"index": value}` pairs, or from any dense float32 vector (only nonzero elements are kept, at their positions). Indexes are unsigned 32-bit integers.
+
+      Returns an error if the JSON is malformed, an index repeats, or the dense input is not float32.
+    example:
+      - |
+        select vec_sparse_to_json(vec_sparse('{"7": 2.0, "3": 0.5}'));
+      - select vec_sparse_to_json(vec_sparse('[0, 1.5, 0, -2]'));
+  vec_sparse_to_json:
+    params: [sparse]
+    desc: |
+      Returns a sparse vector as a JSON object of `{"index": value}` pairs, in index order.
+    example:
+      - |
+        select vec_sparse_to_json(vec_sparse('{"10": 1, "2": 4}'));
+  vec_sparse_distance_dot:
+    params: [a, b]
+    desc: Negative dot product of two sparse vectors. Smaller means more similar. Elements present in only one vector contribute nothing.
+    example:
+      - |
+        select vec_sparse_distance_dot(vec_sparse('{"1": 2, "5": 3}'), vec_sparse('{"5": 4, "9": 1}'));
+  vec_sparse_distance_cosine:
+    params: [a, b]
+    desc: Cosine distance between two sparse vectors. Returns NULL if either vector has no nonzero elements.
+    example:
+      - |
+        select vec_sparse_distance_cosine(vec_sparse('{"1": 1, "2": 1}'), vec_sparse('{"2": 1}'));
+  vec_sparse_each:
+    params: [sparse]
+    desc: |
+      A table function that returns one row per nonzero element of a sparse vector.
+
+      ```sql
+      CREATE TABLE vec_sparse_each(
+        idx,          -- element index
+        value,        -- element value
+        sparse HIDDEN -- input parameter: a sparse vector from vec_sparse()
+      )
+      ```
+
+      With a postings table, a sparse search is a join and a `GROUP BY`:
+
+      ```sql
+      create table postings(term, doc, w, primary key (term, doc)) without rowid;
+      insert into postings
+        select e.idx, docs.id, e.value from docs, vec_sparse_each(docs.sv) e;
+
+      select p.doc, sum(p.w * q.value) as score
+      from vec_sparse_each(vec_sparse(:query)) q
+      join postings p on p.term = q.idx
+      group by p.doc
+      order by score desc
+      limit 10;
+      ```
+    example:
+      - |
+        select idx, value from vec_sparse_each(vec_sparse('{"10": 0.25, "2": 4}'));
+
+hybrid:
+  vec_rrf:
+    params: [rank1, rank2, ...]
+    desc: |
+      Reciprocal Rank Fusion score: the sum of `1 / (60 + rank)` over the given 1-based ranks. NULL ranks, such as a document missing from one result list, are skipped. Higher scores rank first.
+
+      Fuse a `vec0` KNN query with an FTS5 query:
+
+      ```sql
+      with knn as (
+        select rowid, row_number() over (order by distance) as r
+        from vec_docs where embedding match :q_vec and k = 50
+      ),
+      fts as (
+        select rowid, row_number() over (order by rank) as r
+        from fts_docs where fts_docs match :q_text limit 50
+      )
+      select coalesce(knn.rowid, fts.rowid) as rowid,
+             vec_rrf(knn.r, fts.r) as score
+      from knn full outer join fts on knn.rowid = fts.rowid
+      order by score desc
+      limit 10;
+      ```
+
+      Returns an error if a rank is less than 1.
+    example:
+      - select vec_rrf(1, 3);
+      - select vec_rrf(2, null);
