@@ -463,6 +463,8 @@ hybrid:
       limit 10;
       ```
 
+      FTS5's `rank` is its BM25 score (lower is better), so `order by rank` gives rank 1 to the best keyword match. For weighted fusion, write the terms in SQL, for example `coalesce(0.7 / (60 + knn.r), 0) + coalesce(0.3 / (60 + fts.r), 0)`. See the [hybrid search guide](/guides/hybrid-search).
+
       Returns an error if a rank is less than 1.
     example:
       - select vec_rrf(1, 3);

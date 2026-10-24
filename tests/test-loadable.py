@@ -2577,5 +2577,46 @@ def test_vec_rrf():
         _one("select vec_rrf(0)")
 
 
+def test_vec_rrf_fts5_hybrid():
+    # FTS5 supplies BM25 ranking; vec_rrf fuses it with a vec0 KNN query
+    d = connect(EXT_PATH)
+    d.execute("create virtual table fts_docs using fts5(body)")
+    d.execute("create virtual table vec_docs using vec0(embedding float[2])")
+    docs = {
+        1: ("apple pie recipe", "[1, 0]"),
+        2: ("apple apple orchard", "[0, 1]"),
+        3: ("banana bread", "[0.9, 0.1]"),
+        4: ("cherry tart", "[-1, 0]"),
+    }
+    for rowid, (body, emb) in docs.items():
+        d.execute("insert into fts_docs(rowid, body) values (?, ?)", [rowid, body])
+        d.execute("insert into vec_docs(rowid, embedding) values (?, ?)", [rowid, emb])
+    got = d.execute("""
+      with knn as (
+        select rowid, row_number() over (order by distance) as r
+        from vec_docs where embedding match '[1, 0]' and k = 3
+      ),
+      fts as (
+        select rowid, row_number() over (order by rank) as r
+        from fts_docs where fts_docs match 'apple' limit 3
+      )
+      select coalesce(knn.rowid, fts.rowid) as rowid, vec_rrf(knn.r, fts.r) as score
+      from knn full outer join fts on knn.rowid = fts.rowid
+      order by score desc, rowid
+    """).fetchall()
+    # knn ranks: 1, 3, 2; fts (bm25) ranks: 2, 1
+    assert [r[0] for r in got] == [1, 2, 3]
+    assert got[0][1] == pytest.approx(1 / 61 + 1 / 62)
+    assert got[1][1] == pytest.approx(1 / 63 + 1 / 61)
+    assert got[2][1] == pytest.approx(1 / 62)
+    # weighted RRF needs no new function: weight each term in SQL
+    w = d.execute("""
+      with knn as (select rowid, row_number() over (order by distance) as r
+                   from vec_docs where embedding match '[1, 0]' and k = 3)
+      select rowid, 0.3 / (60 + r) from knn where rowid = 1
+    """).fetchone()
+    assert w[1] == pytest.approx(0.3 / 61)
+
+
 if __name__ == "__main__":
     unittest.main()
