@@ -124,7 +124,7 @@ $(BUILD_DIR): $(prefix)
 	mkdir -p $@
 
 
-$(TARGET_LOADABLE): sqlite-vec.c sqlite-vec.h $(prefix)
+$(TARGET_LOADABLE): sqlite-vec.c sqlite-vec.h $(wildcard sqlite-vec-*.c) $(prefix)
 	$(CC) \
 		-fPIC -shared \
 		-Wall -Wextra \
