@@ -1,0 +1,37 @@
+sqlite-vec-graph.c
+  s_73c6da876dccec::t_061dec5fa8e5c0 31-34
+  s_73c6da876dccec::t_10313805b4dcb1 1-30,35-150,167-178,187-594,596-622
+  s_73c6da876dccec::t_6000aa7679460d 165-166
+  s_73c6da876dccec::t_5a79a3d633a21a 151-164,179-186
+  s_73c6da876dccec::t_fe9ddd26c10a6a 595
+tests/test-graph.py
+  s_73c6da876dccec::t_6000aa7679460d 103-105,193
+  s_73c6da876dccec::t_bd4528d1606ae2 1-102,106-192,194-206
+tests/test-loadable.py
+  s_73c6da876dccec::t_dcdff6fae4a841 2479,2590,2598
+  s_73c6da876dccec::t_7ecbcbb6ecded8 2584-2589,2591-2597,2599
+  s_73c6da876dccec::t_9741a65a21decb 128-129
+sqlite-vec.c
+  s_73c6da876dccec::t_061dec5fa8e5c0 12072
+  s_73c6da876dccec::t_71944d923384d5 5535
+Makefile
+  s_73c6da876dccec::t_831480a905013b 127
+reference.yaml
+  s_73c6da876dccec::t_fb29643328ca2e 26-28,445-504
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ab525bc502f05aa71e60f8c21664240228394a80",
+  "prompts": {},
+  "sessions": {
+    "s_73c6da876dccec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2db5337b-6d4f-49a3-bab8-8a4e560ddd84",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
