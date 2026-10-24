@@ -1,0 +1,21 @@
+lance/src/store.rs
+  s_038c9d86d9ab5e::t_e8fff31b29905d 59-64,422-429
+tests/test-hybrid.py
+  s_038c9d86d9ab5e::t_848a6566ed2ebc 8,423-452
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "42dea66884e594d89789fbf93e795c15b4133171",
+  "prompts": {},
+  "sessions": {
+    "s_038c9d86d9ab5e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c4cc4d-eb43-45f6-a97c-74a9d4126c1b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
