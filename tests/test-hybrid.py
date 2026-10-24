@@ -380,3 +380,42 @@ def test_vec0_vectors_in_lance(db, root, index):
     if index:
         db.execute("insert into items(items) values ('hnsw-rebuild')")
         assert db.execute("select rowid from items where v match ? and k = 1", [_f32(rows[9])]).fetchone() == (9,)
+
+
+def test_column_patches(db, root):
+    """UPDATE of some columns patches only those columns in Lance."""
+    lance_table(db, root, dim=4)
+    storage_table(db, root)
+    db.execute("begin")
+    for i in range(1, 6):
+        db.execute("insert into docs(rowid, label, vector, payload) values (?, ?, ?, ?)",
+                   [i, f"l{i}", _f32([i, 0, 0, 0]), bytes([i]) * 100])
+        db.execute("insert into items(rowid, v, title, image, n) values (?, ?, ?, ?, ?)",
+                   [i, _f32([i, 0]), f"t{i}", bytes([i]) * 100, i])
+    db.execute("commit")
+    # one column; the others (vector, blob) must survive untouched
+    db.execute("update docs set label = 'L2' where rowid = 2")
+    db.execute("update items set title = 'T2', n = 20 where rowid = 2")
+    assert db.execute("select label, vector, payload from docs where rowid = 2").fetchone() == \
+        ("L2", _f32([2, 0, 0, 0]), bytes([2]) * 100)
+    assert db.execute("select title, image, n, v from items where rowid = 2").fetchone() == \
+        ("T2", bytes([2]) * 100, 20, _f32([2, 0]))
+    # patches accumulate within a transaction, and mix with whole-row writes
+    db.execute("begin")
+    db.execute("update items set title = 'a' where rowid = 3")
+    db.execute("update items set n = 33 where rowid = 3")
+    db.execute("update items set v = ? where rowid = 3", [_f32([30, 0])])
+    db.execute("insert into items(rowid, v, title) values (9, ?, 'new')", [_f32([9, 0])])
+    db.execute("update items set title = 'newer' where rowid = 9")  # still a plain insert
+    db.execute("update docs set vector = ?, label = 'moved' where rowid = 4", [_f32([40, 0, 0, 0])])
+    db.execute("commit")
+    assert db.execute("select title, n, v from items where rowid = 3").fetchone() == ("a", 33, _f32([30, 0]))
+    assert db.execute("select title from items where rowid = 9").fetchone() == ("newer",)
+    assert db.execute("select rowid from items where v match ? and k = 1", [_f32([30, 0])]).fetchone() == (3,)
+    assert db.execute("select label, payload from docs where rowid = 4").fetchone() == ("moved", bytes([4]) * 100)
+    assert db.execute("select rowid from docs where query = ? and k = 1", [_f32([40, 0, 0, 0])]).fetchone() == (4,)
+    # rolled-back patches leave nothing behind
+    db.execute("begin")
+    db.execute("update items set title = 'gone' where rowid = 1")
+    db.execute("rollback")
+    assert db.execute("select title from items where rowid = 1").fetchone() == ("t1",)

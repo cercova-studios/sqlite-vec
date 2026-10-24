@@ -96,8 +96,8 @@ impl Provider {
 
     /// The row as this connection sees it.
     fn row(&mut self, id: i64) -> Result<Option<Row>> {
-        if let Some(p) = self.store.pending_get(id) {
-            return Ok(p.cloned());
+        if let Some(p) = self.store.pending_get(id)? {
+            return Ok(p);
         }
         self.check_cache();
         if let Some(r) = self.cache.get(&id) {
@@ -289,18 +289,11 @@ unsafe extern "C" fn x_put(p: *mut Provider, rowid: i64, ap_aux: *mut *mut ffi::
     }
 }
 
-fn set_column(p: &mut Provider, rowid: i64, i: usize, v: Value) -> Result<()> {
-    let n = p.store.cols.len();
-    let mut row = p.row(rowid)?.unwrap_or_else(|| vec![Value::Null; n]);
-    row[i] = v;
-    p.store.replace(rowid, row)
-}
-
 unsafe extern "C" fn x_set(p: *mut Provider, rowid: i64, i_col: c_int, val: *mut ffi::sqlite3_value) -> c_int {
     unsafe {
         guard(p, |p| {
             let i = p.column_index(i_col)?;
-            set_column(p, rowid, i, value_from(val))
+            p.store.update_columns(rowid, vec![(i, value_from(val))])
         })
     }
 }
@@ -311,8 +304,7 @@ unsafe extern "C" fn x_set_vector(p: *mut Provider, rowid: i64, i_vec: c_int, v:
             let j = i_vec as usize;
             let n = *p.vec_bytes.get(j).ok_or_else(|| lance_err(format!("vector {i_vec} out of range")))?;
             let blob = Value::Blob(std::slice::from_raw_parts(v.cast::<u8>(), n).to_vec());
-            let i = p.n_aux + j;
-            set_column(p, rowid, i, blob)
+            p.store.update_columns(rowid, vec![(p.n_aux + j, blob)])
         })
     }
 }
@@ -360,7 +352,7 @@ unsafe extern "C" fn x_scan(p: *mut Provider, i_col: c_int, cb: ScanCallback, ar
             }
             // committed rows this transaction did not touch, then its own rows
             for (id, v) in &p.columns[&i] {
-                if p.store.pending_get(*id).is_some() {
+                if p.store.has_pending(*id) {
                     continue;
                 }
                 if let Some(b) = bytes_of(v) {
@@ -370,7 +362,7 @@ unsafe extern "C" fn x_scan(p: *mut Provider, i_col: c_int, cb: ScanCallback, ar
                     }
                 }
             }
-            for (id, row) in p.store.pending_rows() {
+            for (id, row) in p.store.pending_rows()? {
                 if let Some(b) = bytes_of(&row[i]) {
                     cb_rc = cb(arg, id, b.as_ptr().cast(), b.len() as c_int);
                     if cb_rc != ffi::SQLITE_OK {
@@ -389,7 +381,7 @@ unsafe extern "C" fn x_prefetch(p: *mut Provider, a_rowid: *const i64, n: c_int)
         guard(p, |p| {
             p.check_cache();
             let ids: Vec<i64> = std::slice::from_raw_parts(a_rowid, n.max(0) as usize).iter().copied()
-                .filter(|id| p.store.pending_get(*id).is_none() && !p.cache.contains_key(id))
+                .filter(|id| !p.store.has_pending(*id) && !p.cache.contains_key(id))
                 .collect();
             if ids.is_empty() {
                 return Ok(());

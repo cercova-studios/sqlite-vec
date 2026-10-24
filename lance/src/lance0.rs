@@ -105,16 +105,21 @@ impl LanceTab {
         Ok((Cow::Owned(schema), LanceTab { base: ffi::sqlite3_vtab::default(), dim, store }))
     }
 
+    /// Column c (label, vector, payload) as stored.
+    fn value(&self, c: usize, v: ValueRef<'_>) -> Result<Value> {
+        Ok(match (c, v) {
+            (_, ValueRef::Null) if c != S_VECTOR => Value::Null,
+            (0, ValueRef::Text(t)) => Value::Text(std::str::from_utf8(t)?.to_owned()),
+            (0, _) => return Err(Error::ModuleError("lance0: label must be text".into())),
+            (1, v) => f32_blob(&vector_arg(v, self.dim)?),
+            (_, ValueRef::Blob(b)) => Value::Blob(b.to_vec()),
+            _ => return Err(Error::ModuleError("lance0: payload must be a blob".into())),
+        })
+    }
+
     fn row(&self, args: &[ValueRef<'_>]) -> Result<Row> {
         // args: label, vector, payload (from the 3rd xUpdate argument on)
-        let label = match args[0] { ValueRef::Text(t) => Value::Text(std::str::from_utf8(t)?.to_owned()),
-                                    ValueRef::Null => Value::Null,
-                                    _ => return Err(Error::ModuleError("lance0: label must be text".into())) };
-        let vector = f32_blob(&vector_arg(args[1], self.dim)?);
-        let payload = match args[2] { ValueRef::Blob(b) => Value::Blob(b.to_vec()),
-                                      ValueRef::Null => Value::Null,
-                                      _ => return Err(Error::ModuleError("lance0: payload must be a blob".into())) };
-        Ok(vec![label, vector, payload])
+        (0..3).map(|c| self.value(c, args[c])).collect()
     }
 }
 
@@ -183,6 +188,19 @@ impl UpdateVTab<'_> for LanceTab {
     fn update(&mut self, args: &Updates<'_>) -> Result<()> {
         let old: i64 = args.get(0)?;
         let new: i64 = args.get(1)?;
+        // Columns the UPDATE did not set arrive as "no change" (see column());
+        // patch only the others, so a label change never rewrites a vector.
+        let unchanged: Vec<bool> = (2..5).map(|i| args.no_change(i)).collect();
+        if old == new && unchanged.iter().any(|u| *u) {
+            let vals: Vec<ValueRef<'_>> = args.iter().skip(2).take(3).collect();
+            let mut updates = Vec::new();
+            for (c, v) in vals.iter().enumerate() {
+                if !unchanged[c] {
+                    updates.push((c, self.value(c, *v)?));
+                }
+            }
+            return if updates.is_empty() { Ok(()) } else { self.store.update_columns(new, updates) };
+        }
         let vals: Vec<ValueRef<'_>> = args.iter().skip(2).take(3).collect();
         let row = self.row(&vals)?;
         if old != new {
@@ -280,7 +298,7 @@ unsafe impl VTabCursor for LanceCursor<'_> {
             .filter(|(id, _, _)| !store.hides(*id))
             .map(|(id, row, distance)| OutRow { id, row, distance })
             .collect();
-        for (id, row) in store.pending_rows() {
+        for (id, row) in store.pending_rows_for(rowid)? {
             let label_ok = label.as_ref().is_none_or(|l| match (&row[S_LABEL], l) {
                 (Value::Text(t), Some(l)) => t == l,
                 _ => false,
@@ -289,7 +307,7 @@ unsafe impl VTabCursor for LanceCursor<'_> {
                 continue;
             }
             let distance = knn.and_then(|(q, _)| l2_blob(&row[S_VECTOR], q));
-            rows.push(OutRow { id, row: row.clone(), distance });
+            rows.push(OutRow { id, row, distance });
         }
         if let Some((_, k)) = knn {
             rows.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap_or(std::cmp::Ordering::Equal));
@@ -310,6 +328,10 @@ unsafe impl VTabCursor for LanceCursor<'_> {
     }
 
     fn column(&self, ctx: &mut Context, i: c_int) -> Result<()> {
+        // During an UPDATE, SQLite asks whether it may skip unchanged columns.
+        if ctx.no_change() && matches!(i, COL_LABEL | COL_VECTOR | COL_PAYLOAD) {
+            return Ok(());
+        }
         let r = &self.rows[self.i];
         match i {
             COL_LABEL | COL_VECTOR | COL_PAYLOAD => ctx.set_result(&r.row[i as usize]),

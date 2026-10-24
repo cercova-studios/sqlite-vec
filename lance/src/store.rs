@@ -18,7 +18,8 @@ use std::ffi::c_int;
 use std::sync::{Arc, OnceLock};
 
 use lance::Dataset;
-use lance::dataset::{WriteMode, WriteParams};
+use lance::dataset::{MergeInsertBuilder, MergeInsertWriteMode, WhenMatched, WhenNotMatched, WriteMode,
+                     WriteParams};
 use lance::index::DatasetIndexExt;
 use lance_index::IndexType;
 use lance_index::optimize::OptimizeOptions;
@@ -75,8 +76,14 @@ pub type Row = Vec<Value>;
 
 #[derive(Clone)]
 struct Pending {
-    row: Option<Row>, // Some = written row; None = deleted
+    row: Option<Row>, // Some = the row as this transaction sees it; None = deleted
     replaces: bool,   // hide the committed row (a delete or update happened)
+    /// Some(columns): a committed row where only these columns changed, so
+    /// the commit patches just them. None: the whole row was written.
+    changed: Option<Vec<usize>>,
+    /// False for a patch whose `row` holds only the patched values: reads
+    /// merge the committed row in, so writing a patch needs no read.
+    complete: bool,
 }
 
 pub struct LanceStore {
@@ -217,9 +224,21 @@ impl LanceStore {
 
     // ---------------------------------------------------------------- writes
 
-    fn set(&mut self, id: i64, row: Option<Row>, replaces: bool) {
-        let replaces = replaces || self.pending.get(&id).is_some_and(|p| p.replaces);
-        let prev = self.pending.insert(id, Pending { row, replaces });
+    fn set(&mut self, id: i64, row: Option<Row>, replaces: bool, changed: Option<Vec<usize>>) {
+        let prior = self.pending.get(&id);
+        let replaces = replaces || prior.is_some_and(|p| p.replaces);
+        // Column patches accumulate; any whole-row write makes the row whole.
+        let changed = match (prior, changed) {
+            (_, None) => None,
+            (None, Some(c)) => Some(c),
+            (Some(p), Some(mut c)) => p.changed.as_ref().map(|old| {
+                c.extend(old.iter().copied());
+                c.sort_unstable();
+                c.dedup();
+                c
+            }),
+        };
+        let prev = self.pending.insert(id, Pending { row, replaces, changed, complete: true });
         if !self.marks.is_empty() {
             self.undo.push((id, prev));
         }
@@ -228,20 +247,57 @@ impl LanceStore {
     /// A new row (a rowid not in the store).
     pub fn insert(&mut self, id: i64, row: Row) -> Result<()> {
         self.begin_write()?;
-        self.set(id, Some(row), false);
+        self.set(id, Some(row), false, None);
         Ok(())
     }
 
-    /// Replace the row (or create it).
+    /// Replace the whole row (or create it).
     pub fn replace(&mut self, id: i64, row: Row) -> Result<()> {
         self.begin_write()?;
-        self.set(id, Some(row), true);
+        self.set(id, Some(row), true, None);
+        Ok(())
+    }
+
+    /// Change some columns of an existing row. The commit writes only these
+    /// columns, so updating metadata never rewrites a row's vector or blob.
+    pub fn update_columns(&mut self, id: i64, updates: Vec<(usize, Value)>) -> Result<()> {
+        self.begin_write()?;
+        let mut cols: Vec<usize> = updates.iter().map(|u| u.0).collect();
+        let entry = match self.pending.get(&id) {
+            Some(Pending { row: None, .. }) => return Err(lance_err(format!("no row {id}"))),
+            Some(p) => {
+                let mut p = p.clone();
+                let row = p.row.as_mut().unwrap();
+                for (c, v) in updates {
+                    row[c] = v;
+                }
+                if let Some(old) = &p.changed {
+                    cols.extend(old.iter().copied());
+                    cols.sort_unstable();
+                    cols.dedup();
+                    p.changed = Some(cols);
+                } // else: a fresh insert or whole-row write stays whole
+                p
+            }
+            None => {
+                // The committed row is not read here: only the patch is kept.
+                let mut row = vec![Value::Null; self.cols.len()];
+                for (c, v) in updates {
+                    row[c] = v;
+                }
+                Pending { row: Some(row), replaces: true, changed: Some(cols), complete: false }
+            }
+        };
+        let prev = self.pending.insert(id, entry);
+        if !self.marks.is_empty() {
+            self.undo.push((id, prev));
+        }
         Ok(())
     }
 
     pub fn delete(&mut self, id: i64) -> Result<()> {
         self.begin_write()?;
-        self.set(id, None, true);
+        self.set(id, None, true, None);
         Ok(())
     }
 
@@ -276,9 +332,32 @@ impl LanceStore {
         if !self.in_write {
             return Ok(());
         }
-        let deletes: Vec<i64> = self.pending.iter().filter(|(_, p)| p.replaces).map(|(id, _)| *id).collect();
-        let rows = self.pending_rows();
-        let batch = if rows.is_empty() { None } else { Some(self.batch(&rows)?) };
+        // Group the transaction's changes by how Lance writes them.
+        let mut deletes = Vec::new();
+        let mut fresh: Vec<(i64, &Row)> = Vec::new();
+        let mut whole: Vec<(i64, &Row)> = Vec::new();
+        let mut patches: HashMap<Vec<usize>, Vec<(i64, &Row)>> = HashMap::new();
+        let mut ids: Vec<&i64> = self.pending.keys().collect();
+        ids.sort();
+        for id in ids {
+            let p = &self.pending[id];
+            match (&p.row, p.replaces, &p.changed) {
+                (None, _, _) => deletes.push(*id),
+                (Some(r), false, _) => fresh.push((*id, r)),
+                (Some(r), true, None) => whole.push((*id, r)),
+                (Some(r), true, Some(c)) => patches.entry(c.clone()).or_default().push((*id, r)),
+            }
+        }
+        let appended = fresh.len() + whole.len();
+        let fresh = if fresh.is_empty() { None } else { Some(self.batch(&fresh)?) };
+        let whole = if whole.is_empty() { None } else { Some(self.batch(&whole)?) };
+        let mut patch_batches = Vec::new();
+        for (cols, rows) in patches {
+            let full = self.batch(&rows)?;
+            let keep: Vec<usize> = std::iter::once(0).chain(cols.iter().map(|c| c + 1)).collect();
+            patch_batches.push(full.project(&keep).map_err(lance_err)?);
+        }
+
         let uri = self.uri.clone();
         let schema = self.schema.clone();
         let conn = self.conn()?;
@@ -286,22 +365,43 @@ impl LanceStore {
         let lag: i64 = conn
             .query_row(&format!("select v from {shadow} where k = 'unindexed'"), [], |r| r.get(0))
             .unwrap_or(0)
-            + rows.len() as i64;
+            + appended as i64;
         let reindex = lag >= INDEX_LAG_ROWS;
         let latest = block(async move {
-            if !deletes.is_empty() {
-                let mut ds = Dataset::open(&uri).await?;
-                for chunk in deletes.chunks(1000) {
-                    let ids: Vec<String> = chunk.iter().map(|d| d.to_string()).collect();
-                    ds.delete(&format!("id IN ({})", ids.join(","))).await?;
-                }
+            let mut ds = Dataset::open(&uri).await?;
+            for chunk in deletes.chunks(1000) {
+                let ids: Vec<String> = chunk.iter().map(|d| d.to_string()).collect();
+                ds.delete(&format!("id IN ({})", ids.join(","))).await?;
             }
-            if let Some(batch) = batch {
+            // Replaced rows: one upsert instead of a delete plus an append.
+            if let Some(batch) = whole {
+                let s = batch.schema();
+                let (out, _) = MergeInsertBuilder::try_new(Arc::new(ds), vec!["id".to_owned()])?
+                    .when_matched(WhenMatched::UpdateAll)
+                    .when_not_matched(WhenNotMatched::InsertAll)
+                    .try_build()?
+                    .execute_reader(RecordBatchIterator::new(vec![Ok(batch)], s))
+                    .await?;
+                ds = (*out).clone();
+            }
+            // Column patches: write id + the changed columns only.
+            for batch in patch_batches {
+                let s = batch.schema();
+                let (out, _) = MergeInsertBuilder::try_new(Arc::new(ds), vec!["id".to_owned()])?
+                    .when_matched(WhenMatched::UpdateAll)
+                    .when_not_matched(WhenNotMatched::DoNothing)
+                    .write_mode(MergeInsertWriteMode::RewriteColumns)
+                    .try_build()?
+                    .execute_reader(RecordBatchIterator::new(vec![Ok(batch)], s))
+                    .await?;
+                ds = (*out).clone();
+            }
+            if let Some(batch) = fresh {
                 let reader = RecordBatchIterator::new(vec![Ok(batch)], schema);
                 let params = WriteParams { mode: WriteMode::Append, ..Default::default() };
                 Dataset::write(reader, uri.as_str(), Some(params)).await?;
+                ds = Dataset::open(&uri).await?;
             }
-            let mut ds = Dataset::open(&uri).await?;
             if reindex {
                 // A BTREE index on id turns rowid lookups into index probes.
                 let exists = ds.load_indices().await?.iter().any(|i| i.name == ID_INDEX);
@@ -332,12 +432,41 @@ impl LanceStore {
 
     // ----------------------------------------------------------------- reads
 
-    /// This transaction's rows, by rowid.
-    pub fn pending_rows(&self) -> Vec<(i64, &Row)> {
-        let mut rows: Vec<(i64, &Row)> =
-            self.pending.iter().filter_map(|(id, p)| p.row.as_ref().map(|r| (*id, r))).collect();
+    /// This transaction's rows (patched rows merged with their committed
+    /// values, fetched in one batch), by rowid.
+    pub fn pending_rows(&self) -> Result<Vec<(i64, Row)>> {
+        self.pending_rows_for(None)
+    }
+
+    /// Like `pending_rows`, limited to one rowid when `only` is set, so a
+    /// rowid lookup completes just that row instead of every patch.
+    pub fn pending_rows_for(&self, only: Option<i64>) -> Result<Vec<(i64, Row)>> {
+        let incomplete: Vec<i64> = self.pending.iter()
+            .filter(|(id, p)| !p.complete && only.is_none_or(|o| o == **id))
+            .map(|(id, _)| *id).collect();
+        let mut bases = self.committed_rows(&incomplete)?;
+        let mut rows: Vec<(i64, Row)> = Vec::with_capacity(self.pending.len());
+        for (id, p) in &self.pending {
+            if only.is_some_and(|o| o != *id) {
+                continue;
+            }
+            let Some(r) = &p.row else { continue };
+            if p.complete {
+                rows.push((*id, r.clone()));
+            } else if let Some(mut base) = bases.remove(id) {
+                for c in p.changed.iter().flatten() {
+                    base[*c] = r[*c].clone();
+                }
+                rows.push((*id, base));
+            }
+        }
         rows.sort_by_key(|r| r.0);
-        rows
+        Ok(rows)
+    }
+
+    /// Whether this transaction wrote, patched or deleted this rowid.
+    pub fn has_pending(&self, id: i64) -> bool {
+        self.pending.contains_key(&id)
     }
 
     /// Whether this transaction hides the committed row with this rowid.
@@ -351,29 +480,49 @@ impl LanceStore {
 
     /// The row as this transaction sees it: Some(Some(row)), Some(None) when
     /// it was deleted, None when the pending map does not decide.
-    pub fn pending_get(&self, id: i64) -> Option<Option<&Row>> {
-        self.pending.get(&id).map(|p| p.row.as_ref())
+    pub fn pending_get(&self, id: i64) -> Result<Option<Option<Row>>> {
+        let Some(p) = self.pending.get(&id) else { return Ok(None) };
+        if p.complete || p.row.is_none() {
+            return Ok(Some(p.row.clone()));
+        }
+        Ok(Some(self.get_many(&[id])?.remove(&id)))
     }
 
-    /// Committed rows (as this transaction sees them) with these rowids.
+    /// Committed rows in Lance with these rowids, ignoring the pending map.
+    fn committed_rows(&self, ids: &[i64]) -> Result<HashMap<i64, Row>> {
+        let mut out = HashMap::new();
+        if ids.is_empty() {
+            return Ok(out);
+        }
+        let ds = self.reader()?;
+        for chunk in ids.chunks(1000) {
+            let list: Vec<String> = chunk.iter().map(|d| d.to_string()).collect();
+            for (id, row, _) in self.scan(&ds, Some(format!("id IN ({})", list.join(","))), None)? {
+                out.insert(id, row);
+            }
+        }
+        Ok(out)
+    }
+
+    /// Rows with these rowids, as this transaction sees them.
     pub fn get_many(&self, ids: &[i64]) -> Result<HashMap<i64, Row>> {
         let mut out = HashMap::new();
         let mut from_lance = Vec::new();
         for &id in ids {
-            match self.pending_get(id) {
-                Some(Some(row)) => { out.insert(id, row.clone()); }
-                Some(None) => {}
-                None => from_lance.push(id),
+            match self.pending.get(&id) {
+                Some(Pending { row: Some(r), complete: true, .. }) => { out.insert(id, r.clone()); }
+                Some(Pending { row: None, .. }) => {}
+                _ => from_lance.push(id), // not pending, or a patch to merge
             }
         }
-        if from_lance.is_empty() {
-            return Ok(out);
-        }
-        let ds = self.reader()?;
-        for chunk in from_lance.chunks(1000) {
-            let ids: Vec<String> = chunk.iter().map(|d| d.to_string()).collect();
-            for (id, row, _) in self.scan(&ds, Some(format!("id IN ({})", ids.join(","))), None)? {
-                if !self.hides(id) {
+        for (id, mut row) in self.committed_rows(&from_lance)? {
+            match self.pending.get(&id) {
+                None => { out.insert(id, row); }
+                Some(p) => {
+                    let patch = p.row.as_ref().unwrap();
+                    for c in p.changed.iter().flatten() {
+                        row[*c] = patch[*c].clone();
+                    }
                     out.insert(id, row);
                 }
             }
