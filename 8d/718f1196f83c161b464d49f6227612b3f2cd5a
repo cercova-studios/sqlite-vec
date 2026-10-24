@@ -1,0 +1,35 @@
+reference.yaml
+  s_73c6da876dccec::t_a9768ad26427af 192-200,316-337
+site/features/knn.md
+  s_73c6da876dccec::t_3aa5c4bcf93f80 37-41
+sqlite-vec-diskann.c
+  s_73c6da876dccec::t_55f5319e475479 194-195
+sqlite-vec-ivf.c
+  s_73c6da876dccec::t_84e6c49f43470f 102-103,149,187-276,292-294,301-317,352-353,374-376,673-674,678,686,689,1358
+sqlite-vec-rescore.c
+  s_73c6da876dccec::t_2d8df98de36b84 497-499
+sqlite-vec.c
+  s_73c6da876dccec::t_38c4182ecd730a 829-886,1647-1747,2695,2716-2717,2728-2729,2765,3257-3258,3326-3327,3359-3366,7683-7687,7710-7714,10852-10854
+tests/test-dot-metric.py
+  s_73c6da876dccec::t_b62e3a187a84c1 1-31
+tests/test-ivf-quantization.py
+  s_73c6da876dccec::t_219d57470c8b10 273-331
+tests/test-loadable.py
+  s_73c6da876dccec::t_051c0dffbaac89 102,105,107,2294-2332
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8d718f1196f83c161b464d49f6227612b3f2cd5a",
+  "prompts": {},
+  "sessions": {
+    "s_73c6da876dccec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2db5337b-6d4f-49a3-bab8-8a4e560ddd84",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
