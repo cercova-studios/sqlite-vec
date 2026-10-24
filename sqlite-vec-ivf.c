@@ -1523,6 +1523,7 @@ static int ivf_candidate_cmp(const void *a, const void *b) {
 static int ivf_scan_cells_from_stmt(vec0_vtab *p, int col_idx,
                                      sqlite3_stmt *stmt,
                                      const void *queryVecQ, int qvecSize,
+                                     const struct Array *allow,
                                      struct IvfCandidate **candidates,
                                      int *nCandidates, int *cap) {
   int rc;
@@ -1544,6 +1545,7 @@ static int ivf_scan_cells_from_stmt(vec0_vtab *p, int col_idx,
     for (int i = 0; i < cell_cap && found < n; i++) {
       if (!(validity[i / 8] & (1 << (i % 8)))) continue;
       found++;
+      if (!vec0_rowids_contains(allow, rowids[i])) continue;
       if (*nCandidates >= *cap) {
         *cap *= 2;
         struct IvfCandidate *tmp = sqlite3_realloc64(*candidates, (i64)*cap * sizeof(struct IvfCandidate));
@@ -1614,10 +1616,14 @@ static int ivf_query_knn(vec0_vtab *p, int col_idx,
   struct IvfCandidate *candidates = sqlite3_malloc64((i64)cap * sizeof(struct IvfCandidate));
   if (!candidates) { sqlite3_free(queryQ); return SQLITE_NOMEM; }
 
-  if (arrayRowidsIn) {
-    // A rowid filter names its candidates, so each is ranked by its exact
-    // distance; the probed cells hold only the rows near the query, which
-    // the filter may not name.
+  int exact = vec0_rowids_rank_exact(arrayRowidsIn);
+  if (exact) {
+    // A small rowid filter names its candidates, so each is ranked by its
+    // exact distance; the probed cells hold only the rows near the query,
+    // which the filter may not name. A larger filter is applied to the
+    // probed cells.
+    // ponytail: a selective filter above VEC0_KNN_EXACT_FILTER_MAX can return
+    // fewer than k rows; widen nprobe by selectivity if that bites.
     rc = ivf_rank_rowids(p, col_idx, queryVector, arrayRowidsIn,
                          &candidates, &nCandidates, &cap);
     if (rc != SQLITE_OK) { sqlite3_free(queryQ); sqlite3_free(candidates); return rc; }
@@ -1679,7 +1685,7 @@ static int ivf_query_knn(vec0_vtab *p, int col_idx,
       sqlite3_free(zSql);
       if (rc != SQLITE_OK) { sqlite3_free(cd); sqlite3_free(queryQ); sqlite3_free(candidates); return rc; }
 
-      rc = ivf_scan_cells_from_stmt(p, col_idx, stmtScan, queryQ, qvecSize,
+      rc = ivf_scan_cells_from_stmt(p, col_idx, stmtScan, queryQ, qvecSize, arrayRowidsIn,
                                      &candidates, &nCandidates, &cap);
       sqlite3_finalize(stmtScan);
       if (rc != SQLITE_OK) { sqlite3_free(cd); sqlite3_free(queryQ); sqlite3_free(candidates); return rc; }
@@ -1696,7 +1702,7 @@ static int ivf_query_knn(vec0_vtab *p, int col_idx,
     if (!zSql) { sqlite3_free(queryQ); sqlite3_free(candidates); return SQLITE_NOMEM; }
     rc = sqlite3_prepare_v2(p->db, zSql, -1, &stmtScan, NULL); sqlite3_free(zSql);
     if (rc != SQLITE_OK) { sqlite3_free(queryQ); sqlite3_free(candidates); return rc; }
-    rc = ivf_scan_cells_from_stmt(p, col_idx, stmtScan, queryQ, qvecSize,
+    rc = ivf_scan_cells_from_stmt(p, col_idx, stmtScan, queryQ, qvecSize, arrayRowidsIn,
                                    &candidates, &nCandidates, &cap);
     sqlite3_finalize(stmtScan);
     if (rc != SQLITE_OK) { sqlite3_free(queryQ); sqlite3_free(candidates); return rc; }
@@ -1709,7 +1715,7 @@ static int ivf_query_knn(vec0_vtab *p, int col_idx,
 
   // Oversample re-ranking: re-score top (oversample*k) with full-precision vectors
   if (oversample > 1 && quantizer != VEC0_IVF_QUANTIZER_NONE && nCandidates > 0 &&
-      !arrayRowidsIn) {
+      !exact) {
     i64 rescore_n = collect_k < nCandidates ? collect_k : nCandidates;
     sqlite3_stmt *stmtVec = NULL;
     char *zSql = sqlite3_mprintf(
