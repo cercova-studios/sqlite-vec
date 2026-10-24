@@ -23,6 +23,9 @@ sections:
   hybrid:
     title: Hybrid search
     desc: Functions to combine ranked results from several searches, such as a `vec0` KNN query and an FTS5 query.
+  graph:
+    title: Graph traversal
+    desc: Breadth-first traversal and shortest paths over ordinary edge tables.
   numpy:
     title: "NumPy Utilities"
     desc: Functions to read data from or work with [NumPy arrays](https://numpy.org/doc/stable/reference/generated/numpy.array.html).
@@ -438,6 +441,66 @@ sparse:
     example:
       - |
         select idx, value from vec_sparse_each(vec_sparse('{"10": 0.25, "2": 4}'));
+
+graph:
+  graph_bfs:
+    params: [edge_table, src_column, dst_column, start, "[max_depth]"]
+    desc: |
+      A table function that breadth-first traverses a directed graph stored in an ordinary table or view. One row is returned per reachable node, in visit order.
+
+      ```sql
+      CREATE TABLE graph_bfs(
+        node,          -- reachable node id
+        depth,         -- distance in edges from `start` (0 for `start` itself)
+        edge_table HIDDEN, -- input parameter: name of the edge table or view
+        src_column HIDDEN, -- input parameter: name of the source endpoint column
+        dst_column HIDDEN, -- input parameter: name of the destination endpoint column
+        start HIDDEN,      -- input parameter: integer node id to start from
+        max_depth HIDDEN   -- input parameter (optional): maximum depth, NULL for no limit
+      )
+      ```
+
+      Edges are directed `src -> dst`. For an undirected graph, pass a view that unions both directions:
+
+      ```sql
+      create view undirected as
+        select src, dst from edges
+        union all select dst, src from edges;
+      select node, depth from graph_bfs('undirected', 'src', 'dst', 1);
+      ```
+
+      Table and column names must be text, and node ids (`start` and both endpoint columns) must be integers. Rows with a NULL endpoint are skipped. An unknown or sink `start` returns just `(start, 0)`.
+
+      Returns an error under the following conditions:
+      - `edge_table` does not name a table or view with both endpoint columns
+      - `start` or `max_depth` is not an integer, or `max_depth` is negative
+      - an edge endpoint is not an integer or NULL
+    example:
+      - select node, depth from graph_bfs('edges', 'src', 'dst', 1);
+      - select node, depth from graph_bfs('edges', 'src', 'dst', 1, 2);
+  graph_shortest_path:
+    params: [edge_table, src_column, dst_column, source, target]
+    desc: |
+      A table function that returns one shortest directed path from `source` to `target` over an ordinary edge table or view, following the same edge conventions as [`graph_bfs()`](#graph_bfs). One row is returned per node on the path, starting at `step` 0.
+
+      ```sql
+      CREATE TABLE graph_shortest_path(
+        step,          -- 0-based position on the path
+        node,          -- node id at this step
+        edge_table HIDDEN, -- input parameter: name of the edge table or view
+        src_column HIDDEN, -- input parameter: name of the source endpoint column
+        dst_column HIDDEN, -- input parameter: name of the destination endpoint column
+        source HIDDEN,     -- input parameter: integer start node id
+        target HIDDEN      -- input parameter: integer end node id
+      )
+      ```
+
+      Returns just `(0, source)` when `source` and `target` are equal, and no rows when no path exists or either endpoint is unknown.
+
+      Returns an error under the same conditions as [`graph_bfs()`](#graph_bfs).
+    example:
+      - select step, node from graph_shortest_path('edges', 'src', 'dst', 1, 5);
+      - select step, node from graph_shortest_path('edges', 'src', 'dst', 1, 1);
 
 hybrid:
   vec_rrf:

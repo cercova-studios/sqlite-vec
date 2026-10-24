@@ -125,6 +125,8 @@ FUNCTIONS = [
     "vec_version",
 ]
 MODULES = [
+    "graph_bfs",
+    "graph_shortest_path",
     "vec0",
     "vec_each",
     "vec_sparse_each",
@@ -2474,7 +2476,7 @@ def test_coverage():
         for member in inspect.getmembers(current_module)
         if member[0].startswith("test_")
     ]
-    funcs_with_tests = set([x.replace("test_", "") for x in test_methods])
+    funcs_with_tests = set([x.replace("test_", "", 1) for x in test_methods])
     for func in [*FUNCTIONS, *MODULES]:
         assert func in funcs_with_tests, f"{func} is not tested"
 
@@ -2620,3 +2622,19 @@ def test_vec_rrf_fts5_hybrid():
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_graph_bfs():
+    db.execute("create temp table graph_smoke(src, dst)")
+    db.execute("insert into graph_smoke values (1, 2), (2, 3)")
+    rows = db.execute("select node, depth from graph_bfs('graph_smoke', 'src', 'dst', 1)").fetchall()
+    assert [tuple(r) for r in rows] == [(1, 0), (2, 1), (3, 2)]
+    db.execute("drop table graph_smoke")
+
+
+def test_graph_shortest_path():
+    db.execute("create temp table graph_smoke(src, dst)")
+    db.execute("insert into graph_smoke values (1, 2), (2, 3), (1, 3)")
+    rows = db.execute("select step, node from graph_shortest_path('graph_smoke', 'src', 'dst', 1, 3)").fetchall()
+    assert [tuple(r) for r in rows] == [(0, 1), (1, 3)]
+    db.execute("drop table graph_smoke")

@@ -5583,6 +5583,7 @@ static int vec0_exec_rowid(vec0_vtab *p, const char *fmt, int col_idx, i64 rowid
 #if SQLITE_VEC_ENABLE_HNSW
 #include "sqlite-vec-hnsw.c"
 #endif
+#include "sqlite-vec-graph.c"
 
 #define VEC_CONSTRUCTOR_ERROR "vec0 constructor error: "
 static int vec0_init(sqlite3 *db, void *pAux, int argc, const char *const *argv,
@@ -12088,7 +12089,7 @@ SQLITE_VEC_API int sqlite3_vec_init(sqlite3 *db, char **pzErrMsg,
     }
   }
 
-  return SQLITE_OK;
+  return graph_register(db, pzErrMsg);
 }
 
 
