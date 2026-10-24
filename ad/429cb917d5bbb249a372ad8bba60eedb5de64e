@@ -1,0 +1,31 @@
+lance/src/store.rs
+  s_73c6da876dccec::t_5ac3046fe2c7a5 21-22,79,81-83,227-240,250,254,257-263,267,282,289-290,294,300,335-360,368,371-385,387-399,403
+  s_73c6da876dccec::t_34dc318741d5dd 84-86,241,265-266,268-281,283-288,291-293,435-437,447-449,453-462,464-469,483-488,491-507,512-515,518-525
+  s_73c6da876dccec::t_dcdff6fae4a841 438-446,450-452
+  s_73c6da876dccec::t_ae15affd436c9c 264
+lance/src/lance0.rs
+  s_73c6da876dccec::t_356cb117fc37cb 108-119,122,191-203,331-334
+  s_73c6da876dccec::t_dcdff6fae4a841 301
+  s_73c6da876dccec::t_34dc318741d5dd 310
+lance/src/provider.rs
+  s_73c6da876dccec::t_34dc318741d5dd 99-100,355,365,384
+  s_73c6da876dccec::t_356cb117fc37cb 296,307
+tests/test-hybrid.py
+  s_73c6da876dccec::t_4263069cc08ae9 383-421
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ad429cb917d5bbb249a372ad8bba60eedb5de64e",
+  "prompts": {},
+  "sessions": {
+    "s_73c6da876dccec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2db5337b-6d4f-49a3-bab8-8a4e560ddd84",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
