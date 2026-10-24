@@ -443,10 +443,7 @@ static int rescore_knn(vec0_vtab *p, vec0_cursor *pCur,
       for (int j = 0; j < p->chunk_size; j++) {
         if (!bitmap_get(chunkValidity, j))
           continue;
-        i64 rid = chunkRowids[j];
-        void *found = bsearch(&rid, arrayRowidsIn->z, arrayRowidsIn->length,
-                               sizeof(i64), _cmp);
-        bitmap_set(bmRowids, j, found ? 1 : 0);
+        bitmap_set(bmRowids, j, vec0_rowids_contains(arrayRowidsIn, chunkRowids[j]));
       }
       bitmap_and_inplace(b, bmRowids, p->chunk_size);
     }

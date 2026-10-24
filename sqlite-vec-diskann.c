@@ -750,12 +750,17 @@ static int diskann_visited_set_insert(struct DiskannVisitedSet *set, i64 rowid) 
 /**
  * Perform LM-Search: greedy beam search over the DiskANN graph.
  * Follows Algorithm 1 from the LM-DiskANN paper.
+ *
+ * With `allow` (a sorted rowid filter, NULL for none) the beam still walks
+ * every node, and the output is the k nearest allowed nodes it visited.
+ * ponytail: the beam is not widened for a selective filter, so it can return
+ * fewer than k rows; grow searchListSize by selectivity if that bites.
  */
 static int diskann_search(
     vec0_vtab *p, int vec_col_idx,
     const void *queryVector, size_t dimensions,
     enum VectorElementType elementType,
-    int k, int searchListSize,
+    int k, int searchListSize, const struct Array *allow,
     i64 *outRowids, f32 *outDistances, int *outCount) {
 
   struct VectorColumnDefinition *col = &p->vector_columns[vec_col_idx];
@@ -805,6 +810,7 @@ static int diskann_search(
   // Seed with medoid (confirmed — we already read its vector above)
   diskann_candidate_list_insert(&candidates, medoid, medoidDist);
   candidates.items[0].confirmed = 1;
+  int nAllowed = 0;  // with `allow`: outRowids holds the nearest allowed visits
 
   // Pre-quantize query vector once for all quantized distance comparisons
   u8 *queryQuantized = diskann_quantize_query(queryVector, elementType,
@@ -871,13 +877,24 @@ static int diskann_search(
                                              col->distance_metric);
       sqlite3_free(fullVec);
       diskann_candidate_list_confirm(&candidates, currentRowid, exactDist);
+      if (allow && vec0_rowids_contains(allow, currentRowid) &&
+          (nAllowed < k || exactDist < outDistances[nAllowed - 1])) {
+        int i = nAllowed < k ? nAllowed++ : nAllowed - 1;
+        while (i > 0 && outDistances[i - 1] > exactDist) {
+          outRowids[i] = outRowids[i - 1];
+          outDistances[i] = outDistances[i - 1];
+          i--;
+        }
+        outRowids[i] = currentRowid;
+        outDistances[i] = exactDist;
+      }
     }
     // If vector read failed, candidate stays unconfirmed (stale edge to deleted node)
   }
 
   // 5. Output results — only include confirmed candidates (whose vectors exist)
-  int resultCount = 0;
-  for (int i = 0; i < candidates.count && resultCount < k; i++) {
+  int resultCount = allow ? nAllowed : 0;
+  for (int i = 0; !allow && i < candidates.count && resultCount < k; i++) {
     if (candidates.items[i].confirmed) {
       outRowids[resultCount] = candidates.items[i].rowid;
       outDistances[resultCount] = candidates.items[i].distance;
@@ -1459,7 +1476,7 @@ static int diskann_insert_graph(vec0_vtab *p, int vec_col_idx,
 
   int searchCount;
   rc = diskann_search(p, vec_col_idx, vector, col->dimensions,
-                       col->element_type, L, L,
+                       col->element_type, L, L, NULL,
                        searchRowids, searchDistances, &searchCount);
   if (rc != SQLITE_OK) {
     sqlite3_free(searchRowids);

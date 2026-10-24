@@ -1576,6 +1576,22 @@ int _cmp(const void *a, const void *b) {
   return (x > y) - (x < y);
 }
 
+// Filtered KNN, one policy for every index: a `rowid in (...)` filter of at
+// most VEC0_KNN_EXACT_FILTER_MAX rows ranks each named row by its exact
+// distance, since a selective filter starves an index search of matches; a
+// larger one is applied while the index is searched. rowidsIn is
+// sorted (vec0_rowids_in_collect), and NULL means no filter.
+#define VEC0_KNN_EXACT_FILTER_MAX 4096
+
+static int vec0_rowids_rank_exact(const struct Array *rowidsIn) {
+  return rowidsIn && rowidsIn->length <= VEC0_KNN_EXACT_FILTER_MAX;
+}
+
+static int vec0_rowids_contains(const struct Array *rowidsIn, i64 rowid) {
+  return !rowidsIn ||
+         bsearch(&rowid, rowidsIn->z, rowidsIn->length, sizeof(i64), _cmp) != NULL;
+}
+
 #pragma region scalar functions
 static void vec_f32(sqlite3_context *context, int argc, sqlite3_value **argv) {
   assert(argc == 1);
@@ -4539,6 +4555,41 @@ cleanup:
   sqlite3_finalize(stmt);
   return rc;
 }
+
+#if COMPILER_SUPPORTS_VTAB_IN
+/**
+ * Read a `rowid in (...)` (or `id in (...)`) KNN argument, a literal list or a
+ * subquery, into a sorted array of rowids for vec0_rowids_contains(). An id
+ * the table does not have is skipped. The caller frees *out with
+ * array_cleanup() and sqlite3_free(), also on error.
+ */
+static int vec0_rowids_in_collect(vec0_vtab *p, sqlite3_value *in,
+                                  struct Array **out) {
+  sqlite3_value *item;
+  struct Array *a = sqlite3_malloc(sizeof(*a));
+  *out = a;
+  if (!a) return SQLITE_NOMEM;
+  memset(a, 0, sizeof(*a));
+  int rc = array_init(a, sizeof(i64), 32);
+  if (rc != SQLITE_OK) return rc;
+  for (rc = sqlite3_vtab_in_first(in, &item); rc == SQLITE_OK && item;
+       rc = sqlite3_vtab_in_next(in, &item)) {
+    i64 rowid;
+    if (p->pkIsText) {
+      rc = vec0_rowid_from_id(p, item, &rowid);
+      if (rc == SQLITE_EMPTY) continue;
+      if (rc != SQLITE_OK) return rc;
+    } else {
+      rowid = sqlite3_value_int64(item);
+    }
+    rc = array_append(a, &rowid);
+    if (rc != SQLITE_OK) return rc;
+  }
+  if (rc != SQLITE_DONE) return rc;
+  qsort(a->z, a->length, a->element_size, _cmp);
+  return SQLITE_OK;
+}
+#endif
 
 int vec0_result_id(vec0_vtab *p, sqlite3_context *context, i64 rowid) {
   if (!p->pkIsText) {
@@ -8268,10 +8319,7 @@ int vec0Filter_knn_chunks_iter(vec0_vtab *p, sqlite3_stmt *stmtChunks,
         if (!bitmap_get(chunkValidity, i)) {
           continue;
         }
-        i64 rowid = chunkRowids[i];
-        void *in = bsearch(&rowid, arrayRowidsIn->z, arrayRowidsIn->length,
-                           sizeof(i64), _cmp);
-        bitmap_set(bmRowids, i, in ? 1 : 0);
+        bitmap_set(bmRowids, i, vec0_rowids_contains(arrayRowidsIn, chunkRowids[i]));
       }
       bitmap_and_inplace(b, bmRowids, p->chunk_size);
     }
@@ -8428,7 +8476,7 @@ cleanup:
  * _vectorsNN, which holds the buffered rows as well as the graph's.
  */
 static int diskann_knn_rowids_in(vec0_vtab *p, int vec_col_idx,
-                                 sqlite3_value *rowidsIn,
+                                 const struct Array *rowidsIn,
                                  const void *queryVector, size_t dimensions,
                                  enum VectorElementType elementType, i64 k,
                                  i64 *outRowids, f32 *outDistances,
@@ -8436,9 +8484,8 @@ static int diskann_knn_rowids_in(vec0_vtab *p, int vec_col_idx,
   struct VectorColumnDefinition *col = &p->vector_columns[vec_col_idx];
   int vectorSize = (int)vector_column_byte_size(*col);
   sqlite3_stmt *stmt = NULL;
-  sqlite3_value *item;
   int count = 0;
-  int rc;
+  int rc = SQLITE_DONE;
   char *zSql = sqlite3_mprintf(
       "SELECT vector FROM " VEC0_SHADOW_VECTORS_N_NAME " WHERE rowid = ?",
       p->schemaName, p->tableName, vec_col_idx);
@@ -8447,22 +8494,14 @@ static int diskann_knn_rowids_in(vec0_vtab *p, int vec_col_idx,
   sqlite3_free(zSql);
   if (rc != SQLITE_OK) return rc;
 
-  for (rc = sqlite3_vtab_in_first(rowidsIn, &item); rc == SQLITE_OK && item;
-       rc = sqlite3_vtab_in_next(rowidsIn, &item)) {
-    i64 rowid;
-    if (p->pkIsText) {
-      rc = vec0_rowid_from_id(p, item, &rowid);
-      if (rc == SQLITE_EMPTY) continue;
-      if (rc != SQLITE_OK) break;
-    } else {
-      rowid = sqlite3_value_int64(item);
-    }
-
+  for (size_t n = 0; n < rowidsIn->length; n++) {
+    i64 rowid = ((const i64 *)rowidsIn->z)[n];
     sqlite3_reset(stmt);
     sqlite3_bind_int64(stmt, 1, rowid);
     rc = sqlite3_step(stmt);
     if (rc == SQLITE_DONE) continue;
     if (rc != SQLITE_ROW) break;
+    rc = SQLITE_DONE;
     if (sqlite3_column_bytes(stmt, 0) != vectorSize) {
       rc = SQLITE_CORRUPT;
       break;
@@ -8567,21 +8606,29 @@ static int vec0Filter_knn_diskann(
   }
 
   int resultCount = 0;
+  struct Array *rowidsIn = NULL;
+  rc = SQLITE_OK;
 #if COMPILER_SUPPORTS_VTAB_IN
-  // A rowid filter names its candidates, so each is ranked by its exact
-  // distance; the graph search reaches only the rows near the query, which
-  // the filter may not name.
   if (rowid_in_idx >= 0) {
-    rc = diskann_knn_rowids_in(p, vectorColumnIdx, argv[rowid_in_idx],
+    rc = vec0_rowids_in_collect(p, argv[rowid_in_idx], &rowidsIn);
+  }
+#endif
+  // A small rowid filter names its candidates, so each is ranked by its
+  // exact distance from _vectorsNN, which holds the buffered rows too. A
+  // larger one is applied during the graph search and the buffer scan.
+  if (rc == SQLITE_OK && vec0_rowids_rank_exact(rowidsIn)) {
+    rc = diskann_knn_rowids_in(p, vectorColumnIdx, rowidsIn,
                                queryVector, dimensions, elementType, k,
                                resultRowids, resultDistances, &resultCount);
-  } else
-#endif
-  rc = diskann_search(p, vectorColumnIdx, queryVector, dimensions,
-                       elementType, (int)k, 0,
-                       resultRowids, resultDistances, &resultCount);
+  } else if (rc == SQLITE_OK) {
+    rc = diskann_search(p, vectorColumnIdx, queryVector, dimensions,
+                        elementType, (int)k, 0, rowidsIn,
+                        resultRowids, resultDistances, &resultCount);
+  }
 
   if (rc != SQLITE_OK) {
+    if (rowidsIn) array_cleanup(rowidsIn);
+    sqlite3_free(rowidsIn);
     queryVectorCleanup(queryVector);
     sqlite3_free(resultRowids);
     sqlite3_free(resultDistances);
@@ -8591,13 +8638,15 @@ static int vec0Filter_knn_diskann(
 
   // Scan _diskann_buffer for any buffered (unflushed) vectors and merge
   // with graph results. This ensures no recall loss for buffered vectors.
-  // A rowid filter has already ranked the buffered rows it names.
-  if (rowid_in_idx < 0) {
+  // A small rowid filter has already ranked the buffered rows it names.
+  if (!vec0_rowids_rank_exact(rowidsIn)) {
     sqlite3_stmt *bufStmt = NULL;
     char *zSql = sqlite3_mprintf(
         "SELECT rowid, vector FROM " VEC0_SHADOW_DISKANN_BUFFER_N_NAME,
         p->schemaName, p->tableName, vectorColumnIdx);
     if (!zSql) {
+      if (rowidsIn) array_cleanup(rowidsIn);
+      sqlite3_free(rowidsIn);
       queryVectorCleanup(queryVector);
       sqlite3_free(resultRowids);
       sqlite3_free(resultDistances);
@@ -8609,6 +8658,7 @@ static int vec0Filter_knn_diskann(
     if (bufRc == SQLITE_OK) {
       while (sqlite3_step(bufStmt) == SQLITE_ROW) {
         i64 bufRowid = sqlite3_column_int64(bufStmt, 0);
+        if (!vec0_rowids_contains(rowidsIn, bufRowid)) continue;
         const void *bufVec = sqlite3_column_blob(bufStmt, 1);
         f32 dist = vec0_distance_full(
             queryVector, bufVec, dimensions, elementType,
@@ -8638,6 +8688,8 @@ static int vec0Filter_knn_diskann(
     }
   }
 
+  if (rowidsIn) array_cleanup(rowidsIn);
+  sqlite3_free(rowidsIn);
   queryVectorCleanup(queryVector);
 
   // Sort results by distance (ascending)
@@ -8831,10 +8883,8 @@ struct vec0_knn_scan {
 
 static int vec0_knn_scan_row(void *pArg, sqlite3_int64 rowid, const void *data, int nData) {
   struct vec0_knn_scan *s = pArg;
-  i64 id = rowid;
   if (!data || nData != (int)vector_column_byte_size(*s->col)) return SQLITE_OK;
-  if (s->rowidsIn && !bsearch(&id, s->rowidsIn->z, s->rowidsIn->length, sizeof(i64), _cmp))
-    return SQLITE_OK;
+  if (!vec0_rowids_contains(s->rowidsIn, rowid)) return SQLITE_OK;
   f32 d = s->dist(s->query, data, &s->col->dimensions);
   if (!vec0_distance_constraints_satisfied(d, s->idxStr, s->argc, s->argv)) return SQLITE_OK;
   if (s->n == s->k && d >= s->distances[s->n - 1]) return SQLITE_OK;
@@ -8844,7 +8894,7 @@ static int vec0_knn_scan_row(void *pArg, sqlite3_int64 rowid, const void *data, 
     s->distances[i] = s->distances[i - 1];
     i--;
   }
-  s->rowids[i] = id;
+  s->rowids[i] = rowid;
   s->distances[i] = d;
   return SQLITE_OK;
 }
@@ -9024,41 +9074,11 @@ int vec0Filter_knn(vec0_cursor *pCur, vec0_vtab *p, int idxNum,
 // NULL if none were provided, which means a "full" scan.
 #if COMPILER_SUPPORTS_VTAB_IN
   if (rowid_in_idx >= 0) {
-    sqlite3_value *item;
-    int rc;
-    arrayRowidsIn = sqlite3_malloc(sizeof(*arrayRowidsIn));
-    if (!arrayRowidsIn) {
-      rc = SQLITE_NOMEM;
-      goto cleanup;
-    }
-    memset(arrayRowidsIn, 0, sizeof(*arrayRowidsIn));
-
-    rc = array_init(arrayRowidsIn, sizeof(i64), 32);
+    rc = vec0_rowids_in_collect(p, argv[rowid_in_idx], &arrayRowidsIn);
     if (rc != SQLITE_OK) {
-      goto cleanup;
-    }
-    for (rc = sqlite3_vtab_in_first(argv[rowid_in_idx], &item); rc == SQLITE_OK && item;
-         rc = sqlite3_vtab_in_next(argv[rowid_in_idx], &item)) {
-      i64 rowid;
-      if (p->pkIsText) {
-        rc = vec0_rowid_from_id(p, item, &rowid);
-        if (rc != SQLITE_OK) {
-          goto cleanup;
-        }
-      } else {
-        rowid = sqlite3_value_int64(item);
-      }
-      rc = array_append(arrayRowidsIn, &rowid);
-      if (rc != SQLITE_OK) {
-        goto cleanup;
-      }
-    }
-    if (rc != SQLITE_DONE) {
       vtab_set_error(&p->base, "error processing rowid in (...) array");
       goto cleanup;
     }
-    qsort(arrayRowidsIn->z, arrayRowidsIn->length, arrayRowidsIn->element_size,
-          _cmp);
   }
 #endif
 

@@ -39,9 +39,6 @@
 #define VEC0_HNSW_DEFAULT_CACHE_MB 256
 #define VEC0_HNSW_MAX_M 256
 #define VEC0_HNSW_MAX_LEVEL 16
-// `rowid in (...)` lists up to this size are ranked exactly instead of
-// searched: a selective filter starves a graph search of matches.
-#define VEC0_HNSW_EXACT_FILTER_MAX 4096
 
 enum { VEC0_HNSW_QUANTIZER_NONE = 0, VEC0_HNSW_QUANTIZER_INT8 = 1 };
 
@@ -1327,7 +1324,7 @@ static int hnsw_query_knn(vec0_vtab *p, int col, const void *query,
   struct HnswItem *res = NULL;
   int nRes = 0;
 
-  if (rowidsIn && rowidsIn->length <= VEC0_HNSW_EXACT_FILTER_MAX) {
+  if (vec0_rowids_rank_exact(rowidsIn)) {
     res = sqlite3_malloc64((i64)(rowidsIn->length ? rowidsIn->length : 1) * sizeof(*res));
     if (!res) rc = SQLITE_NOMEM;
     for (size_t i = 0; rc == SQLITE_OK && i < rowidsIn->length; i++) {
