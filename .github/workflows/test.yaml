@@ -51,6 +51,25 @@ jobs:
         with:
           name: sqlite-vec-macos-aarch64-extension
           path: dist/*
+  # The hybrid extension (C core + lance0). Separate job so the C-only jobs
+  # stay free of Rust and protoc.
+  build-macos-aarch64-hybrid:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: brew install protobuf
+      - run: ./scripts/vendor.sh
+      - run: make loadable hybrid
+      - run: uv sync --directory tests
+      - run: make test-loadable
+      - run: make test-hybrid
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sqlite-vec-macos-aarch64-hybrid
+          path: dist/vec0_lance.*
   build-windows-x86_64-extension:
     runs-on: windows-2022
     steps:

@@ -94,6 +94,21 @@ limit 2;
 */
 ```
 
+## Hybrid extension: vectors and blobs in Lance
+
+`make hybrid` builds `dist/vec0_lance`, one library with everything above plus `lance0`, a virtual table that stores vectors and large blobs (images, audio, documents) in a [Lance](https://lancedb.github.io/lance/) dataset. `vec0`, `lance0` and ordinary tables share one database, one SQL statement and one transaction:
+
+```sql
+create virtual table emb using vec0(v float[768] indexed by hnsw());
+create virtual table docs using lance0('/data/docs.lance', 768);
+
+select d.rowid, length(d.payload), e.distance
+from emb e join docs d on d.rowid = e.rowid
+where e.v match :query and e.k = 10;
+```
+
+It needs Rust and `protoc` to build. See [`lance/README.md`](./lance/README.md).
+
 ## Sponsors
 
 Development of `sqlite-vec` is supported by multiple generous sponsors! Mozilla

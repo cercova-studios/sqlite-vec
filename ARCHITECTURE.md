@@ -8,6 +8,41 @@ and some guidelines to any future contributors.
 
 Very much a WIP.
 
+## Builds
+
+- **C core** (`sqlite-vec.c`, `sqlite-vec-*.c`): `make loadable`, `static`,
+  `amalgamation`. It depends only on SQLite, so it can ship as a single file.
+- **Hybrid** (`lance/`, `make hybrid` → `dist/vec0_lance`): a Rust crate whose
+  `build.rs` compiles the C core in, so one library registers `vec0` and
+  `lance0`. Dependencies point only one way: Rust may use the C core, but the
+  C core never depends on Rust, Lance or protoc.
+
+`lance0` follows the same transaction rules as the vec0 index caches: rollback
+and `xRollbackTo` undo pending state, and SQLite's shadow table
+`<name>_lance` records which Lance version is committed (see `lance/README.md`).
+`tests/test-hybrid.py` checks the shared vector format, queries that join both
+table types, and transactions that write to both.
+
+### Storage providers
+
+`sqlite3_vec_storage_methods` (in `sqlite-vec.h`) lets a vec0 table keep its
+auxiliary columns outside the `<table>_auxiliary` shadow table, declared with
+`storage=<name>` and an optional `storage_uri='...'`. A provider registers per
+connection with `sqlite3_set_clientdata(db, "sqlite-vec-storage:<name>", ...)`
+(SQLite 3.44+), so the C core has no global state and no link-time dependency
+on any provider. Without a registered provider, CREATE fails with a message
+naming the build that has one.
+
+vec0 forwards all writes, reads (`xColumn`, plus `xPrefetch` with a KNN
+query's result rowids) and transaction callbacks (`xSync`, `xCommit`,
+`xRollback`, `xSavepoint`, `xRelease`, `xRollbackTo`) to the provider. vec0 sets
+`xSavepoint`/`xRelease` so SQLite reports statement rollbacks to it.
+
+The Lance provider (`lance/src/provider.rs`) and `lance0` share
+`lance/src/store.rs` (`LanceStore`), the one implementation of the Lance commit
+rules. Its shadow table `<table>_storage` records the committed Lance version and
+the dataset location.
+
 ## `vec0`
 
 ### Shadow Tables

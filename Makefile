@@ -89,11 +89,22 @@ $(prefix):
 	mkdir -p $(prefix)
 
 TARGET_LOADABLE=$(prefix)/vec0.$(LOADABLE_EXTENSION)
+# The hybrid extension: the C core plus lance0 (lance/), one library.
+# Needs Rust and protoc; the C targets never depend on it.
+TARGET_HYBRID=$(prefix)/vec0_lance.$(LOADABLE_EXTENSION)
+ifdef CONFIG_WINDOWS
+HYBRID_BUILT=lance/target/release/sqlite_vec_lance.dll
+else
+HYBRID_BUILT=lance/target/release/libsqlite_vec_lance.$(LOADABLE_EXTENSION)
+endif
 TARGET_STATIC=$(prefix)/libsqlite_vec0.a
 TARGET_STATIC_H=$(prefix)/sqlite-vec.h
 TARGET_CLI=$(prefix)/sqlite3
 
 loadable: $(TARGET_LOADABLE)
+hybrid: $(prefix)
+	cargo build --release --manifest-path lance/Cargo.toml
+	cp $(HYBRID_BUILT) $(TARGET_HYBRID)
 static: $(TARGET_STATIC)
 cli: $(TARGET_CLI)
 
@@ -210,12 +221,15 @@ evidence-of:
 test:
 	sqlite3 :memory: '.read test.sql'
 
-.PHONY: version loadable static test clean gh-release evidence-of install uninstall amalgamation
+.PHONY: version loadable hybrid test-hybrid static test clean gh-release evidence-of install uninstall amalgamation
 
 publish-release:
 	./scripts/publish-release.sh
 
 # -k test_vec0_update
+test-hybrid: hybrid
+	uv run --managed-python --project tests pytest -vv -s -x tests/test-hybrid.py
+
 test-loadable: loadable
 	uv run --managed-python --project tests pytest -vv -s -x . tests/test-*.py
 

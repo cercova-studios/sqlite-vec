@@ -1,0 +1,20 @@
+[package]
+name = "sqlite-vec-lance"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lance = "13"
+lance-index = "13"
+rusqlite = { version = "0.41", features = ["vtab", "loadable_extension", "functions"] }
+tokio = { version = "1.54.1", features = ["rt", "rt-multi-thread"] }
+
+[lib]
+name = "sqlite_vec_lance"
+crate-type = ["cdylib"]
+
+[profile.release]
+strip = true
+
+[build-dependencies]
+cc = "1"

@@ -457,6 +457,7 @@ struct HnswCtx {
   enum VectorElementType type;
   enum Vec0DistanceMetrics metric;
   vec0_distance_fn dist;  // resolved once per operation
+  int scol;               // storage-provider column of the vectors, or -1
   int defer;              // rebuild: graph writes go to the cache only
   struct HnswCache *c;
 };
@@ -474,6 +475,44 @@ static void hnsw_cache_after_commit(vec0_vtab *p) {
   }
 }
 
+static void hnsw_cache_code(struct HnswCtx *x, int32_t idx);
+
+static int hnsw_preload_row(void *pArg, sqlite3_int64 rowid, const void *data, int n) {
+  struct HnswCtx *x = pArg;
+  if (!data || (size_t)n != x->c->vecBytes) return SQLITE_OK;
+  int32_t idx;
+  int rc = hnsw_idx(x->c, rowid, &idx);
+  if (rc != SQLITE_OK) return rc;
+  memcpy(hnsw_vecp(x->c, idx), data, x->c->vecBytes);
+  x->c->flags[idx] |= HNSW_F_VEC;
+  hnsw_cache_code(x, idx);
+  return SQLITE_OK;
+}
+
+/**
+ * Vectors held by a storage provider: load them all with one sequential
+ * scan when the index fits the cache budget, instead of one read per node.
+ */
+static int hnsw_preload(struct HnswCtx *x) {
+  vec0_vtab *p = x->p;
+  struct VectorColumnDefinition *def = &p->vector_columns[x->col];
+  if (def->hnsw.cache_mb <= 0) return SQLITE_OK;
+  sqlite3_stmt *s = NULL;
+  char *zSql = sqlite3_mprintf("SELECT count(*) FROM " VEC0_SHADOW_HNSW_NODES_NAME,
+                               p->schemaName, p->tableName, x->col);
+  if (!zSql) return SQLITE_NOMEM;
+  int rc = sqlite3_prepare_v2(p->db, zSql, -1, &s, NULL);
+  sqlite3_free(zSql);
+  if (rc != SQLITE_OK) return rc;
+  i64 nodes = sqlite3_step(s) == SQLITE_ROW ? sqlite3_column_int64(s, 0) : 0;
+  sqlite3_finalize(s);
+  i64 perNode = (i64)x->c->vecBytes + (i64)x->c->codeBytes + (x->c->m0 + 1) * 4 + 48;
+  if (nodes == 0 || nodes * perNode > (i64)def->hnsw.cache_mb * 1024 * 1024) return SQLITE_OK;
+  rc = vec0_storage_error(p, p->storage->xScan(p->storageHandle, x->scol, hnsw_preload_row, x));
+  if (rc != SQLITE_OK) x->c->broken = 1;
+  return rc;
+}
+
 /**
  * Start an operation: drop the cache if another connection committed since
  * our last operation, if a previous load failed, or if it is over budget.
@@ -489,6 +528,7 @@ static int hnsw_begin(struct HnswCtx *x, vec0_vtab *p, int col) {
   x->type = def->element_type;
   x->metric = def->distance_metric;
   x->dist = vec0_distance_resolve(x->type, x->metric);
+  x->scol = p->storage ? p->numAuxiliaryColumns + col : -1;
   if (!p->hnswCache[col]) {
     struct HnswCache *c = sqlite3_malloc(sizeof(*c));
     if (!c) return SQLITE_NOMEM;
@@ -508,6 +548,7 @@ static int hnsw_begin(struct HnswCtx *x, vec0_vtab *p, int col) {
       x->c->bytes > (i64)def->hnsw.cache_mb * 1024 * 1024) {
     hnsw_cache_reset(x->c);
   }
+  if (x->scol >= 0 && x->c->n == 0) return hnsw_preload(x);
   return SQLITE_OK;
 }
 
@@ -549,6 +590,22 @@ static int hnsw_vector(struct HnswCtx *x, int32_t idx, const void **out) {
   if (f & HNSW_F_ABSENT) { *out = NULL; return SQLITE_OK; }
   if (f & HNSW_F_VEC) { *out = hnsw_vecp(c, idx); return SQLITE_OK; }
   vec0_vtab *p = x->p;
+  if (x->scol >= 0) {
+    const void *data;
+    int n;
+    int rc = vec0_storage_error(p, p->storage->xRead(p->storageHandle, c->rowid[idx], x->scol, &data, &n));
+    if (rc != SQLITE_OK) { c->broken = 1; return rc; }
+    if (data && (size_t)n == c->vecBytes) {
+      memcpy(hnsw_vecp(c, idx), data, c->vecBytes);
+      c->flags[idx] |= HNSW_F_VEC;
+      hnsw_cache_code(x, idx);
+      *out = hnsw_vecp(c, idx);
+    } else {
+      c->flags[idx] |= HNSW_F_ABSENT;
+      *out = NULL;
+    }
+    return SQLITE_OK;
+  }
   int rc = vec0_ensure_stmt(p, &p->stmtHnswNodeRead[x->col],
       "SELECT vector FROM " VEC0_SHADOW_HNSW_NODES_NAME " WHERE rowid = ?", x->col);
   if (rc == SQLITE_OK) {
@@ -1075,7 +1132,8 @@ static int hnsw_node_write(struct HnswCtx *x, int32_t idx, int level, const void
   sqlite3_reset(s);
   sqlite3_bind_int64(s, 1, c->rowid[idx]);
   sqlite3_bind_int(s, 2, level);
-  sqlite3_bind_blob(s, 3, vector, (int)c->vecBytes, SQLITE_STATIC);
+  if (x->scol >= 0) sqlite3_bind_zeroblob(s, 3, 0);  // the provider holds the vector
+  else sqlite3_bind_blob(s, 3, vector, (int)c->vecBytes, SQLITE_STATIC);
   rc = sqlite3_step(s);
   sqlite3_reset(s);
   if (rc != SQLITE_DONE) return rc;
@@ -1355,10 +1413,20 @@ static int hnsw_rebuild(vec0_vtab *p, int col) {
     int step = sqlite3_step(s);
     if (step == SQLITE_DONE) break;
     if (step != SQLITE_ROW) { rc = step; break; }
-    if ((size_t)sqlite3_column_bytes(s, 2) != x.c->vecBytes) { rc = SQLITE_CORRUPT; break; }
     i64 rowid = sqlite3_column_int64(s, 0);
+    const void *vec = sqlite3_column_blob(s, 2);
+    int vecBytes = sqlite3_column_bytes(s, 2);
+    if (x.scol >= 0) {  // stored by the provider
+      rc = vec0_storage_error(p, p->storage->xRead(p->storageHandle, rowid, x.scol, &vec, &vecBytes));
+      if (rc != SQLITE_OK) break;
+    }
+    if (!vec || (size_t)vecBytes != x.c->vecBytes) { rc = SQLITE_CORRUPT; break; }
+    // xRead's buffer lasts only until the next provider call: keep a copy.
+    u8 vecCopy[SQLITE_VEC_VEC0_MAX_DIMENSIONS * sizeof(f32)];
+    memcpy(vecCopy, vec, x.c->vecBytes);
+    vec = vecCopy;
     if (sqlite3_column_int(s, 1) != hnsw_random_level(&x, rowid)) { rc = SQLITE_CORRUPT; break; }
-    rc = hnsw_insert_graph(&x, rowid, sqlite3_column_blob(s, 2));
+    rc = hnsw_insert_graph(&x, rowid, vec);
   }
   sqlite3_finalize(s);
 

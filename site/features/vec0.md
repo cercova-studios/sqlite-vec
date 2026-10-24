@@ -239,6 +239,20 @@ that will appear often in a `SELECT` clause but not in the `WHERE` clause.
 
 A maximum of 16 auxiliary columns can be declared in a `vec0` virtual table.
 
+#### Storing auxiliary columns in Lance {#aux-storage}
+
+With the hybrid build (`dist/vec0_lance`), auxiliary columns can live in a [Lance](https://lancedb.github.io/lance/) dataset instead of the SQLite file. This keeps large blobs out of the database:
+
+```sql
+create virtual table vec_items using vec0(
+  embedding float[768],
+  +image blob,
+  storage=lance, storage_uri='/data/items.lance'
+);
+```
+
+Queries, writes and transactions work as with the default storage. Reads from Lance are slower (about 0.5 ms per query), so use this for large values. The plain `dist/vec0` build rejects `storage=lance`.
+
 ## HNSW index {#hnsw}
 
 By default, a KNN query compares the query with every vector in the table. For large tables, an HNSW (Hierarchical Navigable Small World) index finds approximate nearest neighbors much faster, at a small cost in recall.
