@@ -5,6 +5,7 @@ Build first with `make hybrid` (needs Rust and protoc); skipped otherwise.
 import glob
 import os
 import random
+import re
 import shutil
 import sqlite3
 import struct
@@ -419,3 +420,33 @@ def test_column_patches(db, root):
     db.execute("update items set title = 'gone' where rowid = 1")
     db.execute("rollback")
     assert db.execute("select title from items where rowid = 1").fetchone() == ("t1",)
+
+
+def test_compaction_merges_small_fragments(db, root):
+    """Many small transactions must not leave a fragment per transaction."""
+    lance_table(db, root, dim=4)
+    for txn in range(20):
+        db.execute("begin")
+        for i in range(5):
+            rowid = txn * 5 + i + 1
+            db.execute("insert into docs(rowid, label, vector) values (?, ?, ?)",
+                       [rowid, f"l{rowid}", _f32([rowid, 0, 0, 0])])
+        db.execute("commit")
+    # Old versions stay on disk for crash recovery, so count the data files
+    # the latest manifest references (names are u64::MAX - version).
+    manifests = glob.glob(os.path.join(root, "docs.lance", "_versions", "*.manifest"))
+    latest = min(manifests, key=lambda f: int(os.path.basename(f).split(".")[0]))
+    with open(latest, "rb") as f:
+        live = set(re.findall(rb"[0-9a-f]{16,}\.lance", f.read()))
+    assert 0 < len(live) < 20
+    assert db.execute("select count(*) from docs").fetchone()[0] == 100
+    assert db.execute("select label from docs where rowid = 57").fetchone()[0] == "l57"
+    # deletes materialize on the next compaction-triggering commit
+    db.execute("delete from docs where rowid <= 50")
+    for txn in range(20):
+        db.execute("begin")
+        db.execute("insert into docs(rowid, label, vector) values (?, 'x', ?)",
+                   [1000 + txn, _f32([0, 0, 0, 0])])
+        db.execute("commit")
+    assert db.execute("select count(*) from docs").fetchone()[0] == 70
+    assert db.execute("select count(*) from docs where rowid <= 50").fetchone()[0] == 0

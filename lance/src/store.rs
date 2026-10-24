@@ -56,6 +56,12 @@ pub fn block<F: std::future::Future>(f: F) -> F::Output {
 /// needs fresher indexing.
 const INDEX_LAG_ROWS: i64 = 1024;
 const ID_INDEX: &str = "id_idx";
+/// Fragment count that triggers compaction during a commit. Every small
+/// transaction appends its own fragment; without compaction a table written
+/// by many small transactions accumulates files and deleted-row tombstones.
+/// ponytail: fixed threshold; make it a table option if a workload needs
+/// control over the write amplification this trades away.
+const COMPACT_MIN_FRAGMENTS: usize = 16;
 
 pub fn lance_err(e: impl std::fmt::Display) -> Error {
     Error::ModuleError(format!("lance: {e}"))
@@ -412,6 +418,14 @@ impl LanceStore {
                     let params = ScalarIndexParams::for_builtin(BuiltinIndexType::BTree);
                     ds.create_index(&["id"], IndexType::BTree, Some(ID_INDEX.to_owned()), &params, true).await?;
                 }
+            }
+            if ds.get_fragments().len() >= COMPACT_MIN_FRAGMENTS {
+                // Merge small fragments and materialize deletions. Indices
+                // are remapped eagerly (the default), so the rowid index
+                // stays valid; the version recorded below is the compacted
+                // one, keeping Lance and SQLite in step.
+                let opts = lance::dataset::optimize::CompactionOptions::default();
+                lance::dataset::optimize::compact_files(&mut ds, opts, None).await?;
             }
             Ok::<_, lance::Error>(ds.version().version)
         })
