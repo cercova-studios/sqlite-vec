@@ -1,0 +1,21 @@
+reference.yaml
+  s_038c9d86d9ab5e::t_aed34793790605 472-479,489
+tests/test-graph-vector.py
+  s_038c9d86d9ab5e::t_8e1805a5969d96 1-196
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "816867ea3771f3bc82edaa1d0c2ce2fb93a28665",
+  "prompts": {},
+  "sessions": {
+    "s_038c9d86d9ab5e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c4cc4d-eb43-45f6-a97c-74a9d4126c1b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
