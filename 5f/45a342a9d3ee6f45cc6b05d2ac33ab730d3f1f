@@ -1,0 +1,23 @@
+sqlite-vec-ivf.c
+  s_73c6da876dccec::t_af2c2f8ee6c6d8 798-832,840-845
+sqlite-vec.c
+  s_73c6da876dccec::t_3bf2bc4aebbb1c 3858,3973
+tests/test-ivf-quantization.py
+  s_73c6da876dccec::t_de93fe2e01871f 258-283
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5f45a342a9d3ee6f45cc6b05d2ac33ab730d3f1f",
+  "prompts": {},
+  "sessions": {
+    "s_73c6da876dccec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2db5337b-6d4f-49a3-bab8-8a4e560ddd84",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
