@@ -70,6 +70,20 @@ Maintenance runs when the SQLite transaction commits. A rollback, including
 `ROLLBACK TO`, cancels requests made after that transaction or savepoint began.
 Old Lance versions remain available for readers and failed-commit recovery.
 
+For `lance0` tables with at least 16,384 rows, `optimize` also creates a Lance
+IVF_HNSW_SQ vector index. **After this opt-in, nearest-neighbor results are
+approximate.** Candidates are reranked using original vectors, so returned
+distances retain their L2 units and values. Tables without this index use exact
+vector scans. The index uses 8-bit scalar quantization and supports arbitrary
+vector dimensions.
+
+New or updated rows remain searchable before index maintenance: Lance scans
+unindexed changes alongside the index. Run `optimize` again to update index
+coverage. Building and maintaining the index adds commit time and disk use;
+index creation can make queries slower on some datasets. Benchmark your workload
+before opting in. `vec0 storage=lance` tables retain their C indexes and do not
+build a second vector index in Lance.
+
 ## Transactions
 
 `lance0` follows SQLite transactions, together with `vec0` and ordinary tables in the same database:
@@ -85,7 +99,7 @@ This relies on a single writer, which SQLite already enforces.
 
 - Each SQLite transaction that writes to `lance0` creates at least one Lance version and data file. Batch writes into larger transactions.
 - `UPDATE` of selected columns patches those columns; changing the rowid rewrites the row.
-- There is no Lance ANN index yet; Lance searches scan all vectors. For fast ANN over the same rows, index them in a `vec0` table and join by rowid.
+- Lance vector indexing requires an explicit `optimize` and at least 16,384 rows. Index quality and query speed depend on the data.
 - Only `label`, `rowid`, `query` and `k` equality constraints run inside Lance. SQLite applies every other filter after Lance returns rows.
 - The library is about 190 MB, because Lance includes DataFusion, Arrow and object storage support.
 

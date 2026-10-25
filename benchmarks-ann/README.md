@@ -1,5 +1,27 @@
 # KNN Benchmarks for sqlite-vec
 
+## Lance SQL benchmark
+
+After building the hybrid extension, run these commands from the repository root:
+
+```sh
+uv run --managed-python --project tests python benchmarks-ann/lance.py --distribution gaussian
+uv run --managed-python --project tests python benchmarks-ann/lance.py --distribution clustered
+```
+
+Each run uses 20,000 128-dimensional vectors and 100 queries with seed 42. It
+compares exact `lance0` queries against the same SQL after `optimize`, checks
+recall@10 against NumPy, verifies original-vector distances, and emits JSON with
+latency, maintenance time, retained dataset bytes and peak Python-process RSS.
+The process includes the loaded Rust extension; the separate inspection process
+is excluded from RSS. The script requires Cargo: it runs `lance/examples/index-plan.rs`
+to check that the committed dataset has an IVF_HNSW_SQ index and an ANN query plan.
+Set `PROTOC` if the protobuf compiler is not on PATH.
+
+The script fails if recall@10 is below 0.95. Synthetic results do not establish
+recall or a speedup for production data. Dataset bytes include old versions
+retained for recovery; timings use a warm cache and one process.
+
 Benchmarking infrastructure for vec0 KNN configurations. Includes brute-force
 baselines (float, int8, bit), rescore, IVF, and DiskANN index types.
 

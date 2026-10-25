@@ -6660,6 +6660,7 @@ dependencies = [
  "cc",
  "lance",
  "lance-index",
+ "lance-linalg",
  "rusqlite",
  "tokio",
 ]

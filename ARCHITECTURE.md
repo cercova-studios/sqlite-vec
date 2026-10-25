@@ -51,6 +51,21 @@ and rowid-index maintenance during `xSync`. Savepoint rollback restores the
 request state, and transaction rollback discards it. Maintenance retains old
 Lance versions so readers and failed commits can still use the recorded version.
 
+For `lance0`, `optimize` also builds an IVF_HNSW_SQ index named `vector_idx` on
+`vector` at 16,384 rows, or updates that index if it already exists. This is
+opt-in: writes alone never create it. `LanceStore::ann_column` is set only by
+`lance0`; vec0 storage providers keep their existing C index behavior. Vector
+maintenance follows compaction in `xSync` and shares its recorded-version rules.
+Lance scans unindexed changes alongside indexed data; the virtual table merges
+pending writes as before.
+
+The index uses L2, 8-bit scalar quantization, Lance's default HNSW construction
+parameters, and `clamp(rows / 256, 1, 256)` IVF partitions. Search starts at 32
+partitions, permits adaptive expansion for prefilters, and reranks four times
+the requested candidates using original vectors (`ef >= max(128, 4*k)`). Returned
+distances remain L2; indexed neighbor selection is approximate. Small tables and
+tables without a vector index continue to scan exactly.
+
 ## `vec0`
 
 ### Shadow Tables

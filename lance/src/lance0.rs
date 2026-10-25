@@ -98,7 +98,8 @@ impl LanceTab {
             ("vector".to_owned(), Kind::Vector(dim)),
             ("payload".to_owned(), Kind::Blob),
         ];
-        let store = LanceStore::open(unsafe { db.handle() }, &format!("{name}_lance"), &uri, cols, false)?;
+        let mut store = LanceStore::open(unsafe { db.handle() }, &format!("{name}_lance"), &uri, cols, false)?;
+        store.ann_column = Some(S_VECTOR);
         // A hidden column named after the table takes commands, as in FTS5
         // and vec0: insert into t(t) values ('optimize').
         let schema = CString::new(format!(

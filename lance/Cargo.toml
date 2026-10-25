@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 lance = "13"
 lance-index = "13"
+lance-linalg = "13"
 rusqlite = { version = "0.41", features = ["vtab", "loadable_extension", "functions"] }
 tokio = { version = "1.54.1", features = ["rt", "rt-multi-thread"] }
 

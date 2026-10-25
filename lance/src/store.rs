@@ -21,9 +21,12 @@ use lance::Dataset;
 use lance::dataset::{MergeInsertBuilder, MergeInsertWriteMode, WhenMatched, WhenNotMatched, WriteMode,
                      WriteParams};
 use lance::index::DatasetIndexExt;
+use lance::index::vector::VectorIndexParams;
 use lance_index::IndexType;
 use lance_index::optimize::OptimizeOptions;
 use lance_index::scalar::{BuiltinIndexType, ScalarIndexParams};
+use lance_index::vector::{hnsw::builder::HnswBuildParams, ivf::IvfBuildParams, sq::builder::SQBuildParams};
+use lance_linalg::distance::DistanceType;
 use lance::deps::arrow_array::{
     Array, ArrayRef, BinaryArray, FixedSizeListArray, Float32Array, Float64Array, Int64Array,
     LargeBinaryArray, LargeStringArray, RecordBatch, RecordBatchIterator, StringArray,
@@ -56,6 +59,8 @@ pub fn block<F: std::future::Future>(f: F) -> F::Output {
 /// needs fresher indexing.
 const INDEX_LAG_ROWS: i64 = 1024;
 const ID_INDEX: &str = "id_idx";
+const VECTOR_INDEX_MIN_ROWS: usize = 16384;
+const VECTOR_INDEX: &str = "vector_idx";
 /// Fragment count that triggers compaction during a commit. Every small
 /// transaction appends its own fragment; without compaction a table written
 /// by many small transactions accumulates files and deleted-row tombstones.
@@ -97,6 +102,8 @@ pub struct LanceStore {
     shadow: String, // unquoted name of the version table
     uri: String,
     pub cols: Vec<(String, Kind)>,
+    /// Only lance0 searches vectors in Lance; vec0 maintains its own indexes.
+    pub ann_column: Option<usize>,
     schema: Arc<Schema>,
     pending: HashMap<i64, Pending>,
     undo: Vec<(i64, Option<Pending>)>,
@@ -135,6 +142,7 @@ impl LanceStore {
             shadow: shadow.to_owned(),
             uri: uri.to_owned(),
             cols,
+            ann_column: None,
             schema: Arc::new(Schema::new(fields)),
             pending: HashMap::new(),
             undo: Vec::new(),
@@ -305,7 +313,7 @@ impl LanceStore {
     }
 
     /// Table maintenance, run when the transaction commits:
-    /// - `optimize`: merge small data files and bring the rowid index up to date.
+    /// - `optimize`: merge small data files and maintain rowid and configured ANN indexes.
     /// Returns false for commands this store does not know.
     pub fn command(&mut self, cmd: &str) -> Result<bool> {
         if cmd == "optimize" {
@@ -389,6 +397,7 @@ impl LanceStore {
             .unwrap_or(0)
             + appended as i64;
         let optimize = self.optimize;
+        let ann_column = self.ann_column.map(|col| self.cols[col].0.clone());
         let reindex = lag >= INDEX_LAG_ROWS || (optimize && lag > 0);
         let latest = block(async move {
             let mut ds = Dataset::open(&uri).await?;
@@ -443,6 +452,23 @@ impl LanceStore {
                 // one, keeping Lance and SQLite in step.
                 let opts = lance::dataset::optimize::CompactionOptions::default();
                 lance::dataset::optimize::compact_files(&mut ds, opts, None).await?;
+            }
+            if optimize && let Some(column) = ann_column {
+                if ds.load_indices().await?.iter().any(|i| i.name == VECTOR_INDEX) {
+                    let opts = OptimizeOptions::merge(1).index_names(vec![VECTOR_INDEX.to_owned()]);
+                    ds.optimize_indices(&opts).await?;
+                } else {
+                    let rows = ds.count_rows(None).await?;
+                    if rows >= VECTOR_INDEX_MIN_ROWS {
+                        let params = VectorIndexParams::with_ivf_hnsw_sq_params(
+                            DistanceType::L2,
+                            IvfBuildParams::new((rows / 256).clamp(1, 256)),
+                            HnswBuildParams::default(), SQBuildParams::default(),
+                        );
+                        ds.create_index(&[&column], IndexType::IvfHnswSq,
+                                        Some(VECTOR_INDEX.to_owned()), &params, true).await?;
+                    }
+                }
             }
             Ok::<_, lance::Error>(ds.version().version)
         })
@@ -576,6 +602,7 @@ impl LanceStore {
         if let Some((col, q, k)) = nearest {
             scan.nearest(&self.cols[col].0, &Float32Array::from(q.to_vec()), k).map_err(lance_err)?;
             scan.prefilter(true);
+            scan.minimum_nprobes(32).ef(k.saturating_mul(4).max(128)).refine(4);
         }
         let batch = block(scan.try_into_batch()).map_err(lance_err)?;
         self.rows_from_batch(&batch)

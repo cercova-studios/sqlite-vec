@@ -495,6 +495,11 @@ def test_optimize_command(db, root, kind):
     db.execute("commit")
     assert version() > before
     assert db.execute(f"select v from {shadow} where k = 'unindexed'").fetchone() == (0,)
+    # Compaction can add a system index, but small tables must not get ANN.
+    manifests = glob.glob(os.path.join(root, table + ".lance", "_versions", "*.manifest"))
+    latest = min(manifests, key=lambda f: int(os.path.basename(f).split(".")[0]))
+    with open(latest, "rb") as f:
+        assert b"vector_idx" not in f.read()
     assert db.execute(f"select rowid, {vector} from {table} order by rowid").fetchall() == [
         (i, _f32([i, 0])) for i in range(1, 5)
     ]
@@ -545,3 +550,83 @@ def test_optimize_compacts_and_preserves_versions(db, root):
     assert db.execute("select count(*) from docs").fetchone() == (12,)
     assert db.execute("select rowid from docs where query = ? and k = 1", [_f32([7.2, 0])]).fetchone() == (7,)
     assert sorted(db.execute("select rowid, title from items where rowid in (3, 4)")) == [(3, "t3"), (4, "t4")]
+
+
+def test_lance_vector_index(db, root):
+    import numpy as np
+
+    lance_table(db, root, dim=7)  # SQ supports dimensions without PQ divisibility.
+    rows = np.random.default_rng(18).normal(size=(16384, 7)).astype(np.float32)
+    db.execute("begin")
+    db.executemany("insert into docs(rowid, label, vector) values (?, ?, ?)",
+                   ((i, "even" if i % 2 == 0 else "odd", v.tobytes()) for i, v in enumerate(rows)))
+    db.execute("commit")
+    indices = os.path.join(root, "docs.lance", "_indices")
+    before = set(glob.glob(os.path.join(indices, "*")))
+    db.execute("begin")
+    db.execute("savepoint s")
+    db.execute("insert into docs(docs) values ('optimize')")
+    db.execute("rollback to s")
+    db.execute("release s")
+    db.execute("commit")
+    assert set(glob.glob(os.path.join(indices, "*"))) == before
+    db.execute("insert into docs(docs) values ('optimize')")
+    assert set(glob.glob(os.path.join(indices, "*"))) > before
+
+    def search(q, label="even", k=10):
+        return db.execute("select rowid, distance from docs where query = ? and k = ? "
+                          "and label = ? order by distance", [q.tobytes(), k, label]).fetchall()
+
+    q = rows[12] + np.float32(0.001)
+    got = search(q)
+    eligible = np.arange(0, len(rows), 2)
+    exact = eligible[np.argsort(np.sum((rows[eligible] - q) ** 2, axis=1))[:10]]
+    assert len(set(i for i, _ in got) & set(exact)) >= 9
+    assert all(i % 2 == 0 for i, _ in got)
+    assert [d for _, d in got] == pytest.approx(
+        [float(np.linalg.norm(rows[i] - q)) for i, _ in got], rel=1e-5, abs=1e-6)
+
+    db.execute("begin")
+    db.execute("insert into docs(rowid, label, vector) values (20000, 'new', ?)", [q.tobytes()])
+    assert search(q, "new", 1) == [(20000, 0.0)]
+    db.execute("rollback")
+    assert search(q, "new", 1) == []
+    db.execute("insert into docs(rowid, label, vector) values (20000, 'new', ?)", [q.tobytes()])
+    assert search(q, "new", 1) == [(20000, 0.0)]  # committed, not yet indexed
+    db.execute("update docs set vector = ?, label = 'moved' where rowid = 12", [q.tobytes()])
+    assert search(q, "moved", 1) == [(12, 0.0)]
+    db.execute("delete from docs where rowid = 20000")
+    assert search(q, "new", 1) == []
+    version = db.execute("select v from docs_lance where k='version'").fetchone()
+    lance_table(db, root, name="other", dim=2)
+    db.execute("begin")
+    db.execute("insert into docs(docs) values ('optimize')")
+    db.execute("insert into other(rowid, vector) values (1, '[1, 0]')")
+    shutil.rmtree(os.path.join(root, "other.lance"))
+    open(os.path.join(root, "other.lance"), "w").close()
+    with pytest.raises(sqlite3.Error):
+        db.execute("commit")
+    if db.in_transaction:
+        db.execute("rollback")
+    assert db.execute("select v from docs_lance where k='version'").fetchone() == version
+    assert search(q, "moved", 1) == [(12, 0.0)]
+    db.execute("drop table other")
+    db.execute("insert into docs(docs) values ('optimize')")
+    db.close()
+    db = connect(os.path.join(root, "app.db"))
+    assert search(q, "moved", 1) == [(12, 0.0)]
+    db.execute("delete from docs")
+    db.execute("insert into docs(docs) values ('optimize')")
+    assert search(q, "even", 10) == []
+
+
+def test_vec0_optimize_does_not_build_lance_ann(db, root):
+    storage_table(db, root, index="")
+    db.execute("begin")
+    db.executemany("insert into items(rowid, v) values (?, ?)",
+                   ((i, _f32([i, 0])) for i in range(16384)))
+    db.execute("commit")
+    indices = glob.glob(os.path.join(root, "items.lance", "_indices", "*"))
+    assert len(indices) == 1
+    db.execute("insert into items(items) values ('optimize')")
+    assert glob.glob(os.path.join(root, "items.lance", "_indices", "*")) == indices
