@@ -487,6 +487,14 @@ graph:
       select node, depth from graph_bfs('undirected', 'src', 'dst', 1);
       ```
 
+      The reachable set composes with vector search as a rowid filter on a `vec0` table. This is the one shared filtered-KNN path used by every `rowid in (...)` filter: a filter of at most 4096 rows is ranked by exact distance, and a larger filter is applied while the index is traversed, so a selective filter can return fewer than `k` rows.
+
+      ```sql
+      select rowid, distance from docs
+      where embedding match :q and k = 10
+        and rowid in (select node from graph_bfs('edges', 'src', 'dst', 1, 2));
+      ```
+
       Table and column names must be text, and node ids (`start` and both endpoint columns) must be integers. Rows with a NULL endpoint are skipped. An unknown or sink `start` returns just `(start, 0)`.
 
       Returns an error under the following conditions:
@@ -496,6 +504,7 @@ graph:
     example:
       - select node, depth from graph_bfs('edges', 'src', 'dst', 1);
       - select node, depth from graph_bfs('edges', 'src', 'dst', 1, 2);
+      - select rowid, distance from docs where embedding match :q and k = 10 and rowid in (select node from graph_bfs('edges', 'src', 'dst', 1, 2));
   graph_shortest_path:
     params: [edge_table, src_column, dst_column, source, target]
     desc: |
