@@ -1,0 +1,27 @@
+reference.yaml
+  s_038c9d86d9ab5e::t_e2c9baf1f295ee 276-293
+site/api-reference.md
+  s_038c9d86d9ab5e::t_8de11fe2704e7e 431-452
+sqlite-vec.c
+  s_038c9d86d9ab5e::t_cb2bcbaf668392 11,3883-4195,12431
+tests/test-loadable.py
+  s_038c9d86d9ab5e::t_890d45baad37f5 132,2554-2568
+tests/test-vec-file.py
+  s_038c9d86d9ab5e::t_22640305086745 1-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "340baa77a99647b608a080a0b99f6988c75afb44",
+  "prompts": {},
+  "sessions": {
+    "s_038c9d86d9ab5e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c4cc4d-eb43-45f6-a97c-74a9d4126c1b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
