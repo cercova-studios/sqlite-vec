@@ -1,0 +1,50 @@
+lance/src/store.rs
+  s_73c6da876dccec::t_47f23a4e0789e9 105-106,143,307-318,391-392,439,458
+  s_ca7d5125ef33b2::t_5c1d0fc8b59a3a 103,329,333-334
+ARCHITECTURE.md
+  s_ca7d5125ef33b2::t_5a4da591b1a26d 46-53
+lance/src/provider.rs
+  s_73c6da876dccec::t_0d8f3a0915cebd 46,55,435-438
+  s_ca7d5125ef33b2::t_5c1d0fc8b59a3a 49
+  s_73c6da876dccec::t_e536d4001d584f 439-440
+tests/test-hybrid.py
+  s_ca7d5125ef33b2::t_18b5ec321c515b 505-522
+  s_73c6da876dccec::t_d119f9eb1ea353 504,523,526-530,532-533,545-547
+  s_ca7d5125ef33b2::t_c7b03e18d4d957 453-484,491-503
+  s_ca7d5125ef33b2::t_be0e4674b6ab5d 538-543
+  s_ca7d5125ef33b2::t_de847c1272e846 485-490,524-525,531,534-537,544
+sqlite-vec.c
+  s_ca7d5125ef33b2::t_9617f1c099ab86 11982
+  s_73c6da876dccec::t_0d8f3a0915cebd 11983-11985
+lance/README.md
+  s_ca7d5125ef33b2::t_5a4da591b1a26d 56-71,87
+lance/src/lance0.rs
+  s_73c6da876dccec::t_0d8f3a0915cebd 102-107,182-189
+sqlite-vec.h.tmpl
+  s_ca7d5125ef33b2::t_5c1d0fc8b59a3a 62
+  s_73c6da876dccec::t_0d8f3a0915cebd 123-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "96f6db8a2624b8fd2648203c444bd6202caad345",
+  "prompts": {},
+  "sessions": {
+    "s_73c6da876dccec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2db5337b-6d4f-49a3-bab8-8a4e560ddd84",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
