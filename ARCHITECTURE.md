@@ -158,7 +158,22 @@ The remaining 3 characters of the block are `_` fillers.
 
 #### `VEC0_IDXSTR_KIND_KNN_K` (`'}'`)
 
-`argv[i]` is the limit/k value of the KNN query.
+`argv[i]` is the limit/k value of the KNN query: the `k` of a `k = n`
+constraint, or the `LIMIT n` of an `ORDER BY distance LIMIT n` query
+(`SQLITE_INDEX_CONSTRAINT_LIMIT`, SQLite 3.38+; the planner only offers it
+to a solitary `vec0` scan, so in joins use `k = n`). Exactly one of the two
+must be present: both given, or neither, is an error at plan time — a KNN
+query is never silently unbounded. A negative value (`LIMIT -1`) and a
+`LIMIT + OFFSET` sum over the 4096 cap are errors at filter time.
+
+The remaining 3 characters of the block are `_` fillers.
+
+#### `VEC0_IDXSTR_KIND_KNN_OFFSET` (`'('`)
+
+`argv[i]` is the `OFFSET m` of a `LIMIT n OFFSET m` KNN query, present only
+after a `VEC0_IDXSTR_KIND_KNN_K` block sourced from `LIMIT`. `vec0` fetches
+`n + m` rows; the constraint is passed with `omit = 0` so SQLite itself
+skips the first `m` rows of the result.
 
 The remaining 3 characters of the block are `_` fillers.
 

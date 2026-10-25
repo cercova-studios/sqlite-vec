@@ -8,12 +8,9 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifdef SQLITE_VEC_DEBUG
-#include <stdio.h>
-#endif
 
 #ifndef SQLITE_CORE
 #include "sqlite3ext.h"
@@ -3883,6 +3880,319 @@ static sqlite3_module vec_eachModule = {
 
 #pragma endregion
 
+#pragma region vec_file_each table function
+
+// Reads the standard ".fvecs" / ".bvecs" / ".ivecs" vector file formats
+// (as used by the SIFT/ANN benchmark datasets): a sequence of records,
+// each an int32 dimension count followed by that many little-endian
+// elements (float32, uint8, or int32 respectively).
+
+typedef struct vec_file_each_vtab vec_file_each_vtab;
+struct vec_file_each_vtab {
+  sqlite3_vtab base;
+};
+
+typedef struct vec_file_each_cursor vec_file_each_cursor;
+struct vec_file_each_cursor {
+  sqlite3_vtab_cursor base;
+  FILE *file;
+  i64 iRowid;
+  i64 nRecords;
+  i32 dimensions;
+  size_t elementSize;
+  int isFloat32;
+  void *vector;
+};
+
+static int vec_file_eachConnect(sqlite3 *db, void *pAux, int argc,
+                                const char *const *argv, sqlite3_vtab **ppVtab,
+                                char **pzErr) {
+  UNUSED_PARAMETER(pAux);
+  UNUSED_PARAMETER(argc);
+  UNUSED_PARAMETER(argv);
+  UNUSED_PARAMETER(pzErr);
+  vec_file_each_vtab *pNew;
+  int rc;
+
+  rc = sqlite3_declare_vtab(db, "CREATE TABLE x(vector, path hidden)");
+#define VEC_FILE_EACH_COLUMN_VECTOR 0
+#define VEC_FILE_EACH_COLUMN_PATH 1
+  if (rc == SQLITE_OK) {
+    pNew = sqlite3_malloc(sizeof(*pNew));
+    *ppVtab = (sqlite3_vtab *)pNew;
+    if (pNew == 0)
+      return SQLITE_NOMEM;
+    memset(pNew, 0, sizeof(*pNew));
+  }
+  return rc;
+}
+
+static int vec_file_eachDisconnect(sqlite3_vtab *pVtab) {
+  sqlite3_free(pVtab);
+  return SQLITE_OK;
+}
+
+static int vec_file_eachOpen(sqlite3_vtab *p, sqlite3_vtab_cursor **ppCursor) {
+  UNUSED_PARAMETER(p);
+  vec_file_each_cursor *pCur;
+  pCur = sqlite3_malloc(sizeof(*pCur));
+  if (pCur == 0)
+    return SQLITE_NOMEM;
+  memset(pCur, 0, sizeof(*pCur));
+  *ppCursor = &pCur->base;
+  return SQLITE_OK;
+}
+
+static int vec_file_eachClose(sqlite3_vtab_cursor *cur) {
+  vec_file_each_cursor *pCur = (vec_file_each_cursor *)cur;
+  if (pCur->file) {
+    fclose(pCur->file);
+  }
+  sqlite3_free(pCur->vector);
+  sqlite3_free(pCur);
+  return SQLITE_OK;
+}
+
+static int vec_file_eachBestIndex(sqlite3_vtab *pVTab,
+                                  sqlite3_index_info *pIdxInfo) {
+  UNUSED_PARAMETER(pVTab);
+  int hasPath = 0;
+  for (int i = 0; i < pIdxInfo->nConstraint; i++) {
+    const struct sqlite3_index_constraint *pCons = &pIdxInfo->aConstraint[i];
+    if (pCons->iColumn == VEC_FILE_EACH_COLUMN_PATH &&
+        pCons->op == SQLITE_INDEX_CONSTRAINT_EQ && pCons->usable) {
+      hasPath = 1;
+      pIdxInfo->aConstraintUsage[i].argvIndex = 1;
+      pIdxInfo->aConstraintUsage[i].omit = 1;
+    }
+  }
+  if (!hasPath) {
+    return SQLITE_CONSTRAINT;
+  }
+  pIdxInfo->estimatedCost = (double)100000;
+  pIdxInfo->estimatedRows = 100000;
+  return SQLITE_OK;
+}
+
+static void vec_file_each_set_error(vec_file_each_cursor *pCur,
+                                    const char *fmt, const char *arg) {
+  sqlite3_free(pCur->base.pVtab->zErrMsg);
+  pCur->base.pVtab->zErrMsg = sqlite3_mprintf(fmt, arg);
+}
+
+// Read the record under the cursor's file position into pCur->vector.
+// Returns SQLITE_OK, SQLITE_DONE at a clean record boundary, or
+// SQLITE_ERROR (with zErrMsg set) on a malformed file.
+static int vec_file_each_read_record(vec_file_each_cursor *pCur) {
+  i32 dim;
+  if (fread(&dim, sizeof(i32), 1, pCur->file) != 1) {
+    if (feof(pCur->file)) {
+      return SQLITE_DONE;
+    }
+    vec_file_each_set_error(pCur, "error reading vector file: %s",
+                            strerror(errno));
+    return SQLITE_ERROR;
+  }
+  if (dim != pCur->dimensions) {
+    sqlite3_free(pCur->base.pVtab->zErrMsg);
+    pCur->base.pVtab->zErrMsg = sqlite3_mprintf(
+        "vector file record %lld has dimension %d, expected %d",
+        (long long)pCur->iRowid, dim, pCur->dimensions);
+    return SQLITE_ERROR;
+  }
+  size_t n = (size_t)pCur->dimensions * pCur->elementSize;
+  if (n > 0 && fread(pCur->vector, 1, n, pCur->file) != n) {
+    sqlite3_free(pCur->base.pVtab->zErrMsg);
+    pCur->base.pVtab->zErrMsg = sqlite3_mprintf(
+        "truncated record in vector file at record %lld",
+        (long long)pCur->iRowid);
+    return SQLITE_ERROR;
+  }
+  return SQLITE_OK;
+}
+
+static int vec_file_eachFilter(sqlite3_vtab_cursor *pVtabCursor, int idxNum,
+                               const char *idxStr, int argc,
+                               sqlite3_value **argv) {
+  UNUSED_PARAMETER(idxNum);
+  UNUSED_PARAMETER(idxStr);
+  assert(argc == 1);
+  vec_file_each_cursor *pCur = (vec_file_each_cursor *)pVtabCursor;
+
+  if (pCur->file) {
+    fclose(pCur->file);
+    pCur->file = NULL;
+  }
+  sqlite3_free(pCur->vector);
+  pCur->vector = NULL;
+  pCur->iRowid = 0;
+  pCur->nRecords = 0;
+
+  const char *path = (const char *)sqlite3_value_text(argv[0]);
+  if (!path) {
+    vec_file_each_set_error(pCur, "vec_file_each requires a file path, got %s",
+                            "NULL or non-text value");
+    return SQLITE_ERROR;
+  }
+
+  size_t pathLen = strlen(path);
+  if (pathLen > 6 && strcmp(path + pathLen - 6, ".fvecs") == 0) {
+    pCur->elementSize = sizeof(f32);
+    pCur->isFloat32 = 1;
+  } else if (pathLen > 6 && strcmp(path + pathLen - 6, ".bvecs") == 0) {
+    pCur->elementSize = sizeof(u8);
+    pCur->isFloat32 = 0;
+  } else if (pathLen > 6 && strcmp(path + pathLen - 6, ".ivecs") == 0) {
+    pCur->elementSize = sizeof(i32);
+    pCur->isFloat32 = 0;
+  } else {
+    sqlite3_free(pCur->base.pVtab->zErrMsg);
+    pCur->base.pVtab->zErrMsg = sqlite3_mprintf(
+        "unsupported vector file \"%s\": extension must be .fvecs, .bvecs, or .ivecs",
+        path);
+    return SQLITE_ERROR;
+  }
+
+  pCur->file = fopen(path, "rb");
+  if (!pCur->file) {
+    sqlite3_free(pCur->base.pVtab->zErrMsg);
+    pCur->base.pVtab->zErrMsg =
+        sqlite3_mprintf("could not open vector file \"%s\": %s", path,
+                        strerror(errno));
+    return SQLITE_ERROR;
+  }
+
+  if (fseek(pCur->file, 0, SEEK_END) != 0) {
+    vec_file_each_set_error(pCur, "could not seek in vector file: %s",
+                            strerror(errno));
+    return SQLITE_ERROR;
+  }
+  long fileSize = ftell(pCur->file);
+  if (fileSize < 0) {
+    vec_file_each_set_error(pCur, "could not measure vector file: %s",
+                            strerror(errno));
+    return SQLITE_ERROR;
+  }
+  if (fseek(pCur->file, 0, SEEK_SET) != 0) {
+    vec_file_each_set_error(pCur, "could not seek in vector file: %s",
+                            strerror(errno));
+    return SQLITE_ERROR;
+  }
+  if (fileSize == 0) {
+    return SQLITE_OK;
+  }
+  if (fileSize < 4) {
+    sqlite3_free(pCur->base.pVtab->zErrMsg);
+    pCur->base.pVtab->zErrMsg = sqlite3_mprintf(
+        "vector file \"%s\" is truncated: smaller than one record header", path);
+    return SQLITE_ERROR;
+  }
+
+  i32 dim;
+  if (fread(&dim, sizeof(i32), 1, pCur->file) != 1) {
+    vec_file_each_set_error(pCur, "error reading vector file: %s",
+                            strerror(errno));
+    return SQLITE_ERROR;
+  }
+  if (dim <= 0) {
+    sqlite3_free(pCur->base.pVtab->zErrMsg);
+    pCur->base.pVtab->zErrMsg = sqlite3_mprintf(
+        "vector file \"%s\" has invalid dimension %d", path, dim);
+    return SQLITE_ERROR;
+  }
+  pCur->dimensions = dim;
+
+  i64 recordSize = 4 + (i64)dim * (i64)pCur->elementSize;
+  if (fileSize % recordSize != 0) {
+    sqlite3_free(pCur->base.pVtab->zErrMsg);
+    pCur->base.pVtab->zErrMsg = sqlite3_mprintf(
+        "vector file \"%s\" is truncated: size %lld is not a multiple of the "
+        "%lld-byte record size",
+        path, (long long)fileSize, (long long)recordSize);
+    return SQLITE_ERROR;
+  }
+  pCur->nRecords = fileSize / recordSize;
+
+  pCur->vector = sqlite3_malloc64((i64)dim * (i64)pCur->elementSize);
+  if (!pCur->vector) {
+    return SQLITE_NOMEM;
+  }
+  // The first record's header was already consumed above.
+  size_t n = (size_t)dim * pCur->elementSize;
+  if (n > 0 && fread(pCur->vector, 1, n, pCur->file) != n) {
+    vec_file_each_set_error(pCur, "truncated record in vector file at record %s",
+                            "0");
+    return SQLITE_ERROR;
+  }
+  return SQLITE_OK;
+}
+
+static int vec_file_eachRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
+  vec_file_each_cursor *pCur = (vec_file_each_cursor *)cur;
+  *pRowid = pCur->iRowid;
+  return SQLITE_OK;
+}
+
+static int vec_file_eachEof(sqlite3_vtab_cursor *cur) {
+  vec_file_each_cursor *pCur = (vec_file_each_cursor *)cur;
+  return pCur->iRowid >= pCur->nRecords;
+}
+
+static int vec_file_eachNext(sqlite3_vtab_cursor *cur) {
+  vec_file_each_cursor *pCur = (vec_file_each_cursor *)cur;
+  pCur->iRowid++;
+  if (pCur->iRowid >= pCur->nRecords) {
+    return SQLITE_OK;
+  }
+  return vec_file_each_read_record(pCur);
+}
+
+static int vec_file_eachColumn(sqlite3_vtab_cursor *cur,
+                               sqlite3_context *context, int i) {
+  vec_file_each_cursor *pCur = (vec_file_each_cursor *)cur;
+  if (i == VEC_FILE_EACH_COLUMN_VECTOR) {
+    sqlite3_result_blob(context, pCur->vector,
+                        (int)((size_t)pCur->dimensions * pCur->elementSize),
+                        SQLITE_TRANSIENT);
+    if (pCur->isFloat32) {
+      sqlite3_result_subtype(context, SQLITE_VEC_ELEMENT_TYPE_FLOAT32);
+    }
+  }
+  return SQLITE_OK;
+}
+
+static sqlite3_module vec_file_eachModule = {
+    /* iVersion    */ 0,
+    /* xCreate     */ 0,
+    /* xConnect    */ vec_file_eachConnect,
+    /* xBestIndex  */ vec_file_eachBestIndex,
+    /* xDisconnect */ vec_file_eachDisconnect,
+    /* xDestroy    */ 0,
+    /* xOpen       */ vec_file_eachOpen,
+    /* xClose      */ vec_file_eachClose,
+    /* xFilter     */ vec_file_eachFilter,
+    /* xNext       */ vec_file_eachNext,
+    /* xEof        */ vec_file_eachEof,
+    /* xColumn     */ vec_file_eachColumn,
+    /* xRowid      */ vec_file_eachRowid,
+    /* xUpdate     */ 0,
+    /* xBegin      */ 0,
+    /* xSync       */ 0,
+    /* xCommit     */ 0,
+    /* xRollback   */ 0,
+    /* xFindMethod */ 0,
+    /* xRename     */ 0,
+    /* xSavepoint  */ 0,
+    /* xRelease    */ 0,
+    /* xRollbackTo */ 0,
+    /* xShadowName */ 0,
+#if SQLITE_VERSION_NUMBER >= 3044000
+    /* xIntegrity  */ 0
+#endif
+};
+
+#pragma endregion
+
 #include "sqlite-vec-sparse.c"
 
 
@@ -6762,6 +7072,9 @@ typedef enum  {
   // ~~~ KNN QUERIES ~~~ //
   VEC0_IDXSTR_KIND_KNN_MATCH = '{',
   VEC0_IDXSTR_KIND_KNN_K = '}',
+  // argv[i] is the OFFSET of a LIMIT-sourced KNN query (`LIMIT n OFFSET m`):
+  // vec0 fetches n + m rows and SQLite skips the first m (omit = 0).
+  VEC0_IDXSTR_KIND_KNN_OFFSET = '(',
   VEC0_IDXSTR_KIND_KNN_ROWID_IN = '[',
   // argv[i] is a constraint on a PARTITON KEY column in a KNN query
   // 
@@ -6833,6 +7146,10 @@ static int vec0_constraint_is_knn_argument(vec0_vtab *p,
   int op = pIdxInfo->aConstraint[i].op;
   if (op == SQLITE_INDEX_CONSTRAINT_MATCH) {
     return vec0_column_idx_is_vector(p, iColumn);
+  }
+  if (op == SQLITE_INDEX_CONSTRAINT_LIMIT ||
+      op == SQLITE_INDEX_CONSTRAINT_OFFSET) {
+    return 1;
   }
   return op == SQLITE_INDEX_CONSTRAINT_EQ && iColumn >= vec0_column_k_idx(p);
 }
@@ -6921,6 +7238,7 @@ static int vec0BestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pIdxInfo) {
   int iMatchTerm = -1;
   int iMatchVectorTerm = -1;
   int iLimitTerm = -1;
+  int iOffsetTerm = -1;
   int iRowidTerm = -1;
   int iKTerm = -1;
   int iMmrLambdaTerm = -1;
@@ -6970,6 +7288,9 @@ static int vec0BestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pIdxInfo) {
 
     if (op == SQLITE_INDEX_CONSTRAINT_LIMIT) {
       iLimitTerm = i;
+    }
+    if (op == SQLITE_INDEX_CONSTRAINT_OFFSET) {
+      iOffsetTerm = i;
     }
     if (op == SQLITE_INDEX_CONSTRAINT_MATCH &&
         vec0_column_idx_is_vector(p, iColumn)) {
@@ -7071,6 +7392,15 @@ static int vec0BestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pIdxInfo) {
     }
     sqlite3_str_appendchar(idxStr, 1, VEC0_IDXSTR_KIND_KNN_K);
     sqlite3_str_appendchar(idxStr, 3, '_');
+
+    if (iLimitTerm >= 0 && iOffsetTerm >= 0) {
+      // Pass the OFFSET value to xFilter so it can fetch LIMIT + OFFSET
+      // rows; omit = 0 keeps SQLite applying the OFFSET itself.
+      pIdxInfo->aConstraintUsage[iOffsetTerm].argvIndex = argvIndex++;
+      pIdxInfo->aConstraintUsage[iOffsetTerm].omit = 0;
+      sqlite3_str_appendchar(idxStr, 1, VEC0_IDXSTR_KIND_KNN_OFFSET);
+      sqlite3_str_appendchar(idxStr, 3, '_');
+    }
 
 #if COMPILER_SUPPORTS_VTAB_IN
     if (iRowidInTerm >= 0) {
@@ -8547,6 +8877,7 @@ static int vec0Filter_knn_diskann(
   // Parse query_idx, k_idx and rowid_in_idx from idxStr
   int query_idx = -1;
   int k_idx = -1;
+  int offset_idx = -1;
   int rowid_in_idx = -1;
   for (int i = 0; i < argc; i++) {
     if (idxStr[1 + (i * 4)] == VEC0_IDXSTR_KIND_KNN_MATCH) {
@@ -8554,6 +8885,9 @@ static int vec0Filter_knn_diskann(
     }
     if (idxStr[1 + (i * 4)] == VEC0_IDXSTR_KIND_KNN_K) {
       k_idx = i;
+    }
+    if (idxStr[1 + (i * 4)] == VEC0_IDXSTR_KIND_KNN_OFFSET) {
+      offset_idx = i;
     }
     if (idxStr[1 + (i * 4)] == VEC0_IDXSTR_KIND_KNN_ROWID_IN) {
       rowid_in_idx = i;
@@ -8593,6 +8927,12 @@ static int vec0Filter_knn_diskann(
     pCur->query_plan = VEC0_QUERY_PLAN_KNN;
     queryVectorCleanup(queryVector);
     return SQLITE_OK;
+  }
+  if (offset_idx >= 0) {
+    i64 knn_offset = sqlite3_value_int64(argv[offset_idx]);
+    if (knn_offset > 0) {
+      k += knn_offset;
+    }
   }
 
   // Run DiskANN search
@@ -8970,6 +9310,7 @@ int vec0Filter_knn(vec0_cursor *pCur, vec0_vtab *p, int idxNum,
 
   int query_idx =-1;
   int k_idx = -1;
+  int offset_idx = -1;
   int rowid_in_idx = -1;
   int mmr_lambda_idx = -1;
   for(int i = 0; i < argc; i++) {
@@ -8978,6 +9319,9 @@ int vec0Filter_knn(vec0_cursor *pCur, vec0_vtab *p, int idxNum,
     }
     if(idxStr[1 + (i*4)] == VEC0_IDXSTR_KIND_KNN_K) {
       k_idx = i;
+    }
+    if(idxStr[1 + (i*4)] == VEC0_IDXSTR_KIND_KNN_OFFSET) {
+      offset_idx = i;
     }
     if(idxStr[1 + (i*4)] == VEC0_IDXSTR_KIND_KNN_ROWID_IN) {
       rowid_in_idx = i;
@@ -9045,6 +9389,25 @@ int vec0Filter_knn(vec0_cursor *pCur, vec0_vtab *p, int idxNum,
     pCur->query_plan = VEC0_QUERY_PLAN_KNN;
     rc = SQLITE_OK;
     goto cleanup;
+  }
+
+  // `LIMIT n OFFSET m`: SQLite applies the OFFSET (omit = 0), so fetch
+  // n + m rows for it to skip into. Negative OFFSET is 0, as in SQLite.
+  if (offset_idx >= 0) {
+    i64 knn_offset = sqlite3_value_int64(argv[offset_idx]);
+    if (knn_offset < 0) {
+      knn_offset = 0;
+    }
+    if (knn_offset > SQLITE_VEC_VEC0_K_MAX - k) {
+      vtab_set_error(
+          &p->base,
+          "k value in knn query too large, provided %lld and the limit is %lld",
+          knn_offset >= SQLITE_VEC_VEC0_K_MAX ? knn_offset : k + knn_offset,
+          SQLITE_VEC_VEC0_K_MAX);
+      rc = SQLITE_ERROR;
+      goto cleanup;
+    }
+    k += knn_offset;
   }
 
   // MMR: validate lambda and over-fetch candidates
@@ -12065,6 +12428,7 @@ SQLITE_VEC_API int sqlite3_vec_init(sqlite3 *db, char **pzErrMsg,
       // clang-format off
     {"vec0",          &vec0Module,          NULL, NULL},
     {"vec_each",      &vec_eachModule,      NULL, NULL},
+    {"vec_file_each", &vec_file_eachModule, NULL, NULL},
     {"vec_sparse_each", &vec_sparse_eachModule, NULL, NULL},
       // clang-format on
   };

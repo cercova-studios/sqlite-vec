@@ -428,7 +428,28 @@ select rowid, value from vec_each(vec_bit(X'F0'));
 
 ```
 
-## Distance functions {#distance} 
+### `vec_file_each(path)` {#vec_file_each}
+
+A table function to iterate through every vector in a `.fvecs`, `.bvecs`, or `.ivecs` file. One row per record in the file, with `rowid` as the 0-based record index.
+
+```sql
+CREATE TABLE vec_file_each(
+  rowid int,     -- The 0-based record index in the file
+  vector blob,   -- The record's elements (with float32 subtype for .fvecs)
+  path HIDDEN    -- input parameter: path to a .fvecs, .bvecs, or .ivecs file
+)
+```
+
+The format is chosen by the file extension. Returns an error if the file cannot be opened, the extension is unsupported, or the file is truncated or has inconsistent dimensions.
+
+
+```sql
+select rowid, vector from vec_file_each('data.fvecs');
+select rowid, vector from vec_file_each('data.bvecs');
+select rowid, vector from vec_file_each('data.ivecs');
+```
+
+## Distance functions {#distance}
 
 Various algorithms to calculate distance between two vectors.
 

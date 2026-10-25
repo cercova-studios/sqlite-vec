@@ -129,6 +129,7 @@ MODULES = [
     "graph_shortest_path",
     "vec0",
     "vec_each",
+    "vec_file_each",
     "vec_sparse_each",
 ]
 
@@ -2548,6 +2549,21 @@ def test_vec_sparse_distance_cosine():
     assert _one(f"select vec_sparse_distance_cosine({a}, {a})") == pytest.approx(0.0)
     assert _one(f"select vec_sparse_distance_cosine({a}, vec_sparse('{{\"3\": 1}}'))") == pytest.approx(1.0)
     assert _one(f"select vec_sparse_distance_cosine({a}, vec_sparse('{{}}'))") is None
+
+
+def test_vec_file_each(tmp_path):
+    path = str(tmp_path / "data.fvecs")
+    with open(path, "wb") as f:
+        for v in ([1.0, 2.0], [3.0, 4.0]):
+            f.write(struct.pack("<i", len(v)))
+            f.write(struct.pack("<2f", *v))
+    rows = db.execute(
+        "select rowid, vec_to_json(vector) from vec_file_each(?)", [path]
+    ).fetchall()
+    assert [tuple(r) for r in rows] == [
+        (0, "[1.000000,2.000000]"),
+        (1, "[3.000000,4.000000]"),
+    ]
 
 
 def test_vec_sparse_each():
