@@ -100,8 +100,10 @@ pub struct LanceStore {
     schema: Arc<Schema>,
     pending: HashMap<i64, Pending>,
     undo: Vec<(i64, Option<Pending>)>,
-    marks: Vec<(c_int, usize)>,
+    marks: Vec<(c_int, usize, bool)>,
     in_write: bool,
+    /// Maintenance requested in this transaction; runs at commit (xSync).
+    optimize: bool,
     /// The dataset opened at the committed version, reused until it changes:
     /// opening reads the manifest from storage on every call otherwise.
     opened: RefCell<Option<(u64, Dataset)>>,
@@ -138,6 +140,7 @@ impl LanceStore {
             undo: Vec::new(),
             marks: Vec::new(),
             in_write: false,
+            optimize: false,
             opened: RefCell::new(None),
         };
         store.init(create)?;
@@ -301,6 +304,18 @@ impl LanceStore {
         Ok(())
     }
 
+    /// Table maintenance, run when the transaction commits:
+    /// - `optimize`: merge small data files and bring the rowid index up to date.
+    /// Returns false for commands this store does not know.
+    pub fn command(&mut self, cmd: &str) -> Result<bool> {
+        if cmd == "optimize" {
+            self.begin_write()?;
+            self.optimize = true;
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
     pub fn delete(&mut self, id: i64) -> Result<()> {
         self.begin_write()?;
         self.set(id, None, true, None);
@@ -311,11 +326,12 @@ impl LanceStore {
 
     pub fn savepoint(&mut self, id: c_int) {
         self.marks.retain(|m| m.0 < id);
-        self.marks.push((id, self.undo.len()));
+        self.marks.push((id, self.undo.len(), self.optimize));
     }
 
     pub fn rollback_to(&mut self, id: c_int) {
-        let Some(&(_, len)) = self.marks.iter().find(|m| m.0 == id) else { return };
+        let Some(&(_, len, optimize)) = self.marks.iter().find(|m| m.0 == id) else { return };
+        self.optimize = optimize;
         while self.undo.len() > len {
             let (rowid, prev) = self.undo.pop().unwrap();
             match prev {
@@ -372,7 +388,8 @@ impl LanceStore {
             .query_row(&format!("select v from {shadow} where k = 'unindexed'"), [], |r| r.get(0))
             .unwrap_or(0)
             + appended as i64;
-        let reindex = lag >= INDEX_LAG_ROWS;
+        let optimize = self.optimize;
+        let reindex = lag >= INDEX_LAG_ROWS || (optimize && lag > 0);
         let latest = block(async move {
             let mut ds = Dataset::open(&uri).await?;
             for chunk in deletes.chunks(1000) {
@@ -419,7 +436,7 @@ impl LanceStore {
                     ds.create_index(&["id"], IndexType::BTree, Some(ID_INDEX.to_owned()), &params, true).await?;
                 }
             }
-            if ds.get_fragments().len() >= COMPACT_MIN_FRAGMENTS {
+            if optimize || ds.get_fragments().len() >= COMPACT_MIN_FRAGMENTS {
                 // Merge small fragments and materialize deletions. Indices
                 // are remapped eagerly (the default), so the rowid index
                 // stays valid; the version recorded below is the compacted
@@ -438,6 +455,7 @@ impl LanceStore {
     }
 
     pub fn end_transaction(&mut self) {
+        self.optimize = false;
         self.pending.clear();
         self.undo.clear();
         self.marks.clear();

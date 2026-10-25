@@ -53,6 +53,22 @@ select rowid, title, length(image) from items where embedding match :q and k = 1
 | `payload` | blob | Large binary data such as images or audio. Stored only in Lance. |
 | `distance` | real | Set by KNN queries. |
 | `query`, `k` | hidden | KNN inputs. Supply both to run a vector search. |
+| Table name | hidden | Maintenance command input, for example `docs` for a table named `docs`. |
+
+## Maintenance
+
+To merge small data files and update the Lance rowid index before the automatic
+thresholds are reached, insert `optimize` into the hidden column named after the
+table. This works for both `lance0` and `vec0` tables with `storage=lance`:
+
+```sql
+insert into docs(docs) values ('optimize');
+insert into items(items) values ('optimize');
+```
+
+Maintenance runs when the SQLite transaction commits. A rollback, including
+`ROLLBACK TO`, cancels requests made after that transaction or savepoint began.
+Old Lance versions remain available for readers and failed-commit recovery.
 
 ## Transactions
 
@@ -68,7 +84,7 @@ This relies on a single writer, which SQLite already enforces.
 ## Limits
 
 - Each SQLite transaction that writes to `lance0` creates at least one Lance version and data file. Batch writes into larger transactions.
-- `UPDATE` rewrites the whole row.
+- `UPDATE` of selected columns patches those columns; changing the rowid rewrites the row.
 - There is no Lance ANN index yet; Lance searches scan all vectors. For fast ANN over the same rows, index them in a `vec0` table and join by rowid.
 - Only `label`, `rowid`, `query` and `k` equality constraints run inside Lance. SQLite applies every other filter after Lance returns rows.
 - The library is about 190 MB, because Lance includes DataFusion, Arrow and object storage support.

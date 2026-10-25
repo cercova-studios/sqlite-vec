@@ -99,9 +99,12 @@ impl LanceTab {
             ("payload".to_owned(), Kind::Blob),
         ];
         let store = LanceStore::open(unsafe { db.handle() }, &format!("{name}_lance"), &uri, cols, false)?;
-        let schema = CString::new(
-            "create table x(label text, vector blob, payload blob, distance real, query hidden, k hidden)",
-        ).unwrap();
+        // A hidden column named after the table takes commands, as in FTS5
+        // and vec0: insert into t(t) values ('optimize').
+        let schema = CString::new(format!(
+            "create table x(label text, vector blob, payload blob, distance real, query hidden, k hidden, \"{}\" hidden)",
+            name.replace('"', "\"\""),
+        )).map_err(|_| Error::ModuleError("lance0: bad table name".into()))?;
         Ok((Cow::Owned(schema), LanceTab { base: ffi::sqlite3_vtab::default(), dim, store }))
     }
 
@@ -176,7 +179,14 @@ impl UpdateVTab<'_> for LanceTab {
     }
 
     fn insert(&mut self, args: &Inserts<'_>) -> Result<i64> {
-        // args: [old rowid (NULL), new rowid, label, vector, payload, distance, query, k]
+        // args: [old rowid (NULL), new rowid, label, vector, payload, distance, query, k, command]
+        if let Some(ValueRef::Text(cmd)) = args.iter().nth(8) {
+            let cmd = std::str::from_utf8(cmd)?;
+            if !self.store.command(cmd)? {
+                return Err(Error::ModuleError(format!("lance0: unknown command '{cmd}'")));
+            }
+            return Ok(0);
+        }
         let rowid: Option<i64> = args.get(1)?;
         let rowid = rowid.ok_or_else(|| Error::ModuleError("lance0: insert needs an explicit rowid".into()))?;
         let vals: Vec<ValueRef<'_>> = args.iter().skip(2).take(3).collect();

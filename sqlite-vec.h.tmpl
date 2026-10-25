@@ -59,7 +59,7 @@ SQLITE_VEC_API int sqlite3_vec_init(sqlite3 *db, char **pzErrMsg,
 ** transaction), and must let reads see the transaction's own writes.
 */
 #define SQLITE_VEC_STORAGE_KEY_PREFIX "sqlite-vec-storage:"
-#define SQLITE_VEC_STORAGE_VERSION 1
+#define SQLITE_VEC_STORAGE_VERSION 2
 
 typedef struct sqlite3_vec_storage sqlite3_vec_storage; /* one per vec0 table */
 
@@ -120,6 +120,11 @@ typedef struct sqlite3_vec_storage_methods {
   int (*xRollbackTo)(sqlite3_vec_storage *, int iSavepoint);
 
   const char *(*xErrmsg)(sqlite3_vec_storage *);
+
+  /* A table command, from insert into t(t) values ('<command>'): vec0
+  ** forwards the commands it does not handle itself. Returns SQLITE_EMPTY
+  ** for commands the provider does not know. */
+  int (*xCommand)(sqlite3_vec_storage *, const char *zCommand);
 } sqlite3_vec_storage_methods;
 
 #ifdef __cplusplus

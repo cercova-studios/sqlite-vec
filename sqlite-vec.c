@@ -11979,6 +11979,10 @@ static int vec0Update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv,
         if (cmdRc == SQLITE_EMPTY)
           cmdRc = hnsw_handle_command(p, cmd);
 #endif
+        if (cmdRc == SQLITE_EMPTY && p->storage && p->storage->iVersion >= 2 && p->storage->xCommand) {
+          cmdRc = p->storage->xCommand(p->storageHandle, cmd);
+          if (cmdRc != SQLITE_OK && cmdRc != SQLITE_EMPTY) return vec0_storage_error(p, cmdRc);
+        }
         if (cmdRc == SQLITE_EMPTY) {
           vtab_set_error(pVTab, "unknown vec0 command: '%s'", cmd);
           return SQLITE_ERROR;

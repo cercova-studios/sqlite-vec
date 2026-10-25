@@ -450,3 +450,98 @@ def test_compaction_merges_small_fragments(db, root):
         db.execute("commit")
     assert db.execute("select count(*) from docs").fetchone()[0] == 70
     assert db.execute("select count(*) from docs where rowid <= 50").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("kind", ["lance0", "flat", "hnsw"])
+def test_optimize_command(db, root, kind):
+    if kind == "lance0":
+        lance_table(db, root, dim=2)
+        table, shadow, vector = "docs", "docs_lance", "vector"
+    else:
+        storage_table(db, root, index="" if kind == "flat" else "indexed by hnsw()")
+        table, shadow, vector = "items", "items_storage", "v"
+    for i in range(1, 5):
+        db.execute(f"insert into {table}(rowid, {vector}) values (?, ?)", [i, _f32([i, 0])])
+
+    def version():
+        return db.execute(f"select v from {shadow} where k = 'version'").fetchone()[0]
+
+    before = version()
+    db.execute("begin")
+    db.execute("savepoint s")
+    db.execute(f"insert into {table}({table}) values ('optimize')")
+    assert version() == before  # maintenance waits for xSync
+    db.execute("rollback to s")
+    db.execute("release s")
+    db.execute("commit")
+    assert version() == before
+
+    db.execute("begin")
+    db.execute(f"insert into {table}({table}) values ('optimize')")
+    db.execute("rollback")
+    assert version() == before
+
+    db.execute("begin")
+    with pytest.raises(sqlite3.Error, match="unknown.*command"):
+        db.execute(f"insert into {table}({table}) select 'optimize' union all select 'unknown'")
+    db.execute("commit")
+    assert version() == before
+
+    db.execute("begin")
+    db.execute(f"insert into {table}({table}) values ('optimize')")
+    db.execute("savepoint s")
+    db.execute("rollback to s")
+    db.execute("release s")
+    db.execute("commit")
+    assert version() > before
+    assert db.execute(f"select v from {shadow} where k = 'unindexed'").fetchone() == (0,)
+    assert db.execute(f"select rowid, {vector} from {table} order by rowid").fetchall() == [
+        (i, _f32([i, 0])) for i in range(1, 5)
+    ]
+    for cmd in ["unknown", "cleanup=0"]:
+        with pytest.raises(sqlite3.Error, match="unknown.*command"):
+            db.execute(f"insert into {table}({table}) values (?)", [cmd])
+
+    # A later table failing xSync must leave the pre-maintenance version readable.
+    before = version()
+    lance_table(db, root, name="other", dim=2)
+    db.execute("begin")
+    db.execute(f"insert into {table}({table}) values ('optimize')")
+    db.execute("insert into other(rowid, vector) values (1, '[1, 0]')")
+    shutil.rmtree(os.path.join(root, "other.lance"))
+    open(os.path.join(root, "other.lance"), "w").close()
+    with pytest.raises(sqlite3.Error):
+        db.execute("commit")
+    if db.in_transaction:
+        db.execute("rollback")
+    assert version() == before
+    assert db.execute(f"select count(*) from {table}").fetchone() == (4,)
+    db.execute("drop table other")
+    db.execute(f"insert into {table}(rowid, {vector}) values (5, '[5, 0]')")
+    assert db.execute(f"select {vector} from {table} where rowid = 5").fetchone() == (_f32([5, 0]),)
+
+
+def test_optimize_compacts_and_preserves_versions(db, root):
+    """Manual compaction retains old manifests and leaves queries unchanged."""
+    lance_table(db, root, dim=2)
+    storage_table(db, root)
+    for i in range(1, 13):  # one Lance fragment per transaction
+        db.execute("insert into docs(rowid, label, vector) values (?, 'x', ?)", [i, _f32([i, 0])])
+        db.execute("insert into items(rowid, v, title) values (?, ?, ?)", [i, _f32([i, 0]), f"t{i}"])
+    old_versions = set(glob.glob(os.path.join(root, "items.lance", "_versions", "*.manifest")))
+    db.execute("insert into docs(docs) values ('optimize')")
+    db.execute("insert into items(items) values ('optimize')")
+    manifests = glob.glob(os.path.join(root, "items.lance", "_versions", "*.manifest"))
+    assert old_versions <= set(manifests)
+    latest = min(manifests, key=lambda f: int(os.path.basename(f).split(".")[0]))
+    with open(latest, "rb") as f:
+        data = f.read()
+    # The prefix also stores index/transaction history with obsolete file names.
+    offset = struct.unpack_from("<q", data, len(data) - 16)[0]
+    length = struct.unpack_from("<I", data, offset)[0]
+    assert data[-4:] == b"LANC" and offset + 4 + length == len(data) - 16
+    live = set(re.findall(rb"[0-9a-f]{16,}\.lance", data[offset + 4:offset + 4 + length]))
+    assert 0 < len(live) < 12
+    assert db.execute("select count(*) from docs").fetchone() == (12,)
+    assert db.execute("select rowid from docs where query = ? and k = 1", [_f32([7.2, 0])]).fetchone() == (7,)
+    assert sorted(db.execute("select rowid, title from items where rowid in (3, 4)")) == [(3, "t3"), (4, "t4")]

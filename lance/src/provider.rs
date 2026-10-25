@@ -43,14 +43,16 @@ pub struct StorageMethods {
     x_release: unsafe extern "C" fn(*mut Provider, c_int) -> c_int,
     x_rollback_to: unsafe extern "C" fn(*mut Provider, c_int) -> c_int,
     x_errmsg: unsafe extern "C" fn(*mut Provider) -> *const c_char,
+    x_command: unsafe extern "C" fn(*mut Provider, *const c_char) -> c_int,
 }
 
-const SQLITE_VEC_STORAGE_VERSION: c_int = 1;
+const SQLITE_VEC_STORAGE_VERSION: c_int = 2;
 
 pub static METHODS: StorageMethods = StorageMethods {
     i_version: SQLITE_VEC_STORAGE_VERSION,
     x_open, x_close, x_destroy, x_rename, x_put, x_set, x_set_vector, x_delete, x_column, x_read,
     x_scan, x_prefetch, x_sync, x_commit, x_rollback, x_savepoint, x_release, x_rollback_to, x_errmsg,
+    x_command,
 };
 
 pub struct Provider {
@@ -428,6 +430,12 @@ unsafe extern "C" fn x_rollback_to(p: *mut Provider, i: c_int) -> c_int {
 
 unsafe extern "C" fn x_errmsg(p: *mut Provider) -> *const c_char {
     if p.is_null() { std::ptr::null() } else { unsafe { (*p).err.as_ptr() } }
+}
+
+unsafe extern "C" fn x_command(p: *mut Provider, z: *const c_char) -> c_int {
+    let mut known = true;
+    let rc = unsafe { guard(p, |p| { known = p.store.command(&cstr(z)?)?; Ok(()) }) };
+    if rc == ffi::SQLITE_OK && !known { ffi::SQLITE_EMPTY } else { rc }
 }
 
 /// Make storage=lance available to vec0 tables on this connection.

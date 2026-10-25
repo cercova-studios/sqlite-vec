@@ -43,6 +43,14 @@ The Lance provider (`lance/src/provider.rs`) and `lance0` share
 rules. Its shadow table `<table>_storage` records the committed Lance version and
 the dataset location.
 
+Storage ABI version 2 adds the optional `xCommand` callback. The C core checks
+`iVersion >= 2` before reading it; providers using version 1 still support their
+original operations. Commands unknown to the C indexes are forwarded to storage.
+The Lance provider and `lance0` accept `optimize`, which requests file compaction
+and rowid-index maintenance during `xSync`. Savepoint rollback restores the
+request state, and transaction rollback discards it. Maintenance retains old
+Lance versions so readers and failed commits can still use the recorded version.
+
 ## `vec0`
 
 ### Shadow Tables
