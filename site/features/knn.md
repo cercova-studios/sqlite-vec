@@ -47,8 +47,17 @@ select
   distance
 from vec_documents
 where contents_embedding match :query
+order by distance
 limit 10; -- LIMIT only works on SQLite versions 3.41+
 ```
+
+`LIMIT n` may also carry an `OFFSET m` (`limit 10 offset 20`, or
+`limit 20, 10`), which returns rows `m + 1` to `m + n` of the ranking.
+Give exactly one of `k = n` and `LIMIT n`: providing both, or neither, is
+an error, as is a negative `LIMIT` — a KNN query is never unbounded. The
+`LIMIT` form only works when `vec_documents` is the only table in the
+`FROM` clause (SQLite only offers the limit to a solitary virtual-table
+scan); in a join, wrap the KNN query in a subquery or use `k = n`.
 
 ```sql
 with knn_matches as (

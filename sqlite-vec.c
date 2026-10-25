@@ -6762,6 +6762,9 @@ typedef enum  {
   // ~~~ KNN QUERIES ~~~ //
   VEC0_IDXSTR_KIND_KNN_MATCH = '{',
   VEC0_IDXSTR_KIND_KNN_K = '}',
+  // argv[i] is the OFFSET of a LIMIT-sourced KNN query (`LIMIT n OFFSET m`):
+  // vec0 fetches n + m rows and SQLite skips the first m (omit = 0).
+  VEC0_IDXSTR_KIND_KNN_OFFSET = '(',
   VEC0_IDXSTR_KIND_KNN_ROWID_IN = '[',
   // argv[i] is a constraint on a PARTITON KEY column in a KNN query
   // 
@@ -6833,6 +6836,10 @@ static int vec0_constraint_is_knn_argument(vec0_vtab *p,
   int op = pIdxInfo->aConstraint[i].op;
   if (op == SQLITE_INDEX_CONSTRAINT_MATCH) {
     return vec0_column_idx_is_vector(p, iColumn);
+  }
+  if (op == SQLITE_INDEX_CONSTRAINT_LIMIT ||
+      op == SQLITE_INDEX_CONSTRAINT_OFFSET) {
+    return 1;
   }
   return op == SQLITE_INDEX_CONSTRAINT_EQ && iColumn >= vec0_column_k_idx(p);
 }
@@ -6921,6 +6928,7 @@ static int vec0BestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pIdxInfo) {
   int iMatchTerm = -1;
   int iMatchVectorTerm = -1;
   int iLimitTerm = -1;
+  int iOffsetTerm = -1;
   int iRowidTerm = -1;
   int iKTerm = -1;
   int iMmrLambdaTerm = -1;
@@ -6970,6 +6978,9 @@ static int vec0BestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pIdxInfo) {
 
     if (op == SQLITE_INDEX_CONSTRAINT_LIMIT) {
       iLimitTerm = i;
+    }
+    if (op == SQLITE_INDEX_CONSTRAINT_OFFSET) {
+      iOffsetTerm = i;
     }
     if (op == SQLITE_INDEX_CONSTRAINT_MATCH &&
         vec0_column_idx_is_vector(p, iColumn)) {
@@ -7071,6 +7082,15 @@ static int vec0BestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pIdxInfo) {
     }
     sqlite3_str_appendchar(idxStr, 1, VEC0_IDXSTR_KIND_KNN_K);
     sqlite3_str_appendchar(idxStr, 3, '_');
+
+    if (iLimitTerm >= 0 && iOffsetTerm >= 0) {
+      // Pass the OFFSET value to xFilter so it can fetch LIMIT + OFFSET
+      // rows; omit = 0 keeps SQLite applying the OFFSET itself.
+      pIdxInfo->aConstraintUsage[iOffsetTerm].argvIndex = argvIndex++;
+      pIdxInfo->aConstraintUsage[iOffsetTerm].omit = 0;
+      sqlite3_str_appendchar(idxStr, 1, VEC0_IDXSTR_KIND_KNN_OFFSET);
+      sqlite3_str_appendchar(idxStr, 3, '_');
+    }
 
 #if COMPILER_SUPPORTS_VTAB_IN
     if (iRowidInTerm >= 0) {
@@ -8547,6 +8567,7 @@ static int vec0Filter_knn_diskann(
   // Parse query_idx, k_idx and rowid_in_idx from idxStr
   int query_idx = -1;
   int k_idx = -1;
+  int offset_idx = -1;
   int rowid_in_idx = -1;
   for (int i = 0; i < argc; i++) {
     if (idxStr[1 + (i * 4)] == VEC0_IDXSTR_KIND_KNN_MATCH) {
@@ -8554,6 +8575,9 @@ static int vec0Filter_knn_diskann(
     }
     if (idxStr[1 + (i * 4)] == VEC0_IDXSTR_KIND_KNN_K) {
       k_idx = i;
+    }
+    if (idxStr[1 + (i * 4)] == VEC0_IDXSTR_KIND_KNN_OFFSET) {
+      offset_idx = i;
     }
     if (idxStr[1 + (i * 4)] == VEC0_IDXSTR_KIND_KNN_ROWID_IN) {
       rowid_in_idx = i;
@@ -8593,6 +8617,12 @@ static int vec0Filter_knn_diskann(
     pCur->query_plan = VEC0_QUERY_PLAN_KNN;
     queryVectorCleanup(queryVector);
     return SQLITE_OK;
+  }
+  if (offset_idx >= 0) {
+    i64 knn_offset = sqlite3_value_int64(argv[offset_idx]);
+    if (knn_offset > 0) {
+      k += knn_offset;
+    }
   }
 
   // Run DiskANN search
@@ -8970,6 +9000,7 @@ int vec0Filter_knn(vec0_cursor *pCur, vec0_vtab *p, int idxNum,
 
   int query_idx =-1;
   int k_idx = -1;
+  int offset_idx = -1;
   int rowid_in_idx = -1;
   int mmr_lambda_idx = -1;
   for(int i = 0; i < argc; i++) {
@@ -8978,6 +9009,9 @@ int vec0Filter_knn(vec0_cursor *pCur, vec0_vtab *p, int idxNum,
     }
     if(idxStr[1 + (i*4)] == VEC0_IDXSTR_KIND_KNN_K) {
       k_idx = i;
+    }
+    if(idxStr[1 + (i*4)] == VEC0_IDXSTR_KIND_KNN_OFFSET) {
+      offset_idx = i;
     }
     if(idxStr[1 + (i*4)] == VEC0_IDXSTR_KIND_KNN_ROWID_IN) {
       rowid_in_idx = i;
@@ -9045,6 +9079,25 @@ int vec0Filter_knn(vec0_cursor *pCur, vec0_vtab *p, int idxNum,
     pCur->query_plan = VEC0_QUERY_PLAN_KNN;
     rc = SQLITE_OK;
     goto cleanup;
+  }
+
+  // `LIMIT n OFFSET m`: SQLite applies the OFFSET (omit = 0), so fetch
+  // n + m rows for it to skip into. Negative OFFSET is 0, as in SQLite.
+  if (offset_idx >= 0) {
+    i64 knn_offset = sqlite3_value_int64(argv[offset_idx]);
+    if (knn_offset < 0) {
+      knn_offset = 0;
+    }
+    if (knn_offset > SQLITE_VEC_VEC0_K_MAX - k) {
+      vtab_set_error(
+          &p->base,
+          "k value in knn query too large, provided %lld and the limit is %lld",
+          knn_offset >= SQLITE_VEC_VEC0_K_MAX ? knn_offset : k + knn_offset,
+          SQLITE_VEC_VEC0_K_MAX);
+      rc = SQLITE_ERROR;
+      goto cleanup;
+    }
+    k += knn_offset;
   }
 
   // MMR: validate lambda and over-fetch candidates
