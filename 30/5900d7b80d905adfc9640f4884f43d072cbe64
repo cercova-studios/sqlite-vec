@@ -1,0 +1,25 @@
+ARCHITECTURE.md
+  s_038c9d86d9ab5e::t_d763e1c6e15785 161-176
+site/features/knn.md
+  s_038c9d86d9ab5e::t_440b157a41d79c 50,54-61
+sqlite-vec.c
+  s_038c9d86d9ab5e::t_5da959abbc1e5a 6765-6767,6840-6843,6931,6982-6984,7086-7094,8570,8579-8581,8621-8626,9003,9013-9015,9084-9102
+tests/test-knn-limit.py
+  s_038c9d86d9ab5e::t_2d2d6f4af921cc 1-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "305900d7b80d905adfc9640f4884f43d072cbe64",
+  "prompts": {},
+  "sessions": {
+    "s_038c9d86d9ab5e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c4cc4d-eb43-45f6-a97c-74a9d4126c1b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
