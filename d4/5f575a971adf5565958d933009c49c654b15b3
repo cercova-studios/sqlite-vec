@@ -1,0 +1,41 @@
+ARCHITECTURE.md
+  s_ca7d5125ef33b2::t_3244066eaab7b4 170
+  s_ca7d5125ef33b2::t_ecf5c61fb5d998 157,171-173
+  s_ca7d5125ef33b2::t_65d6162e210055 153-156,158-169
+sqlite-vec-hnsw.c
+  s_ca7d5125ef33b2::t_7e221a04dc21b3 851-852
+  s_ca7d5125ef33b2::t_79329730ba3899 20-22,471,585
+  s_ca7d5125ef33b2::t_aaf95e40c47375 225,234,264,267-276,559-560,573,837-838,841,843,845,854-855,857-891,897,912,1307,1446-1447,1505-1506,1547-1548,1550
+  s_ca7d5125ef33b2::t_bfa9ff18ebe041 1549,1551
+benchmarks-ann/README.md
+  s_ca7d5125ef33b2::t_63ddbe20c491db 3-19
+tests/test-hnsw.py
+  s_ca7d5125ef33b2::t_dd596668ded64e 119
+  s_ca7d5125ef33b2::t_cdf9206cbe833c 157-177
+  s_ca7d5125ef33b2::t_c5693cdae5ab3a 72-89,91-118,120-136,210-230
+  s_ca7d5125ef33b2::t_d42819ff97e959 52-71
+  s_ca7d5125ef33b2::t_831d9224956b1f 456-457,460
+  s_ca7d5125ef33b2::t_e41ac81ed9d1ed 90
+  s_ca7d5125ef33b2::t_9778d70bc171c4 137-156,178-209
+benchmarks-ann/hnsw-batch.py
+  s_ca7d5125ef33b2::t_24a8ef7597d1a3 1-88
+sqlite-vec.c
+  s_ca7d5125ef33b2::t_104d4d38af08ec 12273
+  s_ca7d5125ef33b2::t_6388f6380710f1 12251-12254,12276-12279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d45f575a971adf5565958d933009c49c654b15b3",
+  "prompts": {},
+  "sessions": {
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
