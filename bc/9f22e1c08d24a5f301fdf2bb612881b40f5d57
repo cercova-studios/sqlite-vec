@@ -1,0 +1,27 @@
+tests/test-diskann.py
+  s_ca7d5125ef33b2::t_6313e8df5a0945 3-5,10-11,13-16,19-50,52-56
+  s_ca7d5125ef33b2::t_4c10d2c74dcace 12,17-18,51,57-58
+sqlite-vec-diskann.c
+  s_ca7d5125ef33b2::t_180f41ef5e3c07 697,701,704-708,721,725,736,738-761,773,834,862-867,939-940,944
+tests/test-unit.c
+  s_ca7d5125ef33b2::t_5fdf44f0e03cc8 2029,2032-2047,2054,2056-2060,2062-2064,2066-2072,2235
+  s_ca7d5125ef33b2::t_978588110ce448 2055,2061,2065
+ARCHITECTURE.md
+  s_ca7d5125ef33b2::t_cba5865801c206 180-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bc9f22e1c08d24a5f301fdf2bb612881b40f5d57",
+  "prompts": {},
+  "sessions": {
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
