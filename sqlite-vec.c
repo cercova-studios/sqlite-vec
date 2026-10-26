@@ -12248,6 +12248,10 @@ static int vec0Begin(sqlite3_vtab *pVTab) {
 }
 static int vec0Sync(sqlite3_vtab *pVTab) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
+#if SQLITE_VEC_ENABLE_HNSW
+  int rc = hnsw_flush_all(p);
+  if (rc != SQLITE_OK) return rc;
+#endif
   vec0_free_resources(p);
   return p->storage ? vec0_storage_error(p, p->storage->xSync(p->storageHandle)) : SQLITE_OK;
 }
@@ -12266,10 +12270,13 @@ static int vec0Rollback(sqlite3_vtab *pVTab) {
 #endif
   return p->storage ? vec0_storage_error(p, p->storage->xRollback(p->storageHandle)) : SQLITE_OK;
 }
-// SQLite only tracks a vtab's statement savepoints (and so only calls
-// xRollbackTo) when xSavepoint is set; vec0 needs no work to open one.
+// Persist older dirty lists before SQLite opens the new rollback boundary.
 static int vec0Savepoint(sqlite3_vtab *pVTab, int iSavepoint) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
+#if SQLITE_VEC_ENABLE_HNSW
+  int rc = hnsw_flush_all(p);
+  if (rc != SQLITE_OK) return rc;
+#endif
   return p->storage
              ? vec0_storage_error(p, p->storage->xSavepoint(p->storageHandle, iSavepoint))
              : SQLITE_OK;

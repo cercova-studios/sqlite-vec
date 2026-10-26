@@ -150,10 +150,27 @@ One row per vector in an `indexed by hnsw(...)` column.
 - `rowid INTEGER`, `level INTEGER` (primary key)
 - `neighbors BLOB`: packed `i64` rowids
 
-Connections cache these rows in memory (`cache_mb`). The cache is cleared on
-`xRollback` and `xRollbackTo`, and when the pager's data version shows a commit
-by another connection. vec0 sets `xSavepoint` only so that SQLite calls
-`xRollbackTo` when a statement fails inside a transaction.
+Connections cache these rows in memory (`cache_mb`). Node/vector writes remain
+immediate. Neighbor-list edits update the cache and mark the list dirty, so
+queries and subsequent graph edits see uncommitted changes without replaying a
+separate operation queue. Each dirty list is written once per flush, during
+`xSync`, `xSavepoint`, before eviction or a cache-setting change,
+and when a rebuild finishes. `cache_mb=0` retains immediate neighbor writes.
+The cache budget is checked between operations, so one operation can exceed it.
+
+`xSavepoint` flushes older dirty lists before the new SQLite rollback boundary;
+statement savepoints therefore bound batching too. `xRollback` and
+`xRollbackTo` clear the cache after SQLite restores shadow tables, including
+flushed lists. Flush errors propagate to the caller; a failed `xSync` aborts
+the transaction. Dirty flags are cleared only after the entire cache flush
+succeeds. The pager's data version invalidates cached rows after another
+connection commits. Deleted nodes have their pending lists canceled, so a
+later flush cannot recreate their edges. This changes write scheduling, not
+the persisted graph format or neighbor-selection algorithm.
+
+`xRelease` leaves dirty lists pending: SQLite has already released its
+shadow-table savepoint before this callback, so it is too late for a fallible
+flush there. Opening a new savepoint flushes prior edits before that boundary.
 
 ### idxStr
 

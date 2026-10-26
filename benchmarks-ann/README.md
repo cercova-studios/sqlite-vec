@@ -1,5 +1,22 @@
 # KNN Benchmarks for sqlite-vec
 
+## HNSW write-batching benchmark
+
+After `make loadable`, run from the repository root with a previous extension:
+
+```sh
+uv run --managed-python --project tests python benchmarks-ann/hnsw-batch.py --baseline /path/to/previous/vec0.dylib
+```
+
+The benchmark inserts 3,000 deterministic Gaussian vectors of 32 dimensions
+in one transaction. It reports insert and commit time, total shadow-table
+changes and retained WAL bytes. Each build runs in a separate process. The
+check compares committed graph hashes and query results across builds, and
+checks pending results against results after reopening. `--cache-mb 0`
+measures immediate writes; `--rows` and `--dimensions` change the workload.
+This synthetic case does not establish production speedups. SQLite already
+coalesces page writes, so fewer row changes need not reduce WAL bytes equally.
+
 ## Numeric zone-map benchmark
 
 From the repository root after `make loadable`:

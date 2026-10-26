@@ -17,9 +17,9 @@
  * Speed comes from a per-connection cache laid out like hnswlib's memory
  * index: nodes get dense 32-bit indexes, vectors and level-0 neighbor lists
  * sit in fixed-size chunks (pointers stay valid as the cache grows), and the
- * visited set is a tag array. The cache never outlives the state it mirrors:
- * it is cleared on rollback, on statement rollback (xRollbackTo), and when
- * another connection commits (the pager's data version moved).
+ * visited set is a tag array. Changed neighbor lists stay in the cache until
+ * xSync, a savepoint boundary, or eviction. Rollback clears the cache after
+ * SQLite restores shadow tables; other commits invalidate it by data version.
  *
  * Deletes repair the graph: every out-neighbor of the deleted node re-selects
  * its neighbors from its remaining list plus the deleted node's list. Edges
@@ -222,6 +222,7 @@ enum {
   HNSW_F_ABSENT = 2,  // no such node (deleted, or a dangling edge)
   HNSW_F_L0 = 4,      // level-0 neighbor list loaded
   HNSW_F_CODE = 8,    // int8 search code computed
+  HNSW_F_DIRTY = 16, // level-0 list needs a shadow-table write
 };
 
 struct HnswUpper {  // neighbor list above level 0
@@ -230,6 +231,7 @@ struct HnswUpper {  // neighbor list above level 0
   int len;
   int32_t *ids;
   u8 used;
+  u8 dirty;
 };
 
 struct HnswCache {
@@ -259,7 +261,18 @@ struct HnswCache {
   int broken;       // a load failed mid-operation: clear at the next boundary
   u32 dataVersion;
   int haveVersion;
+  int dirty, flushing;
 };
+
+static int hnsw_flush(vec0_vtab *p, int col);
+
+static int hnsw_flush_all(vec0_vtab *p) {
+  for (int col = 0; col < p->numVectorColumns; col++) {
+    int rc = hnsw_flush(p, col);
+    if (rc != SQLITE_OK) return rc;
+  }
+  return SQLITE_OK;
+}
 
 static u64 hnsw_mix(u64 x) {
   x += 0x9E3779B97F4A7C15ull;
@@ -455,7 +468,7 @@ struct HnswCtx {
   enum Vec0DistanceMetrics metric;
   vec0_distance_fn dist;  // resolved once per operation
   int scol;               // storage-provider column of the vectors, or -1
-  int defer;              // rebuild: graph writes go to the cache only
+  int defer;              // rebuild: node writes go to the cache only too
   struct HnswCache *c;
 };
 
@@ -543,6 +556,8 @@ static int hnsw_begin(struct HnswCtx *x, vec0_vtab *p, int col) {
   int known = hnsw_data_version(p, &v) == SQLITE_OK;
   if (!known || !x->c->haveVersion || v != x->c->dataVersion || x->c->broken ||
       x->c->bytes > (i64)def->hnsw.cache_mb * 1024 * 1024) {
+    int rc = hnsw_flush(p, col);
+    if (rc != SQLITE_OK) return rc;
     hnsw_cache_reset(x->c);
   }
   if (x->scol >= 0 && x->c->n == 0) return hnsw_preload(x);
@@ -555,7 +570,7 @@ static void hnsw_end(struct HnswCtx *x) {
   int keep = !x->c->broken && x->p->vector_columns[x->col].hnsw.cache_mb > 0 &&
              hnsw_data_version(x->p, &v) == SQLITE_OK;
   if (!keep) {
-    hnsw_cache_reset(x->c);
+    if (!x->c->dirty) hnsw_cache_reset(x->c);
     return;
   }
   x->c->haveVersion = 1;
@@ -567,7 +582,7 @@ static int hnsw_m_max(struct HnswCtx *x, int level) {
 }
 
 // ============================================================================
-// Storage (reads go through the cache; writes update it on success)
+// Storage (reads see the cache, neighbor writes coalesce until a boundary)
 // ============================================================================
 
 static void hnsw_encode(const f32 *v, size_t dims, u8 *out);
@@ -819,32 +834,67 @@ static int hnsw_edges_read(struct HnswCtx *x, int32_t idx, int level,
   return SQLITE_OK;
 }
 
-/** Write idx's list at level (n <= hnsw_m_max), to SQLite and the cache. */
-static int hnsw_edges_write(struct HnswCtx *x, int32_t idx, int level, const int32_t *ids, int n) {
-  struct HnswCache *c = x->c;
-  vec0_vtab *p = x->p;
-  if (x->defer) goto cache_only;
+static int hnsw_edges_store(vec0_vtab *p, int col, struct HnswCache *c,
+                            int32_t idx, int level, const int32_t *ids, int n) {
   i64 rowids[2 * VEC0_HNSW_MAX_M];
   for (int i = 0; i < n; i++) rowids[i] = c->rowid[ids[i]];
-  int rc = vec0_ensure_stmt(p, &p->stmtHnswEdgesWrite[x->col],
+  int rc = vec0_ensure_stmt(p, &p->stmtHnswEdgesWrite[col],
       "INSERT OR REPLACE INTO " VEC0_SHADOW_HNSW_EDGES_NAME
-      " (rowid, level, neighbors) VALUES (?, ?, ?)", x->col);
+      " (rowid, level, neighbors) VALUES (?, ?, ?)", col);
   if (rc != SQLITE_OK) return rc;
-  sqlite3_stmt *s = p->stmtHnswEdgesWrite[x->col];
+  sqlite3_stmt *s = p->stmtHnswEdgesWrite[col];
   sqlite3_reset(s);
   sqlite3_bind_int64(s, 1, c->rowid[idx]);
   sqlite3_bind_int(s, 2, level);
   sqlite3_bind_blob(s, 3, rowids, n * (int)sizeof(i64), SQLITE_STATIC);
   rc = sqlite3_step(s);
+  if (rc != SQLITE_DONE)
+    vtab_set_error(&p->base, "Could not write HNSW neighbor list: %s", sqlite3_errmsg(p->db));
   sqlite3_reset(s);
-  if (rc != SQLITE_DONE) return rc;
+  return rc == SQLITE_DONE ? SQLITE_OK : rc;
+}
 
-cache_only:
+/** Flush final lists; retain dirty state on failure so commit cannot lose it. */
+static int hnsw_flush(vec0_vtab *p, int col) {
+  struct HnswCache *c = p->hnswCache[col];
+  if (!c || !c->dirty || c->flushing) return SQLITE_OK;
+  if (c->broken) return SQLITE_ABORT;
+  c->flushing = 1;
+  int rc = SQLITE_OK;
+  for (int32_t idx = 0; rc == SQLITE_OK && idx < c->n; idx++) {
+    if (c->flags[idx] & HNSW_F_DIRTY) {
+      int32_t *slot = hnsw_slot(c, idx);
+      rc = hnsw_edges_store(p, col, c, idx, 0, slot + 1, slot[0]);
+    }
+  }
+  for (int i = 0; rc == SQLITE_OK && i < c->upcap; i++) {
+    struct HnswUpper *u = &c->up[i];
+    if (u->used && u->dirty)
+      rc = hnsw_edges_store(p, col, c, u->idx, u->level, u->ids, u->len);
+  }
+  c->flushing = 0;
+  if (rc == SQLITE_OK) {
+    for (int32_t idx = 0; idx < c->n; idx++) c->flags[idx] &= ~HNSW_F_DIRTY;
+    for (int i = 0; i < c->upcap; i++) c->up[i].dirty = 0;
+    c->dirty = 0;
+  }
+  return rc;
+}
+
+/** Update cached lists immediately; coalesce their writes until a boundary. */
+static int hnsw_edges_write(struct HnswCtx *x, int32_t idx, int level, const int32_t *ids, int n) {
+  struct HnswCache *c = x->c;
+  int deferred = x->defer || x->p->vector_columns[x->col].hnsw.cache_mb > 0;
+  if (!deferred) {
+    int rc = hnsw_edges_store(x->p, x->col, c, idx, level, ids, n);
+    if (rc != SQLITE_OK) return rc;
+  }
   if (level == 0) {
     int32_t *slot = hnsw_slot(c, idx);
     memmove(slot + 1, ids, (size_t)n * sizeof(int32_t));
     slot[0] = n;
     c->flags[idx] |= HNSW_F_L0;
+    if (deferred) { c->flags[idx] |= HNSW_F_DIRTY; c->dirty = 1; }
     return SQLITE_OK;
   }
   struct HnswUpper *u = hnsw_upper(c, idx, level, 1);
@@ -859,6 +909,7 @@ cache_only:
   sqlite3_free(u->ids);
   u->ids = copy;
   u->len = n;
+  if (deferred) { u->dirty = 1; c->dirty = 1; }
   return SQLITE_OK;
 }
 
@@ -1253,7 +1304,7 @@ static int hnsw_delete_graph(struct HnswCtx *x, i64 rowid) {
     hnsw_slot(c, idx)[0] = 0;
     for (int l = 1; l <= level; l++) {
       struct HnswUpper *u = hnsw_upper(c, idx, l, 0);
-      if (u) { sqlite3_free(u->ids); u->ids = NULL; u->len = 0; }
+      if (u) { sqlite3_free(u->ids); u->ids = NULL; u->len = 0; u->dirty = 0; }
     }
   }
   sqlite3_free(mine);
@@ -1392,6 +1443,8 @@ static int hnsw_rebuild(vec0_vtab *p, int col) {
   struct HnswCtx x;
   int rc = hnsw_begin(&x, p, col);
   if (rc != SQLITE_OK) return rc;
+  rc = hnsw_flush(p, col);
+  if (rc != SQLITE_OK) return rc;
   hnsw_cache_reset(x.c);
   x.c->entryKnown = 1;  // nothing is linked yet, whatever the nodes table says
   x.c->entryFound = 0;
@@ -1428,7 +1481,6 @@ static int hnsw_rebuild(vec0_vtab *p, int col) {
   sqlite3_finalize(s);
 
   // Write every list once. Node levels come back from the cache shape.
-  x.defer = 0;
   if (rc == SQLITE_OK) {
     nLevels = x.c->n;
     levels = sqlite3_malloc64((i64)(nLevels ? nLevels : 1) * sizeof(int));
@@ -1450,6 +1502,8 @@ static int hnsw_rebuild(vec0_vtab *p, int col) {
     }
   }
   sqlite3_free(levels);
+  x.defer = 0;
+  if (rc == SQLITE_OK) rc = hnsw_flush(p, col);
   if (rc != SQLITE_OK) x.c->broken = 1;
   hnsw_end(&x);
   return rc;
@@ -1490,7 +1544,11 @@ static int hnsw_handle_command(vec0_vtab *p, const char *command) {
     else p->vector_columns[i].hnsw.cache_mb = (int)v;
     handled = 1;
   }
-  if (is_cache) hnsw_cache_clear_all(p);
+  if (is_cache) {
+    int rc = hnsw_flush_all(p);
+    if (rc != SQLITE_OK) return rc;
+    hnsw_cache_clear_all(p);
+  }
   return handled ? SQLITE_OK : SQLITE_EMPTY;
 }
 

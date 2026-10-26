@@ -49,6 +49,185 @@ def unit(v):
     return [x / n for x in v]
 
 
+def test_hnsw_batches_edges_until_commit(tmp_path):
+    path = tmp_path / "batch.db"
+    db = connect(path)
+    db.execute("create virtual table t using vec0(v float[2] indexed by hnsw(m=4))")
+    db.commit()
+    db.executemany("insert into t(rowid, v) values (?, ?)",
+                   [(i, _f32([i, 0])) for i in range(1, 41)])
+    # Graph traversal must see lists that have not reached the shadow table.
+    assert db.execute("select count(*) from t_hnsw_edges00").fetchone()[0] == 0
+    assert db.execute("select rowid from t where v match '[20.1,0]' and k=3").fetchall() == [
+        (20,), (21,), (19,)]
+    db.commit()
+    assert db.execute("select count(*) from t_hnsw_edges00").fetchone()[0] > 0
+    db.close()
+    db = connect(path)
+    assert db.execute("select rowid from t where v match '[20.1,0]' and k=3").fetchall() == [
+        (20,), (21,), (19,)]
+    db.close()
+
+
+@pytest.mark.parametrize("cache_mb", [0, 1, 256])
+def test_hnsw_batch_savepoints_and_failed_statement(tmp_path, cache_mb):
+    path = tmp_path / "savepoints.db"
+    db = connect(path)
+    db.execute(f"create virtual table t using vec0("
+               f"v float[2] indexed by hnsw(m=4,cache_mb={cache_mb}),"
+               f"w float[2] indexed by hnsw(m=4,cache_mb={cache_mb}))")
+    db.executemany("insert into t(rowid,v,w) values (?,?,?)",
+                   [(i, _f32([i, 0]), _f32([-i, 0])) for i in range(1, 41)])
+    db.commit()
+    before = db.execute("select * from t_hnsw_edges00 order by rowid,level").fetchall()
+    db.execute("insert into t(rowid,v,w) values (50,'[50,0]','[-50,0]')")
+    db.execute("savepoint outer_s")  # preserve pending row 50 across rollback
+    db.execute("delete from t where rowid=20")
+    db.execute("update t set v='[20.1,0]',w='[-20.1,0]' where rowid=1")
+    assert _nearest(db, '[20.1,0]')[0] == 1
+    db.execute("savepoint inner_s")
+    db.execute("delete from t where rowid=50")
+    db.execute("release inner_s")  # outer rollback undoes flushed and pending edits
+    db.execute("rollback to outer_s")
+    assert _nearest(db, '[20.1,0]')[0] == 20
+    assert _nearest(db, '[50,0]')[0] == 50
+    db.execute("release outer_s")
+    db.execute("insert into t(rowid,v,w) values (60,'[60,0]','[-60,0]')")
+    with pytest.raises(sqlite3.Error):
+        db.execute("insert into t(rowid,v,w) values "
+                   "(70,'[70,0]','[-70,0]'),(80,'[80,0]','[-80,0]'),(1,'[1,0]','[-1,0]')")
+    assert _nearest(db, '[60,0]')[0] == 60
+    assert db.execute("select rowid from t where rowid in (70,80)").fetchall() == []
+    db.execute("delete from t where rowid=50")
+    db.execute("insert into t(rowid,v,w) values (50,'[100,0]','[-100,0]')")
+    assert _nearest(db, '[100,0]')[0] == 50
+    db.rollback()
+    assert db.execute("select * from t_hnsw_edges00 order by rowid,level").fetchall() == before
+    assert _nearest(db, '[20.1,0]')[0] == 20
+    db.execute("insert into t(rowid,v,w) values (50,'[50,0]','[-50,0]')")
+    db.execute("alter table t rename to renamed")
+    db.commit()
+    db.close()
+    db = connect(path)
+    for col, q in [("v", '[50,0]'), ("w", '[-50,0]')]:
+        assert db.execute(f"select rowid from renamed where {col} match ? and k=1", [q]).fetchone() == (50,)
+    db.close()
+
+
+def test_hnsw_batch_flush_failure_rolls_back(db):
+    db.execute("create virtual table t using vec0(v float[2] indexed by hnsw(m=4))")
+    db.execute("insert into t(v) values ('[0,0]')")
+    db.commit()
+    db.executemany("insert into t(rowid,v) values (?,?)",
+                   [(i, _f32([i, 0])) for i in range(2, 20)])
+    # Reject the first deferred edge write during xSync, after nodes exist.
+    def deny_edges(action, table, *rest):
+        return sqlite3.SQLITE_DENY if action == sqlite3.SQLITE_INSERT and table == "t_hnsw_edges00" else sqlite3.SQLITE_OK
+    db.set_authorizer(deny_edges)
+    with pytest.raises(sqlite3.DatabaseError):
+        db.commit()
+    db.set_authorizer(None)
+    assert not db.in_transaction
+    assert db.execute("select rowid from t").fetchall() == [(1,)]
+    db.execute("insert into t(rowid,v) values (2,'[2,0]')")
+    db.commit()
+    assert _nearest(db, '[2,0]')[0] == 2
+
+
+def test_hnsw_batch_partial_flush_failure(db):
+    db.execute("create virtual table t using vec0(v float[2] indexed by hnsw(m=4))")
+    # Fault injection only: shadow-table triggers are not an application API.
+    db.execute("create trigger fail_edge before insert on t_hnsw_edges00 "
+               "when new.rowid=10 begin select raise(abort,'edge fault'); end")
+    db.commit()
+    db.executemany("insert into t(rowid,v) values (?,?)",
+                   [(i, _f32([i, 0])) for i in range(1, 30)])
+    with pytest.raises(sqlite3.DatabaseError, match="edge fault"):
+        db.commit()
+    assert not db.in_transaction
+    assert db.execute("select count(*) from t_hnsw_nodes00").fetchone() == (0,)
+    assert db.execute("select count(*) from t_hnsw_edges00").fetchone() == (0,)
+    db.execute("drop trigger fail_edge")
+    db.executemany("insert into t(rowid,v) values (?,?)",
+                   [(i, _f32([i, 0])) for i in range(1, 30)])
+    db.commit()
+    assert _nearest(db, '[10,0]')[0] == 10
+
+
+def test_hnsw_batch_release_does_not_flush_after_sqlite_releases(db):
+    db.execute("create virtual table t using vec0(v float[2] indexed by hnsw(m=4))")
+    db.execute("create trigger fail_edge before insert on t_hnsw_edges00 "
+               "when new.rowid=10 begin select raise(abort,'edge fault'); end")
+    db.commit()
+    db.execute("begin")
+    db.execute("savepoint outer_s")
+    db.execute("savepoint inner_s")
+    db.executemany("insert into t(rowid,v) values (?,?)",
+                   [(i, _f32([i, 0])) for i in range(1, 30)])
+    # xRelease runs after SQLite releases the shadow-table savepoint. A
+    # fallible flush here would report failure with no savepoint left to undo it.
+    db.execute("release inner_s")
+    assert _nearest(db, '[10,0]')[0] == 10
+    db.execute("rollback to outer_s")
+    db.execute("release outer_s")
+    db.commit()
+    assert db.execute("select count(*) from t").fetchone() == (0,)
+    assert db.execute("select count(*) from t_hnsw_edges00").fetchone() == (0,)
+
+
+def test_hnsw_batch_randomized_savepoints(db):
+    rng = random.Random(2510)
+    db.execute("create virtual table t using vec0(v float[2] indexed by hnsw(m=8,ef_search=256))")
+    live = {}
+
+    def verify():
+        for q in ([0.3, -0.2], [1.1, 2.4]):
+            got = db.execute("select rowid,distance from t where v match ? and k=5", [_f32(q)]).fetchall()
+            want = sorted(live, key=lambda i: sum((x-y)**2 for x,y in zip(live[i], q)))[:5]
+            assert [r[0] for r in got] == want
+
+    for turn in range(100):
+        db.execute("savepoint outer_s")
+        old = dict(live)
+        for _ in range(4):
+            rowid = rng.randrange(1, 50)
+            if rowid in live and rng.random() < .4:
+                db.execute("delete from t where rowid=?", [rowid])
+                del live[rowid]
+            else:
+                v = struct.unpack("2f", _f32([rng.uniform(-5,5), rng.uniform(-5,5)]))
+                db.execute("insert or replace into t(rowid,v) values (?,?)", [rowid, _f32(v)])
+                live[rowid] = v
+            verify()
+        if turn % 3 == 0:
+            db.execute("rollback to outer_s")
+            live = old
+            verify()
+        db.execute("release outer_s")
+        verify()
+
+
+def test_hnsw_batch_eviction_and_cache_command(tmp_path):
+    path = tmp_path / "eviction.db"
+    db = connect(path)
+    db.execute("create virtual table t using vec0(v float[1024] indexed by hnsw(m=4,cache_mb=1))")
+    # One allocated cache chunk exceeds 1 MiB; each next operation evicts it.
+    rows = [(i, _f32([i] + [0] * 1023)) for i in range(1, 25)]
+    db.executemany("insert into t(rowid,v) values (?,?)", rows)
+    assert _nearest(db, rows[-1][1])[0] == 24
+    db.execute("insert into t(t) values ('cache_mb=8')")
+    db.executemany("insert into t(rowid,v) values (?,?)",
+                   [(i + 24, _f32([i + 24] + [0] * 1023)) for i in range(1, 25)])
+    db.execute("insert into t(t) values ('cache_mb=0')")  # flush before clearing
+    q = _f32([48] + [0] * 1023)
+    assert _nearest(db, q)[0] == 48
+    db.commit()
+    db.close()
+    db = connect(path)
+    assert _nearest(db, q)[0] == 48
+    db.close()
+
+
 @pytest.mark.parametrize("metric", ["l2", "cosine", "dot", "l1"])
 def test_hnsw_recall_float(db, metric):
     rng = random.Random(0)
@@ -274,10 +453,11 @@ def test_hnsw_quantizer_option(db):
         db.execute("drop table y")
 
 
-def test_hnsw_rebuild(db):
+@pytest.mark.parametrize("cache_mb", [0, 256])
+def test_hnsw_rebuild(db, cache_mb):
     rng = random.Random(6)
     rows = [_f32(v) for v in clustered(rng, 1200, 24)]
-    build(db, 24, rows, opts="quantizer=int8")
+    build(db, 24, rows, opts=f"quantizer=int8,cache_mb={cache_mb}")
     gone = rng.sample(range(1200), 400)
     for name in ("t", "ref"):
         db.executemany(f"delete from {name} where rowid = ?", [(r,) for r in gone])
