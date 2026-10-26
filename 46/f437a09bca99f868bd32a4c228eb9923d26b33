@@ -1,0 +1,137 @@
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/plot.py
+  s_676ff82f71e79c::t_a6917b39a84b47 1-37
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/paired_analyze.py
+  s_676ff82f71e79c::t_a6917b39a84b47 1-17
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/REPORT.md
+  s_676ff82f71e79c::t_a6917b39a84b47 1-12,14-155
+  s_676ff82f71e79c::t_4193e3df10df59 13
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/README.md
+  s_ca7d5125ef33b2::t_26fe260eb48787 1-87
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/.gitignore
+  s_676ff82f71e79c::t_a6917b39a84b47 1-3
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/prepare_data.py
+  s_676ff82f71e79c::t_a6917b39a84b47 1-55
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/analyze.py
+  s_676ff82f71e79c::t_a6917b39a84b47 1-34
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/verify.py
+  s_ca7d5125ef33b2::t_26fe260eb48787 1-54
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/build_variants.py
+  s_676ff82f71e79c::t_a6917b39a84b47 1-24
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/manifest.json
+  s_ca7d5125ef33b2::t_26fe260eb48787 1-11,14-281
+  s_676ff82f71e79c::t_cdc835047b1336 12-13
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/paired_check.py
+  s_676ff82f71e79c::t_a6917b39a84b47 1-69
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/paths.py
+  s_676ff82f71e79c::t_a6917b39a84b47 1-9
+HANDOFF.md
+  s_ca7d5125ef33b2::t_cec2d23592bbd0 768-778,781
+  s_ca7d5125ef33b2::t_448869abbc6edf 377,381-388,390,392,394,396-401,454
+  s_ca7d5125ef33b2::t_481d87d3f4ae41 378-380
+  s_ca7d5125ef33b2::t_3111b12588a07b 101-108,111,114,787
+  s_676ff82f71e79c::t_5537f1b4de7b31 189-190,206
+  s_ca7d5125ef33b2::t_e5ea4d8fbc68d8 284-285,292-310,762
+  s_676ff82f71e79c::t_1c3016d9e68ddd 40-42,45-53
+  s_ca7d5125ef33b2::t_098106fe697b16 155-156,159-186
+  s_676ff82f71e79c::t_fb441bd7a773d5 273-274,277-283,286,288-289,291
+  s_ca7d5125ef33b2::t_40ca0ec295fa09 376,389,391,393,395,402-453
+  s_ca7d5125ef33b2::t_26fe260eb48787 23-30,55,112-113,710-711
+  s_ca7d5125ef33b2::t_f4287cd2bf42d2 275-276,287
+  s_ca7d5125ef33b2::t_7b87c547cdcacc 569,571,576,579,582,589-617
+  s_ca7d5125ef33b2::t_4f431055ab3185 312,316-323,326,328,330,375
+  s_ca7d5125ef33b2::t_1be384088eec40 521-530,537-559
+  s_ca7d5125ef33b2::t_aa7640ff49f992 230-272
+  s_ca7d5125ef33b2::t_d666763ccb6107 645-647,674,677,679,682,689-709
+  s_ca7d5125ef33b2::t_9058b613033bbf 531-536
+  s_676ff82f71e79c::t_ac7ce427d987dc 187-188,191-198,201-204,207,212-229
+  s_ca7d5125ef33b2::t_a9647361b8da75 560-564,566-568,570,572-575,577-578,580-581,583-588,618
+  s_ca7d5125ef33b2::t_534a6fc74b4004 651-654,656-673,675-676,678,680-681,683-688,712
+  s_ca7d5125ef33b2::t_d59b95dd6bd923 117-118,133,149-150
+  s_ca7d5125ef33b2::t_f6278bce2206a8 619-644,648-650
+  s_676ff82f71e79c::t_e81b49b4092f32 4-8,34-39,54,56-59
+  s_ca7d5125ef33b2::t_cf760c1ca5c5ef 199-200,205,208-211,779-780
+  s_ca7d5125ef33b2::t_55d0e3ebcac7ed 457-458
+  s_ca7d5125ef33b2::t_713cc35d04e498 655
+  s_ca7d5125ef33b2::t_b1ca8ba234901c 462,482-487
+  s_ca7d5125ef33b2::t_48eb945a9600fc 3,9-22,31-33,43-44,785
+  s_ca7d5125ef33b2::t_6e471a9c832b96 313-315
+  s_ca7d5125ef33b2::t_53703513368c07 60-66,70,290
+  s_ca7d5125ef33b2::t_0f6d2e27b4d347 456,459-461,463-467,469,471,473,475-481,520
+  s_ca7d5125ef33b2::t_feaef9a1314def 71-100,109-110
+  s_ca7d5125ef33b2::t_80089be2f70244 311,324-325,327,329,331-374
+  s_ca7d5125ef33b2::t_e7dffa02f47e0b 455,468,470,472,474,488-519
+  s_676ff82f71e79c::t_f5ff23aa79bf06 67-69
+  s_ca7d5125ef33b2::t_258232f8bb11d2 565
+  s_676ff82f71e79c::t_9c98574155bb54 115-116,119-132,134-148,151-154,157-158
+  s_676ff82f71e79c::t_7b7e4eab47a547 1-2,713-761,763-767,782-784,786,788-797
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/benchmark.py
+  s_676ff82f71e79c::t_a6917b39a84b47 1-111
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/figures/paired-confirmation.svg
+  s_ca7d5125ef33b2::t_237d3ed5544d53 1-1987
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/figures/recall-qps.svg
+  s_ca7d5125ef33b2::t_6557c12669bd2a 1-3492
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/build-manifest.json
+  s_ca7d5125ef33b2::t_e24e91e75df0b0 1-148
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/data-manifest.json
+  s_ca7d5125ef33b2::t_aba61aba8fd8dd 1-86
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/environment.json
+  s_ca7d5125ef33b2::t_2b64bd19d0805e 1-15
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/original-artifact-hashes.json
+  s_ca7d5125ef33b2::t_9db149e9ca5f37 1-102
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/schedule.json
+  s_ca7d5125ef33b2::t_f3092960791fa5 1-122
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/validation.json
+  s_ca7d5125ef33b2::t_1cbc1d82e6a7d7 1-66
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/REPORT-original.md
+  s_ca7d5125ef33b2::t_f83aa7e2a04f42 1-157
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/scripts/analyze.py
+  s_ca7d5125ef33b2::t_e3356e88411681 1-34
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/scripts/benchmark.py
+  s_ca7d5125ef33b2::t_0cb4831fcf1895 1-110
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/scripts/build_variants.py
+  s_ca7d5125ef33b2::t_19cf1cd8aca860 1-24
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/scripts/exact_oracle.c
+  s_ca7d5125ef33b2::t_6f2e8c99bf87ce 1-54
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/scripts/paired_analyze.py
+  s_ca7d5125ef33b2::t_8bee5404cd7700 1-17
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/scripts/paired_check.py
+  s_ca7d5125ef33b2::t_47992b9ae0fa27 1-69
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/scripts/plot.py
+  s_ca7d5125ef33b2::t_b82251438bbbe4 1-37
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/scripts/prepare_data.py
+  s_ca7d5125ef33b2::t_b12bd511bd35c8 1-55
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/scripts/report.py
+  s_ca7d5125ef33b2::t_fa2b109a28cd7e 1-63
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/results/paired_summary.json
+  s_ca7d5125ef33b2::t_5c9c4d884d055c 1-146
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/results/summary.csv
+  s_ca7d5125ef33b2::t_450ba150c6a050 1-33
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/results/summary.json
+  s_ca7d5125ef33b2::t_a5de0aa737c6b0 1-738
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/exact_oracle.c
+  s_ca7d5125ef33b2::t_b25355cafba8b3 1-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "46f437a09bca99f868bd32a4c228eb9923d26b33",
+  "prompts": {},
+  "sessions": {
+    "s_676ff82f71e79c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
