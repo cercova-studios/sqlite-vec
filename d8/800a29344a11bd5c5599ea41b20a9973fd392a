@@ -1,0 +1,61 @@
+examples/search-lab/test_adapter.py
+  s_70b027a60d4a55::t_9826794f6c753a 1-235,278-293,355-365
+  s_70b027a60d4a55::t_5e8d18b8c587d1 236-277
+  s_70b027a60d4a55::t_8757156ea2efea 294-354
+examples/search-lab/adapter.py
+  s_70b027a60d4a55::t_87a6e2d452aada 243-244
+  s_70b027a60d4a55::t_eb5de1d331424a 79,168-175,216-218,238-242,278,375
+  s_70b027a60d4a55::t_184a0a933a778d 372
+  s_70b027a60d4a55::t_87196de401a55f 1-18,36-78,80-167,176-179,181-197,201-215,219-237,245-275,277,279-321,323-362,365-370,376-404
+  s_70b027a60d4a55::t_5a1f2b8f28c35e 19-35,180,276,322,364,371,373-374
+  s_70b027a60d4a55::t_2474197850cfd6 198-200,363
+examples/search-lab/experiments/2026-10-26-a0/measurements.json
+  s_676ff82f71e79c::t_46eece48d9dcd1 3-4,10,81,352-353,355-356
+  s_70b027a60d4a55::t_acd14e7ecf9d6b 1,5-6,8,29,32-33,35,56,59-60,62,83,86-87,89,110,113-117,119,140,143-144,146,167,170-171,173,194,197-198,200,221,224-226,228,230,251,254-255,257,278,281-282,284,305,308-309,311,332,335-338,341-351,357-358
+  s_70b027a60d4a55::t_97a7296e2e89a8 2,7,9,11-28,30-31,34,36-55,57-58,61,63-80,82,84-85,88,90-109,111-112,118,120-139,141-142,145,147-166,168-169,172,174-193,195-196,199,201-220,222-223,227,229,231-250,252-253,256,258-277,279-280,283,285-304,306-307,310,312-331,333-334,339-340,354
+ARCHITECTURE.md
+  s_70b027a60d4a55::t_81f6df9fb08601 74-90
+  s_70b027a60d4a55::t_f6a307d2f0439e 91
+examples/search-lab/.python-version
+  s_70b027a60d4a55::t_5a1f2b8f28c35e 1
+examples/search-lab/measure.py
+  s_70b027a60d4a55::t_184a0a933a778d 1-21,24-40,43-90,93-122
+  s_70b027a60d4a55::t_87a6e2d452aada 22-23,41-42,91-92
+examples/search-lab/README.md
+  s_70b027a60d4a55::t_81f6df9fb08601 1-189
+examples/search-lab/fixture.py
+  s_70b027a60d4a55::t_9826794f6c753a 1-73
+examples/search-lab/pyproject.toml
+  s_70b027a60d4a55::t_87196de401a55f 1-8
+examples/search-lab/experiments/2026-10-26-a0/VALIDATION.md
+  s_70b027a60d4a55::t_48d299f00b2c70 1-87,92,97-98,101-128
+  s_70b027a60d4a55::t_5dbed26120c4fd 88-91,93-96,99-100
+examples/search-lab/.gitignore
+  s_70b027a60d4a55::t_87196de401a55f 1-4
+examples/search-lab/uv.lock
+  s_70b027a60d4a55::t_95f031120908fd 1-771
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d8800a29344a11bd5c5599ea41b20a9973fd392a",
+  "prompts": {},
+  "sessions": {
+    "s_676ff82f71e79c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
