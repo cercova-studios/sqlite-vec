@@ -1,0 +1,148 @@
+{
+  "head": "c85e736b2e7ef008fbfac0733b0de96ad7ed99ef",
+  "working_diff": "diff --git a/sqlite-vec-hnsw.c b/sqlite-vec-hnsw.c\nindex d382771..286514f 100644\n--- a/sqlite-vec-hnsw.c\n+++ b/sqlite-vec-hnsw.c\n@@ -990,8 +990,7 @@ static int hnsw_drop_shadow_tables(vec0_vtab *p, int col) {\n // ============================================================================\n \n static int hnsw_allowed(struct HnswCtx *x, const struct Array *a, int32_t idx) {\n-  i64 rowid = x->c->rowid[idx];\n-  return !a || bsearch(&rowid, a->z, a->length, sizeof(i64), _cmp) != NULL;\n+  return vec0_rowids_contains(a, x->c->rowid[idx]);\n }\n \n static void hnsw_visit_reset(struct HnswCache *c) {\n",
+  "flags": [
+    "-fPIC",
+    "-shared",
+    "-Wall",
+    "-Wextra",
+    "-O3",
+    "-mcpu=apple-m1",
+    "-DSQLITE_VEC_ENABLE_NEON"
+  ],
+  "compiler": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin\n",
+  "variants": {
+    "alpha-1": {
+      "alpha": 1.0,
+      "library": "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1/vec0.dylib",
+      "library_sha256": "1f41da48b3921dd230e897c0f7c82f5f2c2031f9ced57092990453ad1f803155",
+      "hnsw_sha256": "c5cfb22e671995a58429492f606b0d360b08fc81a0d31ca581dc853f09fb696c",
+      "source_hashes": {
+        "sqlite-vec-ivf-kmeans.c": "50cd3ecc0fd0b5b75900821e2b9d1a4d1157da589c39bd1faa8749e047d8fc14",
+        "sqlite-vec-ivf.c": "d641618ffeea44995b79ea4e36eaf15afce07360ec71c5f5cabe351ca44f36b3",
+        "sqlite-vec.h": "08fb326d1bbc9020158d3fdadb97a7c0e9a327a3cef21517b88d84089979a8e9",
+        "sqlite-vec-hnsw.c": "c5cfb22e671995a58429492f606b0d360b08fc81a0d31ca581dc853f09fb696c",
+        "sqlite-vec-rescore.c": "23036fcde5734629393cef009e21b1b18fd41e27d29a1859805555e147146cb2",
+        "sqlite-vec-graph.c": "2f7049404ec60ba2b90aff5c9f6f21cbf5feb416e128741f74f4c776503d1b35",
+        "sqlite-vec.h.tmpl": "ee4a7289531b71760183c1a77de53baa602a836865f9541715d580c523bf8335",
+        "sqlite-vec.c": "01f601e658d1ecaf787d2d6918417143bfa23f223e6902cee509a7e7c98cfa36",
+        "sqlite-vec-sparse.c": "f30f5adcfa58a36a756573f6c53681341d358cb5b368b75488e7538725d2fc27",
+        "sqlite-vec-diskann.c": "21a4c05f65c2bce498e8b5e729e18b8f64b70b5b805513e2bae346cf92481882"
+      },
+      "command": [
+        "cc",
+        "-fPIC",
+        "-shared",
+        "-Wall",
+        "-Wextra",
+        "-O3",
+        "-mcpu=apple-m1",
+        "-DSQLITE_VEC_ENABLE_NEON",
+        "-I/Users/rohit/sandbox/sqlite-vec/vendor",
+        "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1/sqlite-vec.c",
+        "-o",
+        "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1/vec0.dylib"
+      ],
+      "build_stderr": "In file included from /tmp/sqlite-vec-alpha-experiment/builds/alpha-1/sqlite-vec.c:4652:\n/tmp/sqlite-vec-alpha-experiment/builds/alpha-1/sqlite-vec-diskann.c:1016:30: warning: unused parameter 'p_vector' [-Wunused-parameter]\n 1016 |     i64 p_rowid, const void *p_vector,\n      |                              ^\n1 warning generated.\n"
+    },
+    "alpha-1.05": {
+      "alpha": 1.05,
+      "library": "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.05/vec0.dylib",
+      "library_sha256": "d563231dd85a38272f25067b70b5312b2b8efd4003d52dada16b5488e89f9fa8",
+      "hnsw_sha256": "fb8cb7d5932579c9c861e1d22fcf4400578f86b8b750f6e8e86fb2f448ffff92",
+      "source_hashes": {
+        "sqlite-vec-ivf-kmeans.c": "50cd3ecc0fd0b5b75900821e2b9d1a4d1157da589c39bd1faa8749e047d8fc14",
+        "sqlite-vec-ivf.c": "d641618ffeea44995b79ea4e36eaf15afce07360ec71c5f5cabe351ca44f36b3",
+        "sqlite-vec.h": "08fb326d1bbc9020158d3fdadb97a7c0e9a327a3cef21517b88d84089979a8e9",
+        "sqlite-vec-hnsw.c": "c5cfb22e671995a58429492f606b0d360b08fc81a0d31ca581dc853f09fb696c",
+        "sqlite-vec-rescore.c": "23036fcde5734629393cef009e21b1b18fd41e27d29a1859805555e147146cb2",
+        "sqlite-vec-graph.c": "2f7049404ec60ba2b90aff5c9f6f21cbf5feb416e128741f74f4c776503d1b35",
+        "sqlite-vec.h.tmpl": "ee4a7289531b71760183c1a77de53baa602a836865f9541715d580c523bf8335",
+        "sqlite-vec.c": "01f601e658d1ecaf787d2d6918417143bfa23f223e6902cee509a7e7c98cfa36",
+        "sqlite-vec-sparse.c": "f30f5adcfa58a36a756573f6c53681341d358cb5b368b75488e7538725d2fc27",
+        "sqlite-vec-diskann.c": "21a4c05f65c2bce498e8b5e729e18b8f64b70b5b805513e2bae346cf92481882"
+      },
+      "command": [
+        "cc",
+        "-fPIC",
+        "-shared",
+        "-Wall",
+        "-Wextra",
+        "-O3",
+        "-mcpu=apple-m1",
+        "-DSQLITE_VEC_ENABLE_NEON",
+        "-I/Users/rohit/sandbox/sqlite-vec/vendor",
+        "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.05/sqlite-vec.c",
+        "-o",
+        "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.05/vec0.dylib"
+      ],
+      "build_stderr": "In file included from /tmp/sqlite-vec-alpha-experiment/builds/alpha-1.05/sqlite-vec.c:4652:\n/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.05/sqlite-vec-diskann.c:1016:30: warning: unused parameter 'p_vector' [-Wunused-parameter]\n 1016 |     i64 p_rowid, const void *p_vector,\n      |                              ^\n1 warning generated.\n"
+    },
+    "alpha-1.1": {
+      "alpha": 1.1,
+      "library": "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.1/vec0.dylib",
+      "library_sha256": "20db783b4b30c3ac68475f4f9a3e3efd0256fa4feaff8684e393522d1a07ff6f",
+      "hnsw_sha256": "c792126b54296d064780e66713cbbf30aeec502c101276290e7c138ba1eb247a",
+      "source_hashes": {
+        "sqlite-vec-ivf-kmeans.c": "50cd3ecc0fd0b5b75900821e2b9d1a4d1157da589c39bd1faa8749e047d8fc14",
+        "sqlite-vec-ivf.c": "d641618ffeea44995b79ea4e36eaf15afce07360ec71c5f5cabe351ca44f36b3",
+        "sqlite-vec.h": "08fb326d1bbc9020158d3fdadb97a7c0e9a327a3cef21517b88d84089979a8e9",
+        "sqlite-vec-hnsw.c": "c5cfb22e671995a58429492f606b0d360b08fc81a0d31ca581dc853f09fb696c",
+        "sqlite-vec-rescore.c": "23036fcde5734629393cef009e21b1b18fd41e27d29a1859805555e147146cb2",
+        "sqlite-vec-graph.c": "2f7049404ec60ba2b90aff5c9f6f21cbf5feb416e128741f74f4c776503d1b35",
+        "sqlite-vec.h.tmpl": "ee4a7289531b71760183c1a77de53baa602a836865f9541715d580c523bf8335",
+        "sqlite-vec.c": "01f601e658d1ecaf787d2d6918417143bfa23f223e6902cee509a7e7c98cfa36",
+        "sqlite-vec-sparse.c": "f30f5adcfa58a36a756573f6c53681341d358cb5b368b75488e7538725d2fc27",
+        "sqlite-vec-diskann.c": "21a4c05f65c2bce498e8b5e729e18b8f64b70b5b805513e2bae346cf92481882"
+      },
+      "command": [
+        "cc",
+        "-fPIC",
+        "-shared",
+        "-Wall",
+        "-Wextra",
+        "-O3",
+        "-mcpu=apple-m1",
+        "-DSQLITE_VEC_ENABLE_NEON",
+        "-I/Users/rohit/sandbox/sqlite-vec/vendor",
+        "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.1/sqlite-vec.c",
+        "-o",
+        "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.1/vec0.dylib"
+      ],
+      "build_stderr": "In file included from /tmp/sqlite-vec-alpha-experiment/builds/alpha-1.1/sqlite-vec.c:4652:\n/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.1/sqlite-vec-diskann.c:1016:30: warning: unused parameter 'p_vector' [-Wunused-parameter]\n 1016 |     i64 p_rowid, const void *p_vector,\n      |                              ^\n1 warning generated.\n"
+    },
+    "alpha-1.2": {
+      "alpha": 1.2,
+      "library": "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.2/vec0.dylib",
+      "library_sha256": "f0cc1a7ddbc8a55d938afec1c5f884d2a3d2b6a5610d2954b540e88f5f174839",
+      "hnsw_sha256": "85175dc4ea71cf71c4b98dbe68d6bc2ddb3d6c5d0707551a34c45e871c537f68",
+      "source_hashes": {
+        "sqlite-vec-ivf-kmeans.c": "50cd3ecc0fd0b5b75900821e2b9d1a4d1157da589c39bd1faa8749e047d8fc14",
+        "sqlite-vec-ivf.c": "d641618ffeea44995b79ea4e36eaf15afce07360ec71c5f5cabe351ca44f36b3",
+        "sqlite-vec.h": "08fb326d1bbc9020158d3fdadb97a7c0e9a327a3cef21517b88d84089979a8e9",
+        "sqlite-vec-hnsw.c": "c5cfb22e671995a58429492f606b0d360b08fc81a0d31ca581dc853f09fb696c",
+        "sqlite-vec-rescore.c": "23036fcde5734629393cef009e21b1b18fd41e27d29a1859805555e147146cb2",
+        "sqlite-vec-graph.c": "2f7049404ec60ba2b90aff5c9f6f21cbf5feb416e128741f74f4c776503d1b35",
+        "sqlite-vec.h.tmpl": "ee4a7289531b71760183c1a77de53baa602a836865f9541715d580c523bf8335",
+        "sqlite-vec.c": "01f601e658d1ecaf787d2d6918417143bfa23f223e6902cee509a7e7c98cfa36",
+        "sqlite-vec-sparse.c": "f30f5adcfa58a36a756573f6c53681341d358cb5b368b75488e7538725d2fc27",
+        "sqlite-vec-diskann.c": "21a4c05f65c2bce498e8b5e729e18b8f64b70b5b805513e2bae346cf92481882"
+      },
+      "command": [
+        "cc",
+        "-fPIC",
+        "-shared",
+        "-Wall",
+        "-Wextra",
+        "-O3",
+        "-mcpu=apple-m1",
+        "-DSQLITE_VEC_ENABLE_NEON",
+        "-I/Users/rohit/sandbox/sqlite-vec/vendor",
+        "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.2/sqlite-vec.c",
+        "-o",
+        "/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.2/vec0.dylib"
+      ],
+      "build_stderr": "In file included from /tmp/sqlite-vec-alpha-experiment/builds/alpha-1.2/sqlite-vec.c:4652:\n/tmp/sqlite-vec-alpha-experiment/builds/alpha-1.2/sqlite-vec-diskann.c:1016:30: warning: unused parameter 'p_vector' [-Wunused-parameter]\n 1016 |     i64 p_rowid, const void *p_vector,\n      |                              ^\n1 warning generated.\n"
+    }
+  }
+}
