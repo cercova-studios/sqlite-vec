@@ -1,0 +1,29 @@
+ARCHITECTURE.md
+  s_ca7d5125ef33b2::t_4e299bcb8c6d1b 172
+  s_ca7d5125ef33b2::t_7a8e391bc21aca 173
+  s_ca7d5125ef33b2::t_b6663adf589acc 167-171
+  s_ca7d5125ef33b2::t_ad3a4eee70b998 174-176
+tests/test-hnsw.py
+  s_ca7d5125ef33b2::t_7c648092fdb08f 137,139-148,150-156,159-180
+  s_ca7d5125ef33b2::t_d76f3425b716c8 138,149,157-158
+sqlite-vec.c
+  s_ca7d5125ef33b2::t_50663156ab7e80 12325
+sqlite-vec-hnsw.c
+  s_ca7d5125ef33b2::t_50663156ab7e80 318-325
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c85e736b2e7ef008fbfac0733b0de96ad7ed99ef",
+  "prompts": {},
+  "sessions": {
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
