@@ -104,6 +104,35 @@ tables without a vector index continue to scan exactly.
 - `rowid INTEGER`
 - `data TEXT`
 
+### Numeric metadata zone maps
+
+For tables with the modern hidden command column, the existing
+`xyz_info(key TEXT PRIMARY KEY, value ANY)` table also holds
+`zonemap_<metadata-index:02d>_<chunk-id>` entries for INTEGER, FLOAT and BOOLEAN
+metadata in new chunks. Each populated entry is a 16-byte native-format BLOB:
+minimum and maximum as two int64 values, or two doubles for FLOAT. A NULL entry
+marks a new empty chunk until its first metadata write. TEXT keeps its normal
+filtering path; partition predicates already filter `xyz_chunks` in SQL.
+
+`vec0_new_chunk` seeds these entries, `vec0_write_metadata_value` widens them,
+and whole-chunk deletion removes them. Ordinary deletes leave bounds unchanged:
+the validity bitmap removes deleted rows, so wider bounds only cost pruning
+opportunities. The stats writes share SQLite's statement, savepoint and transaction
+rollback. No stats values are cached in memory; the two cached prepared statements
+are finalized by `vec0_free_resources`, including on rename.
+
+`vec0Filter_knn_chunks_iter` rejects a chunk before opening metadata blobs only
+when a bound proves a numeric comparison or integer IN filter cannot match.
+Integer comparisons retain all 64 bits. Missing, NULL, invalid-length or reversed
+bounds use normal filtering. Existing chunks without stats are not backfilled,
+and writes never initialize missing stats from a single row of an existing chunk.
+This pruning applies to the flat chunk scan; index-specific ANN paths are unchanged.
+
+Before writing a database with an older extension that does not maintain zone
+maps, remove its `zonemap_*` entries from each vec0 `_info` table. Otherwise a
+later reader could trust bounds made stale by those writes. Direct shadow-table
+metadata writes likewise bypass maintenance and are unsupported.
+
 #### `xyz_hnsw_nodesNN`
 
 One row per vector in an `indexed by hnsw(...)` column.

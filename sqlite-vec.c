@@ -4446,6 +4446,9 @@ struct vec0_vtab {
    */
   sqlite3_stmt *stmtRowidsGetChunkPosition;
 
+  sqlite3_stmt *stmtZoneMapRead;
+  sqlite3_stmt *stmtZoneMapWrite;
+
   // === DiskANN additions ===
 #if SQLITE_VEC_ENABLE_DISKANN
   // Shadow table names for DiskANN, per vector column
@@ -4522,6 +4525,10 @@ void vec0_free_resources(vec0_vtab *p) {
   p->stmtRowidsUpdatePosition = NULL;
   sqlite3_finalize(p->stmtRowidsGetChunkPosition);
   p->stmtRowidsGetChunkPosition = NULL;
+  sqlite3_finalize(p->stmtZoneMapRead);
+  p->stmtZoneMapRead = NULL;
+  sqlite3_finalize(p->stmtZoneMapWrite);
+  p->stmtZoneMapWrite = NULL;
 
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   for (int i = 0; i < VEC0_MAX_VECTOR_COLUMNS; i++) {
@@ -5524,6 +5531,99 @@ int vec0_metadata_chunk_size(vec0_metadata_column_kind kind, int chunk_size) {
   return 0;
 }
 
+typedef union {
+  i64 i[2];
+  double f[2];
+} Vec0ZoneMap;
+
+static int vec0_ensure_stmt(vec0_vtab *p, sqlite3_stmt **pStmt, const char *fmt, int col_idx);
+
+// State: 0 = missing/malformed, 1 = new empty chunk, 2 = populated bounds.
+static int vec0_zonemap_read(vec0_vtab *p, int column, i64 chunk,
+                            Vec0ZoneMap *bounds, int *state) {
+  *state = 0;
+  if (!p->hasCommandColumn) return SQLITE_OK;
+  int rc = vec0_ensure_stmt(p, &p->stmtZoneMapRead,
+                           "SELECT value FROM " VEC0_SHADOW_INFO_NAME " WHERE key=?1", 0);
+  if (rc != SQLITE_OK) return rc;
+  char key[64];
+  sqlite3_snprintf(sizeof(key), key, "zonemap_%02d_%lld", column, chunk);
+  sqlite3_stmt *stmt = p->stmtZoneMapRead;
+  rc = sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
+  if (rc == SQLITE_OK) {
+    rc = sqlite3_step(stmt);
+    if (rc == SQLITE_ROW) {
+      if (sqlite3_column_type(stmt, 0) == SQLITE_NULL) {
+        *state = 1;
+      } else if (sqlite3_column_type(stmt, 0) == SQLITE_BLOB &&
+                 sqlite3_column_bytes(stmt, 0) == sizeof(*bounds)) {
+        const void *data = sqlite3_column_blob(stmt, 0);
+        if (!data) { rc = SQLITE_NOMEM; goto done; }
+        memcpy(bounds, data, sizeof(*bounds));
+        *state = 2;
+      }
+      rc = SQLITE_OK;
+    } else if (rc == SQLITE_DONE) {
+      rc = SQLITE_OK;
+    }
+  }
+done:
+  sqlite3_reset(stmt);
+  sqlite3_clear_bindings(stmt);
+  return rc;
+}
+
+static int vec0_zonemap_store(vec0_vtab *p, int column, i64 chunk,
+                             const Vec0ZoneMap *bounds) {
+  if (!p->hasCommandColumn) return SQLITE_OK;
+  int rc = vec0_ensure_stmt(p, &p->stmtZoneMapWrite,
+                           "INSERT OR REPLACE INTO " VEC0_SHADOW_INFO_NAME
+                           "(key,value) VALUES (?1,?2)", 0);
+  if (rc != SQLITE_OK) return rc;
+  char key[64];
+  sqlite3_snprintf(sizeof(key), key, "zonemap_%02d_%lld", column, chunk);
+  sqlite3_stmt *stmt = p->stmtZoneMapWrite;
+  rc = sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
+  if (rc == SQLITE_OK) {
+    rc = bounds ? sqlite3_bind_blob(stmt, 2, bounds, sizeof(*bounds), SQLITE_STATIC)
+                : sqlite3_bind_null(stmt, 2);
+  }
+  if (rc == SQLITE_OK) {
+    rc = sqlite3_step(stmt);
+    if (rc == SQLITE_DONE) rc = SQLITE_OK;
+  }
+  sqlite3_reset(stmt);
+  sqlite3_clear_bindings(stmt);
+  return rc;
+}
+
+static int vec0_zonemap_widen(vec0_vtab *p, int column, i64 chunk, sqlite3_value *value) {
+  // shortcut: deletions leave wide bounds; rebuild only if pruning loss warrants the write cost.
+  vec0_metadata_column_kind kind = p->metadata_columns[column].kind;
+  if (kind == VEC0_METADATA_COLUMN_KIND_TEXT) return SQLITE_OK;
+  Vec0ZoneMap bounds;
+  int state;
+  int rc = vec0_zonemap_read(p, column, chunk, &bounds, &state);
+  // A missing entry may describe an old, populated chunk: never seed it from one row.
+  if (rc != SQLITE_OK || !state) return rc;
+  if (kind == VEC0_METADATA_COLUMN_KIND_FLOAT) {
+    double v = sqlite3_value_double(value);
+    if (state == 1) bounds.f[0] = bounds.f[1] = v;
+    else if (!(bounds.f[0] <= bounds.f[1])) return SQLITE_OK;
+    else if (v < bounds.f[0]) bounds.f[0] = v;
+    else if (v > bounds.f[1]) bounds.f[1] = v;
+    else return SQLITE_OK;
+  } else {
+    i64 v = sqlite3_value_int64(value);
+    if (state == 1) bounds.i[0] = bounds.i[1] = v;
+    else if (bounds.i[0] > bounds.i[1]) return SQLITE_OK;
+    else if (v < bounds.i[0]) bounds.i[0] = v;
+    else if (v > bounds.i[1]) bounds.i[1] = v;
+    else return SQLITE_OK;
+  }
+  return vec0_zonemap_store(p, column, chunk, &bounds);
+}
+
 int vec0_rowids_update_position(vec0_vtab *p, i64 rowid, i64 chunk_rowid,
                                 i64 chunk_offset) {
   int rc = SQLITE_OK;
@@ -5746,6 +5846,10 @@ int vec0_new_chunk(vec0_vtab *p, sqlite3_value ** partitionKeyValues, i64 *chunk
     sqlite3_finalize(stmt);
     if (rc != SQLITE_DONE) {
       return rc;
+    }
+    if (p->metadata_columns[metadata_column_idx].kind != VEC0_METADATA_COLUMN_KIND_TEXT) {
+      rc = vec0_zonemap_store(p, metadata_column_idx, rowid, NULL);
+      if (rc != SQLITE_OK) return rc;
     }
   }
 
@@ -8484,6 +8588,66 @@ int vec0_set_metadata_filter_bitmap(
     return rc;
 }
 
+static int vec0_zonemap_excludes(vec0_vtab *p, i64 chunk, const char *idxStr,
+                                int argc, sqlite3_value **argv,
+                                struct Array *metadataIn, int *excluded) {
+  *excluded = 0;
+  for (int i = 0; i < argc; i++) {
+    int idx = 1 + i * 4;
+    if (idxStr[idx] != VEC0_IDXSTR_KIND_METADATA_CONSTRAINT) continue;
+    int column = idxStr[idx + 1] - 'A';
+    int op = idxStr[idx + 2];
+    vec0_metadata_column_kind kind = p->metadata_columns[column].kind;
+    if (kind == VEC0_METADATA_COLUMN_KIND_TEXT) continue;
+    Vec0ZoneMap bounds;
+    int state;
+    int rc = vec0_zonemap_read(p, column, chunk, &bounds, &state);
+    if (rc != SQLITE_OK) return rc;
+    if (state != 2) continue;
+    int below, above, atMin, atMax;
+    if (kind == VEC0_METADATA_COLUMN_KIND_FLOAT) {
+      if (!(bounds.f[0] <= bounds.f[1])) continue;
+      double target = sqlite3_value_double(argv[i]);
+      below = target < bounds.f[0]; above = target > bounds.f[1];
+      atMin = target == bounds.f[0]; atMax = target == bounds.f[1];
+    } else {
+      if (bounds.i[0] > bounds.i[1]) continue;
+      if (op == VEC0_METADATA_OPERATOR_IN) {
+        for (size_t j = 0; j < metadataIn->length; j++) {
+          struct Vec0MetadataIn *in = &((struct Vec0MetadataIn *)metadataIn->z)[j];
+          if (in->argv_idx != i) continue;
+          i64 *values = in->array.z;
+          size_t lo = 0, hi = in->array.length;
+          while (lo < hi) {
+            size_t mid = lo + (hi - lo) / 2;
+            if (values[mid] < bounds.i[0]) lo = mid + 1;
+            else hi = mid;
+          }
+          *excluded = lo == in->array.length || values[lo] > bounds.i[1];
+          break;
+        }
+        if (*excluded) return SQLITE_OK;
+        continue;
+      }
+      i64 target = kind == VEC0_METADATA_COLUMN_KIND_BOOLEAN
+                     ? !!sqlite3_value_int(argv[i]) : sqlite3_value_int64(argv[i]);
+      below = target < bounds.i[0]; above = target > bounds.i[1];
+      atMin = target == bounds.i[0]; atMax = target == bounds.i[1];
+    }
+    switch (op) {
+      case VEC0_METADATA_OPERATOR_EQ: *excluded = below || above; break;
+      case VEC0_METADATA_OPERATOR_GT: *excluded = above || atMax; break;
+      case VEC0_METADATA_OPERATOR_GE: *excluded = above; break;
+      case VEC0_METADATA_OPERATOR_LT: *excluded = below || atMin; break;
+      case VEC0_METADATA_OPERATOR_LE: *excluded = below; break;
+      case VEC0_METADATA_OPERATOR_NE: *excluded = atMin && atMax; break;
+      default: break;
+    }
+    if (*excluded) return SQLITE_OK;
+  }
+  return SQLITE_OK;
+}
+
 int vec0Filter_knn_chunks_iter(vec0_vtab *p, sqlite3_stmt *stmtChunks,
                                struct VectorColumnDefinition *vector_column,
                                int vectorColumnIdx, struct Array *arrayRowidsIn,
@@ -8656,6 +8820,10 @@ int vec0Filter_knn_chunks_iter(vec0_vtab *p, sqlite3_stmt *stmtChunks,
     }
 
     if(hasMetadataFilters) {
+      int excluded;
+      rc = vec0_zonemap_excludes(p, chunk_id, idxStr, argc, argv, aMetadataIn, &excluded);
+      if (rc != SQLITE_OK) goto cleanup;
+      if (excluded) continue;
       for(int i = 0; i < argc; i++) {
         int idx = 1 + (i * 4);
         char kind = idxStr[idx + 0];
@@ -10767,6 +10935,8 @@ int vec0_write_metadata_value(vec0_vtab *p, int metadata_column_idx, i64 rowid, 
     goto done;
   }
 
+  rc = vec0_zonemap_widen(p, metadata_column_idx, chunk_id, v);
+
   done:
     return rc;
 }
@@ -11353,7 +11523,28 @@ int vec0Update_Delete_DeleteChunk(vec0_vtab *p, i64 chunk_id) {
       return SQLITE_ERROR;
   }
 
-  // Invalidate cached stmtLatestChunk so it gets re-prepared on next insert
+  // Remove bounds before this chunk id can be reused.
+  if (p->hasCommandColumn && p->numMetadataColumns) {
+    zSql = sqlite3_mprintf("DELETE FROM " VEC0_SHADOW_INFO_NAME
+                          " WHERE key=?1", p->schemaName, p->tableName);
+    if (!zSql) return SQLITE_NOMEM;
+    rc = sqlite3_prepare_v2(p->db, zSql, -1, &stmt, NULL);
+    sqlite3_free(zSql);
+    if (rc != SQLITE_OK) return rc;
+    for (int i = 0; i < p->numMetadataColumns; i++) {
+      char key[64];
+      sqlite3_snprintf(sizeof(key), key, "zonemap_%02d_%lld", i, chunk_id);
+      rc = sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
+      if (rc == SQLITE_OK) rc = sqlite3_step(stmt);
+      sqlite3_reset(stmt);
+      sqlite3_clear_bindings(stmt);
+      if (rc != SQLITE_DONE) break;
+    }
+    sqlite3_finalize(stmt);
+    if (rc != SQLITE_DONE) return rc;
+  }
+
+  // Invalidate cached stmtLatestChunk so it gets re-prepared on next insert.
   if (p->stmtLatestChunk) {
     sqlite3_finalize(p->stmtLatestChunk);
     p->stmtLatestChunk = NULL;

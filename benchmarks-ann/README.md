@@ -1,5 +1,22 @@
 # KNN Benchmarks for sqlite-vec
 
+## Numeric zone-map benchmark
+
+From the repository root after `make loadable`:
+
+```sh
+uv run --managed-python --project tests python benchmarks-ann/zonemap.py
+```
+
+This creates a temporary database with 65,536 32-dimensional vectors in 64
+chunks. Each chunk has one distinct numeric score. It checks filtered results
+and compares warm query latency with statistics present and removed. JSON output
+includes insert time, p50/p95 query latency, entry count and stats payload bytes.
+Use `--baseline /path/to/previous/vec0.dylib` to compare inserts with a previous
+build in a separate process. Payload bytes exclude keys and SQLite page/index
+overhead. This ordered dataset measures a favorable pruning case; randomly mixed
+ranges can prune less.
+
 ## Lance SQL benchmark
 
 After building the hybrid extension, run these commands from the repository root:
