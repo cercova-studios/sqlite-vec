@@ -7,6 +7,7 @@ import unittest
 from random import random
 import struct
 import inspect
+from pathlib import Path
 import pytest
 import json
 import numpy as np
@@ -2634,6 +2635,61 @@ def test_vec_rrf_fts5_hybrid():
       select rowid, 0.3 / (60 + r) from knn where rowid = 1
     """).fetchone()
     assert w[1] == pytest.approx(0.3 / 61)
+
+
+def test_vec_rrf_scoped_hybrid_recipe():
+    d = connect(EXT_PATH)
+    d.executescript("""
+      create table doc_scope(id integer primary key, tenant text, valid_from integer,
+                             valid_to integer, invalidated_at integer, source_id text);
+      create virtual table vec_docs using vec0(embedding float[2]);
+      create virtual table fts_docs using fts5(body);
+    """)
+    rows = [
+        (1, "other", 0, None, None, "episode:other", "[0,0]"),
+        (2, "ours", 0, None, 90, "episode:invalidated", "[0.1,0]"),
+        (3, "ours", 0, 100, None, "episode:expired", "[0.2,0]"),
+        (4, "ours", 110, None, None, "episode:future", "[0.3,0]"),
+        (5, "ours", 0, 101, None, "episode:valid-a", "[2,0]"),
+        (6, "ours", 100, None, None, "episode:valid-b", "[3,0]"),
+    ]
+    for row in rows:
+        d.execute("insert into doc_scope values (?,?,?,?,?,?)", row[:6])
+        d.execute("insert into vec_docs(rowid,embedding) values (?,?)", [row[0], row[6]])
+        d.execute("insert into fts_docs(rowid,body) values (?, 'deploy procedure')", [row[0]])
+    # Execute the published query so its eligibility and branch limits cannot drift.
+    guide = (Path(__file__).resolve().parents[1] / "site/guides/hybrid-search.md").read_text()
+    sql = guide.split("<!-- scoped-hybrid-query -->", 1)[1].split("```sql\n", 1)[1].split("```", 1)[0]
+    params = dict(tenant="ours", as_of=100, q_vec="[0,0]", q_text="deploy", branch_limit=2)
+    result = d.execute(sql, params).fetchall()
+    assert [r[0] for r in result] == [5, 6]
+    assert [r[1] for r in result] == pytest.approx([2 / 61, 2 / 62])
+    assert [tuple(r[2:]) for r in result] == [
+        (1, 1, 2.0, "episode:valid-a"), (2, 2, 3.0, "episode:valid-b")]
+    assert [r[0] for r in d.execute(sql, dict(params, as_of=101))] == [6]
+    # Global top-2 is occupied by ineligible rows in both branches.
+    late = d.execute("""
+      with knn as materialized (
+        select rowid from vec_docs where embedding match :q_vec and k=:branch_limit
+      ), fts as materialized (
+        select rowid from fts_docs where fts_docs match :q_text
+        order by rank,rowid limit :branch_limit
+      ), candidates as (select rowid from knn union select rowid from fts)
+      select c.rowid from candidates c join doc_scope s on s.id=c.rowid
+      where s.tenant=:tenant and s.invalidated_at is null and s.valid_from<=:as_of
+        and (s.valid_to is null or s.valid_to>:as_of)
+    """, params).fetchall()
+    assert late == []
+    d.execute("savepoint invalidate")
+    d.execute("update doc_scope set invalidated_at=100 where id=5")
+    assert [r[0] for r in d.execute(sql, params)] == [6]
+    d.execute("rollback to invalidate")
+    d.execute("release invalidate")
+    assert [r[0] for r in d.execute(sql, params)] == [5, 6]
+    d.execute("update fts_docs set body='other text' where rowid=6")
+    vector_only = d.execute(sql, params).fetchall()[1]
+    assert tuple(vector_only[2:]) == (2, None, 3.0, "episode:valid-b")
+    assert vector_only[1] == pytest.approx(1 / 62)
 
 
 if __name__ == "__main__":

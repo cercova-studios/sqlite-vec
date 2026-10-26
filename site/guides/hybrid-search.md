@@ -44,6 +44,71 @@ FTS5's `rank` column is its BM25 score, where lower values are better matches,
 so `order by rank` gives rank 1 to the best keyword match. Full outer joins need
 SQLite 3.39 or later.
 
+## Filter candidates by scope and validity
+
+When documents belong to a tenant or have validity windows, apply eligibility
+inside **both** candidate branches, before their limits. Filtering a global
+top-k afterward can leave no results even when eligible documents exist farther
+down each list.
+
+Keep application attributes under the same document ID as the text and vector:
+
+```sql
+create table doc_scope(
+  id integer primary key,
+  tenant text not null,
+  valid_from integer not null,
+  valid_to integer,
+  invalidated_at integer,
+  source_id text not null
+);
+```
+
+Use Unix seconds for the timestamps. A document is eligible from `valid_from`
+inclusive to `valid_to` exclusive; NULL `valid_to` means no end. This example
+excludes any record with a non-NULL `invalidated_at`. Bind `:tenant`, `:as_of`,
+`:q_vec`, `:q_text`, and a positive `:branch_limit` of at most 4096.
+
+<!-- scoped-hybrid-query -->
+```sql
+with eligible as materialized (
+  select id from doc_scope
+  where tenant = :tenant and invalidated_at is null
+    and valid_from <= :as_of
+    and (valid_to is null or valid_to > :as_of)
+),
+knn as (
+  select rowid, distance, row_number() over (order by distance) as r
+  from vec_docs
+  where embedding match :q_vec and k = :branch_limit
+    and rowid in (select id from eligible)
+),
+fts as (
+  select rowid, row_number() over (order by rank, rowid) as r
+  from fts_docs
+  where fts_docs match :q_text and rowid in (select id from eligible)
+  order by rank, rowid limit :branch_limit
+)
+select coalesce(knn.rowid, fts.rowid) as id,
+       vec_rrf(knn.r, fts.r) as score,
+       knn.r as vector_rank, fts.r as keyword_rank,
+       knn.distance as vector_distance, scope.source_id
+from knn full outer join fts on knn.rowid = fts.rowid
+join doc_scope scope on scope.id = coalesce(knn.rowid, fts.rowid)
+order by score desc, id
+limit 10;
+```
+
+The branch ranks and source ID let callers explain each result. A keyword-only
+result has NULL vector rank and distance. Selective ANN filters can return fewer
+than `:branch_limit` candidates. Intersect graph-expanded rowids with the same
+eligible set before applying candidate limits.
+
+Update attributes, text and vectors in one SQLite transaction. Invalidating an
+attribute row suppresses it from this query while retaining its stored data.
+Redaction, retention and access enforcement belong in the application; these
+predicates describe retrieval eligibility.
+
 ## Weighting
 
 `vec_rrf()` weights every list equally with the constant 60. To weight one list
