@@ -4480,7 +4480,13 @@ struct vec0_vtab {
   // Per-connection vector/edge cache (sqlite-vec-hnsw.c), per vector column.
   struct HnswCache *hnswCache[VEC0_MAX_VECTOR_COLUMNS];
 #endif
+  struct Vec0FlatWrite *flatWrites[VEC0_MAX_VECTOR_COLUMNS];
+  unsigned flatWriteGeneration;
+  int flatFlushing;
 };
+
+static int vec0_flat_flush(vec0_vtab *p);
+static void vec0_flat_clear(vec0_vtab *p);
 
 #if SQLITE_VEC_ENABLE_RESCORE
 // Forward declarations for rescore functions (defined in sqlite-vec-rescore.c,
@@ -4577,6 +4583,7 @@ static void ivf_buffer_clear(vec0_vtab *p);
 #endif
 void vec0_free(vec0_vtab *p) {
   vec0_free_resources(p);
+  vec0_flat_clear(p);
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   ivf_buffer_clear(p);
 #endif
@@ -9944,6 +9951,8 @@ static int vec0Filter(sqlite3_vtab_cursor *pVtabCursor, int idxNum,
   vec0_vtab *p = (vec0_vtab *)pVtabCursor->pVtab;
   vec0_cursor *pCur = (vec0_cursor *)pVtabCursor;
   vec0_cursor_clear(pCur);
+  int frc = vec0_flat_flush(p);
+  if (frc != SQLITE_OK) return frc;
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   int rc = ivf_flush(p);
   if (rc != SQLITE_OK) return rc;
@@ -10388,6 +10397,8 @@ static int vec0Column(sqlite3_vtab_cursor *cur, sqlite3_context *context,
                       int i) {
   vec0_cursor *pCur = (vec0_cursor *)cur;
   vec0_vtab *pVtab = (vec0_vtab *)cur->pVtab;
+  int rc = vec0_flat_flush(pVtab);
+  if (rc != SQLITE_OK) return rc;
   switch (pCur->query_plan) {
   case VEC0_QUERY_PLAN_FULLSCAN: {
     return vec0Column_fullscan(pVtab, pCur, context, i);
@@ -10625,41 +10636,98 @@ cleanup:
   return rc;
 }
 
-/**
- * @brief Write the vector data into the provided vector blob at the given
- * offset
- *
- * @param blobVectors SQLite BLOB to write to
- * @param chunk_offset the "offset" (ie validity bitmap position) to write the
- * vector to
- * @param bVector pointer to the vector containing data
- * @param dimensions how many dimensions the vector has
- * @param element_type the vector type
- * @return result of sqlite3_blob_write, SQLITE_OK on success, otherwise failure
- */
-static int
-vec0_write_vector_to_vector_blob(sqlite3_blob *blobVectors, i64 chunk_offset,
-                                 const void *bVector, size_t dimensions,
-                                 enum VectorElementType element_type) {
-  int n;
-  int offset;
+#define VEC0_FLAT_WRITE_BYTES (64 * 1024)
 
-  switch (element_type) {
-  case SQLITE_VEC_ELEMENT_TYPE_FLOAT32:
-    n = dimensions * sizeof(f32);
-    offset = chunk_offset * dimensions * sizeof(f32);
-    break;
-  case SQLITE_VEC_ELEMENT_TYPE_INT8:
-    n = dimensions * sizeof(i8);
-    offset = chunk_offset * dimensions * sizeof(i8);
-    break;
-  case SQLITE_VEC_ELEMENT_TYPE_BIT:
-    n = dimensions / CHAR_BIT;
-    offset = chunk_offset * dimensions / CHAR_BIT;
-    break;
+struct Vec0FlatWrite {
+  i64 chunk;
+  int offset, n, capacity;
+  unsigned char data[];
+};
+
+static void vec0_flat_clear(vec0_vtab *p) {
+  p->flatWriteGeneration++;
+  for (int i = 0; i < VEC0_MAX_VECTOR_COLUMNS; i++) {
+    sqlite3_free(p->flatWrites[i]);
+    p->flatWrites[i] = NULL;
   }
+}
 
-  return sqlite3_blob_write(blobVectors, bVector, n, offset);
+static int vec0_flat_open(vec0_vtab *p, int col, i64 chunk, int write, sqlite3_blob **blob) {
+  int rc = sqlite3_blob_open(p->db, p->schemaName, p->shadowVectorChunksNames[col],
+                             "vectors", chunk, write, blob);
+  if (rc != SQLITE_OK) {
+    vtab_set_error(&p->base, "Error opening vector blob at %s.%s.%lld",
+                   p->schemaName, p->shadowVectorChunksNames[col], chunk);
+    return rc;
+  }
+  i64 expected = p->chunk_size * vector_column_byte_size(p->vector_columns[col]);
+  i64 actual = sqlite3_blob_bytes(*blob);
+  if (actual != expected) {
+    // IMP: V16386_00456
+    vtab_set_error(&p->base, VEC_INTERAL_ERROR
+        "vector blob size mismatch on %s.%s.%lld. Expected %lld, actual %lld",
+        p->schemaName, p->shadowVectorChunksNames[col], chunk, expected, actual);
+    sqlite3_blob_close(*blob);
+    *blob = NULL;
+    return SQLITE_ERROR;
+  }
+  return SQLITE_OK;
+}
+
+static int vec0_flat_flush_column(vec0_vtab *p, int col) {
+  struct Vec0FlatWrite *w = p->flatWrites[col];
+  if (!w) return SQLITE_OK;
+  // SQLite can call rollback while opening/writing the blob; keep ownership here.
+  p->flatWrites[col] = NULL;
+  unsigned generation = p->flatWriteGeneration;
+  p->flatFlushing++;
+  sqlite3_blob *blob = NULL;
+  int rc = vec0_flat_open(p, col, w->chunk, 1, &blob);
+  if (rc == SQLITE_OK) rc = sqlite3_blob_write(blob, w->data, w->n, w->offset);
+  int brc = sqlite3_blob_close(blob);
+  if (rc == SQLITE_OK) rc = brc;
+  p->flatFlushing--;
+  if (rc == SQLITE_OK || generation != p->flatWriteGeneration) sqlite3_free(w);
+  else p->flatWrites[col] = w;
+  return rc;
+}
+
+static int vec0_flat_flush(vec0_vtab *p) {
+  for (int col = 0; col < p->numVectorColumns; col++) {
+    int rc = vec0_flat_flush_column(p, col);
+    if (rc != SQLITE_OK) return rc;
+  }
+  return SQLITE_OK;
+}
+
+static int vec0_flat_write(vec0_vtab *p, int col, i64 chunk, i64 slot, const void *data) {
+  int bytes = vector_column_byte_size(p->vector_columns[col]);
+  if (slot < 0 || slot >= p->chunk_size) return SQLITE_CORRUPT;
+  i64 offset = slot * bytes;
+  if (offset > INT_MAX - bytes) return SQLITE_CORRUPT;
+  struct Vec0FlatWrite *w = p->flatWrites[col];
+  if (w && (w->chunk != chunk || w->offset + w->n != offset || w->n + bytes > w->capacity)) {
+    int rc = vec0_flat_flush_column(p, col);
+    if (rc != SQLITE_OK) return rc;
+    w = NULL;
+  }
+  if (!w) {
+    sqlite3_blob *blob = NULL;
+    int rc = vec0_flat_open(p, col, chunk, 0, &blob);
+    int brc = sqlite3_blob_close(blob);
+    if (rc != SQLITE_OK) return rc;
+    if (brc != SQLITE_OK) return brc;
+    int capacity = VEC0_FLAT_WRITE_BYTES;
+    i64 remaining = (p->chunk_size - slot) * bytes;
+    if (remaining < capacity) capacity = remaining;
+    w = sqlite3_malloc64(sizeof(*w) + (sqlite3_uint64)capacity);
+    if (!w) return SQLITE_NOMEM;
+    w->chunk = chunk; w->offset = offset; w->n = 0; w->capacity = capacity;
+    p->flatWrites[col] = w;
+  }
+  memcpy(w->data + w->n, data, bytes);
+  w->n += bytes;
+  return SQLITE_OK;
 }
 
 /**
@@ -10701,55 +10769,8 @@ int vec0Update_InsertWriteFinalStep(vec0_vtab *p, i64 chunk_rowid,
     if (!vec0_column_in_chunks(p, i))
       continue;
 
-    sqlite3_blob *blobVectors;
-    rc = sqlite3_blob_open(p->db, p->schemaName, p->shadowVectorChunksNames[i],
-                           "vectors", chunk_rowid, 1, &blobVectors);
-    if (rc != SQLITE_OK) {
-      vtab_set_error(&p->base, "Error opening vector blob at %s.%s.%lld",
-                     p->schemaName, p->shadowVectorChunksNames[i], chunk_rowid);
-      goto cleanup;
-    }
-
-    i64 expected =
-        p->chunk_size * vector_column_byte_size(p->vector_columns[i]);
-    i64 actual = sqlite3_blob_bytes(blobVectors);
-
-    if (actual != expected) {
-      // IMP: V16386_00456
-      vtab_set_error(
-          &p->base,
-          VEC_INTERAL_ERROR
-          "vector blob size mismatch on %s.%s.%lld. Expected %lld, actual %lld",
-          p->schemaName, p->shadowVectorChunksNames[i], chunk_rowid, expected,
-          actual);
-      rc = SQLITE_ERROR;
-      // already error, can ignore result code
-      sqlite3_blob_close(blobVectors);
-      goto cleanup;
-    };
-
-    rc = vec0_write_vector_to_vector_blob(
-        blobVectors, chunk_offset, vectorDatas[i],
-        p->vector_columns[i].dimensions, p->vector_columns[i].element_type);
-    if (rc != SQLITE_OK) {
-      vtab_set_error(&p->base,
-                     VEC_INTERAL_ERROR
-                     "could not write vector blob on %s.%s.%lld",
-                     p->schemaName, p->shadowVectorChunksNames[i], chunk_rowid);
-      rc = SQLITE_ERROR;
-      // already error, can ignore result code
-      sqlite3_blob_close(blobVectors);
-      goto cleanup;
-    }
-    rc = sqlite3_blob_close(blobVectors);
-    if (rc != SQLITE_OK) {
-      vtab_set_error(&p->base,
-                     VEC_INTERAL_ERROR
-                     "could not close vector blob on %s.%s.%lld",
-                     p->schemaName, p->shadowVectorChunksNames[i], chunk_rowid);
-      rc = SQLITE_ERROR;
-      goto cleanup;
-    }
+    rc = vec0_flat_write(p, i, chunk_rowid, chunk_offset, vectorDatas[i]);
+    if (rc != SQLITE_OK) goto cleanup;
   }
 
   // write the new rowid to the rowids column of the _chunks table
@@ -11710,7 +11731,8 @@ int vec0Update_Delete_ClearMetadata(vec0_vtab *p, int metadata_idx, i64 rowid, i
 
 int vec0Update_Delete(sqlite3_vtab *pVTab, sqlite3_value *idValue) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
-  int rc;
+  int rc = vec0_flat_flush(p);
+  if (rc != SQLITE_OK) return rc;
   i64 rowid;
   i64 chunk_id = 0;
   i64 chunk_offset = 0;
@@ -11862,8 +11884,6 @@ int vec0Update_UpdateVectorColumn(vec0_vtab *p, i64 chunk_id, i64 chunk_offset,
   UNUSED_PARAMETER(rowid);
 #endif
 
-  sqlite3_blob *blobVectors = NULL;
-
   char *pzError;
   size_t dimensions;
   enum VectorElementType elementType;
@@ -11962,36 +11982,11 @@ int vec0Update_UpdateVectorColumn(vec0_vtab *p, i64 chunk_id, i64 chunk_offset,
   }
 #endif
 
-  rc = sqlite3_blob_open(p->db, p->schemaName, p->shadowVectorChunksNames[i],
-                         "vectors", chunk_id, 1, &blobVectors);
-  if (rc != SQLITE_OK) {
-    vtab_set_error(&p->base, "Could not open vectors blob for %s.%s.%lld",
-                   p->schemaName, p->shadowVectorChunksNames[i], chunk_id);
-    goto cleanup;
-  }
-  rc = vec0_write_vector_to_vector_blob(blobVectors, chunk_offset, vector,
-                                        p->vector_columns[i].dimensions,
-                                        p->vector_columns[i].element_type);
-  if (rc != SQLITE_OK) {
-    vtab_set_error(&p->base, "Could not write to vectors blob for %s.%s.%lld",
-                   p->schemaName, p->shadowVectorChunksNames[i], chunk_id);
-    goto cleanup;
-  }
+  rc = vec0_flat_write(p, i, chunk_id, chunk_offset, vector);
 
 cleanup:
   cleanup(vector);
-  int brc = sqlite3_blob_close(blobVectors);
-  if (rc != SQLITE_OK) {
-    return rc;
-  }
-  if (brc != SQLITE_OK) {
-    vtab_set_error(
-        &p->base,
-        "Could not commit blob transaction for vectors blob for %s.%s.%lld",
-        p->schemaName, p->shadowVectorChunksNames[i], chunk_id);
-    return brc;
-  }
-  return SQLITE_OK;
+  return rc;
 }
 
 int vec0Update_Update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv) {
@@ -12166,6 +12161,8 @@ static int vec0Update(sqlite3_vtab *pVTab, int argc, sqlite3_value **argv,
     if (p->hasCommandColumn) {
       sqlite3_value *cmdVal = argv[2 + vec0_column_command_idx(p)];
       if (sqlite3_value_type(cmdVal) == SQLITE_TEXT) {
+        int frc = vec0_flat_flush(p);
+        if (frc != SQLITE_OK) return frc;
         const char *cmd = (const char *)sqlite3_value_text(cmdVal);
         int cmdRc = SQLITE_EMPTY;
 #if SQLITE_VEC_ENABLE_RESCORE
@@ -12261,6 +12258,8 @@ static int vec0Begin(sqlite3_vtab *pVTab) {
 }
 static int vec0Sync(sqlite3_vtab *pVTab) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
+  int frc = vec0_flat_flush(p);
+  if (frc != SQLITE_OK) return frc;
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   int irc = ivf_flush(p);
   if (irc != SQLITE_OK) return irc;
@@ -12282,6 +12281,7 @@ static int vec0Commit(sqlite3_vtab *pVTab) {
 // Rollbacks undo shadow-table writes that in-memory index caches mirror.
 static int vec0Rollback(sqlite3_vtab *pVTab) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
+  vec0_flat_clear(p);
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   ivf_buffer_clear(p);
 #endif
@@ -12293,6 +12293,8 @@ static int vec0Rollback(sqlite3_vtab *pVTab) {
 // Persist older dirty lists before SQLite opens the new rollback boundary.
 static int vec0Savepoint(sqlite3_vtab *pVTab, int iSavepoint) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
+  int frc = vec0_flat_flush(p);
+  if (frc != SQLITE_OK) return frc;
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   int irc = ivf_flush(p);
   if (irc != SQLITE_OK) return irc;
@@ -12314,6 +12316,7 @@ static int vec0Release(sqlite3_vtab *pVTab, int iSavepoint) {
 // Called when a statement fails inside a transaction, and on ROLLBACK TO.
 static int vec0RollbackTo(sqlite3_vtab *pVTab, int iSavepoint) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
+  if (!p->flatFlushing) vec0_flat_clear(p);
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   // A nested shadow UPDATE rollback does not undo the pending logical writes.
   if (!p->ivfFlushing) ivf_buffer_clear(p);
@@ -12333,7 +12336,8 @@ static int vec0RollbackTo(sqlite3_vtab *pVTab, int iSavepoint) {
  */
 static int vec0Rename(sqlite3_vtab *pVtab, const char *zNew) {
   vec0_vtab *p = (vec0_vtab *)pVtab;
-  int rc = SQLITE_OK;
+  int rc = vec0_flat_flush(p);
+  if (rc != SQLITE_OK) return rc;
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   rc = ivf_flush(p);
   if (rc != SQLITE_OK) return rc;

@@ -1076,6 +1076,7 @@ def test_vec0_delete():
             "validity": bitmap("00111111"),
         }
     ]
+    execute_all(db, "select rowid from t1")  # flush buffered vector bytes
     assert execute_all(db, "select * from t1_vector_chunks00") == [
         {
             "rowid": 1,
@@ -2130,6 +2131,7 @@ def test_smoke():
     assert chunk["rowids"] == b"\x01\x00\x00\x00\x00\x00\x00\x00" + bytearray(
         int(1024 * 8) - 8
     )
+    db.execute("select rowid from vec_xyz").fetchall()
     vchunk = db.execute("select * from vec_xyz_vector_chunks00").fetchone()
     assert vchunk["rowid"] == 1
     assert vchunk["vectors"] == b"\x00\x00\x00\x00\x00\x00\x80\x3f" + bytearray(
@@ -2146,6 +2148,7 @@ def test_smoke():
     )
     assert chunk["chunk_id"] == 1
     assert chunk["validity"] == b"\x03" + bytearray(int(1024 / 8) - 1)
+    db.execute("select rowid from vec_xyz").fetchall()
     vchunk = db.execute("select * from vec_xyz_vector_chunks00").fetchone()
     assert vchunk["rowid"] == 1
     assert (
@@ -2159,6 +2162,7 @@ def test_smoke():
     chunk = db.execute("select * from vec_xyz_chunks").fetchone()
     assert chunk["chunk_id"] == 1
     assert chunk["validity"] == b"\x07" + bytearray(int(1024 / 8) - 1)
+    db.execute("select rowid from vec_xyz").fetchall()
     assert (
         chunk["rowids"]
         == b"\x01\x00\x00\x00\x00\x00\x00\x00"

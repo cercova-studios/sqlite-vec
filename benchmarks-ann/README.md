@@ -1,5 +1,22 @@
 # KNN Benchmarks for sqlite-vec
 
+## Flat-vector write-batching benchmark
+
+After building the default extension, run from the repository root:
+
+```sh
+uv run --managed-python --project tests python benchmarks-ann/flat-batch.py --baseline /path/to/previous/vec0.dylib
+```
+
+This inserts 10,000 deterministic Gaussian float[128] vectors in one transaction
+and reports insert/commit time, shadow-row changes, retained WAL bytes and mean
+query time. Ten exact KNN queries are checked against an independent Python
+oracle, including original-vector distances. Results must match across builds,
+which run in separate processes and temporary databases. `--rows`, `--dimensions`
+and `--candidate` select another workload or current library. Consecutive
+inserts favor batching; interleaved reads, partitions and random updates can
+flush more often. Fewer blob operations need not reduce row-change or WAL counts.
+
 ## IVF write-batching benchmark
 
 Build the current and previous extensions with

@@ -36,6 +36,7 @@ def exec(db, sql, parameters=[]):
 
 
 def vec0_shadow_table_contents(db, v, skip_info=True):
+    db.execute(f'SELECT 1 FROM "{v}" LIMIT 1').fetchall()  # flush pending vectors
     shadow_tables = [
         row[0]
         for row in db.execute(

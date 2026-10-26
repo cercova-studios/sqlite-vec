@@ -172,6 +172,29 @@ the persisted graph format or neighbor-selection algorithm.
 shadow-table savepoint before this callback, so it is too late for a fallible
 flush there. Opening a new savepoint flushes prior edits before that boundary.
 
+### Flat-vector write batching
+
+For vector columns stored in `xyz_vector_chunksNN`, `Vec0FlatWrite` buffers
+one contiguous byte range per column, up to 64 KiB. Consecutive writes to the
+same chunk append to that range. A chunk switch, gap, overlap or full buffer
+flushes the prior range through one blob write. Chunk/rowid validity, rowid
+mappings, metadata and auxiliary writes remain immediate SQLite writes.
+Blob lengths are checked when a range starts and again when it flushes.
+
+Reads (`xFilter` and `xColumn`), commands, `xSavepoint`, `xSync`, rename and
+deletion flush pending vector bytes before using the existing read/write
+paths. This preserves read-your-writes; a read can incur flush latency or
+report a write error. `xRelease` leaves pending ranges alone. SQLite rolls
+back flushed bytes, while `xRollback` and `xRollbackTo` discard later buffered
+bytes. An active flush owns its detached range across SQLite callbacks, and
+a transaction generation prevents restoring data after a full rollback.
+
+The existing limit of 16 vector columns bounds payload memory to 1 MiB per
+table; smaller chunks allocate smaller buffers. Buffers are cleared after
+successful flushes and do not cache other connections' committed data.
+Storage providers, rescore, IVF and graph indexes keep their own write paths.
+The persisted vector/chunk format and public SQL options are unchanged.
+
 ### IVF cell write batching
 
 The experimental IVF build stores up to 64 vectors per packed cell in
