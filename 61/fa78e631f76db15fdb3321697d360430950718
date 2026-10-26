@@ -1,0 +1,56 @@
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/.gitignore
+  s_676ff82f71e79c::t_bda734b5eb9f02 1-3
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/test_evaluate.py
+  s_676ff82f71e79c::t_46ecb17cbea150 52-56
+  s_676ff82f71e79c::t_46eece48d9dcd1 1-51,57-101
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/fixture.json
+  s_676ff82f71e79c::t_bda734b5eb9f02 1-449
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/REPORT.md
+  s_ca7d5125ef33b2::t_0a2490b758a867 15
+  s_ca7d5125ef33b2::t_67727c8e3ed035 1-14,16-83
+HANDOFF.md
+  s_ca7d5125ef33b2::t_0a2490b758a867 3-8,12-47,600-603
+  s_ca7d5125ef33b2::t_ff61570a832743 9-11
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/evaluate.py
+  s_676ff82f71e79c::t_bda734b5eb9f02 1-285
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/manifest.json
+  s_ca7d5125ef33b2::t_0a2490b758a867 4-13
+  s_ca7d5125ef33b2::t_b207be42192a48 1-3,14
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/verify.py
+  s_676ff82f71e79c::t_2e77b1089833ff 1-49,55-61
+  s_ca7d5125ef33b2::t_0a2490b758a867 50-54
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/README.md
+  s_676ff82f71e79c::t_2e77b1089833ff 1-53
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/recorded/build-manifest.json
+  s_676ff82f71e79c::t_406ba0a5a4be06 1-32
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/recorded/guide.md
+  s_676ff82f71e79c::t_20b024b2a9cf4d 1-123
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/recorded/query-plans.json
+  s_ca7d5125ef33b2::t_10ba8d4f032bdc 1-1370
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/recorded/summary.json
+  s_676ff82f71e79c::t_f8f27a5c949172 1-1010
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "61fa78e631f76db15fdb3321697d360430950718",
+  "prompts": {},
+  "sessions": {
+    "s_676ff82f71e79c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
