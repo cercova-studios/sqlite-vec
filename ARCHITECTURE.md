@@ -172,6 +172,31 @@ the persisted graph format or neighbor-selection algorithm.
 shadow-table savepoint before this callback, so it is too late for a fallible
 flush there. Opening a new savepoint flushes prior edits before that boundary.
 
+### IVF cell write batching
+
+The experimental IVF build stores up to 64 vectors per packed cell in
+`xyz_ivf_cellsNN`, with validity bits, rowids and quantized or original vectors.
+`IvfWriteBuffer` holds at most 64 changed cells and 8 MiB per table across vector
+columns. Inserts choose an unused validity bit; deletions clear that bit and
+decrement the live count. The count is not a slot offset. Rowid mappings and
+quantized columns' original-vector KV writes remain immediate SQLite writes.
+
+`ivf_flush` writes each buffered cell with one UPDATE and clears the buffer
+after success. It runs in `xSync`, before opening savepoints, before reads,
+before rename, around centroid commands and when a new cell would exceed the
+buffer limit. Reads therefore see pending writes through the existing query
+paths. A read can incur write latency or report a flush error. No cell values
+remain cached after a successful flush, so other connections' commits require
+no separate cell-cache invalidation protocol.
+
+`xRollback` and `xRollbackTo` discard pending cells after SQLite restores shadow
+tables. `xRelease` does not flush. A flush owns its detached buffer while nested
+SQLite statements run: a nested statement rollback preserves the pending
+logical writes for retry, while a transaction rollback advances the buffer
+generation and discards them. Flush failures cannot leave freed cells in use
+or silently discard earlier pending vectors. Persisted cell formats, centroid
+selection and quantizers are unchanged.
+
 ### idxStr
 
 The `vec0` idxStr is a string composed of single "header" character and 0 or

@@ -18,6 +18,7 @@ def db():
 
 def ivf_total_vectors(db, table="t", col=0):
     """Count total vectors across all IVF cells."""
+    db.execute(f"SELECT rowid FROM {table} LIMIT 1").fetchall()  # flush pending cells
     return db.execute(
         f"SELECT COALESCE(SUM(n_vectors), 0) FROM {table}_ivf_cells{col:02d}"
     ).fetchone()[0]
@@ -25,6 +26,7 @@ def ivf_total_vectors(db, table="t", col=0):
 
 def ivf_unassigned_count(db, table="t", col=0):
     """Count vectors in unassigned cells (centroid_id=-1)."""
+    db.execute(f"SELECT rowid FROM {table} LIMIT 1").fetchall()
     return db.execute(
         f"SELECT COALESCE(SUM(n_vectors), 0) FROM {table}_ivf_cells{col:02d} WHERE centroid_id = -1"
     ).fetchone()[0]
@@ -32,6 +34,7 @@ def ivf_unassigned_count(db, table="t", col=0):
 
 def ivf_assigned_count(db, table="t", col=0):
     """Count vectors in trained cells (centroid_id >= 0)."""
+    db.execute(f"SELECT rowid FROM {table} LIMIT 1").fetchall()
     return db.execute(
         f"SELECT COALESCE(SUM(n_vectors), 0) FROM {table}_ivf_cells{col:02d} WHERE centroid_id >= 0"
     ).fetchone()[0]

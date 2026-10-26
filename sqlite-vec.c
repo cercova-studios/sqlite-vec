@@ -4380,9 +4380,12 @@ struct vec0_vtab {
 
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   // IVF cached state per vector column
+  struct IvfWriteBuffer *ivfBuffer;
+  unsigned ivfBufferGeneration;
+  int ivfFlushing;
   char *shadowIvfCellsNames[VEC0_MAX_VECTOR_COLUMNS];   // table name for blob_open
-  sqlite3_stmt *stmtIvfCellMeta[VEC0_MAX_VECTOR_COLUMNS];      // SELECT n_vectors, length(validity)*8 FROM cells WHERE cell_id=?
-  sqlite3_stmt *stmtIvfCellUpdateN[VEC0_MAX_VECTOR_COLUMNS];   // UPDATE cells SET n_vectors=n_vectors+? WHERE cell_id=?
+  sqlite3_stmt *stmtIvfCellMeta[VEC0_MAX_VECTOR_COLUMNS]; // find cells with space
+  sqlite3_stmt *stmtIvfCellWrite[VEC0_MAX_VECTOR_COLUMNS]; // flush packed cell
   sqlite3_stmt *stmtIvfRowidMapInsert[VEC0_MAX_VECTOR_COLUMNS]; // INSERT INTO rowid_map(rowid,cell_id,slot) VALUES(?,?,?)
   sqlite3_stmt *stmtIvfRowidMapLookup[VEC0_MAX_VECTOR_COLUMNS]; // SELECT cell_id,slot FROM rowid_map WHERE rowid=?
   sqlite3_stmt *stmtIvfRowidMapDelete[VEC0_MAX_VECTOR_COLUMNS]; // DELETE FROM rowid_map WHERE rowid=?
@@ -4533,7 +4536,7 @@ void vec0_free_resources(vec0_vtab *p) {
 #if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
   for (int i = 0; i < VEC0_MAX_VECTOR_COLUMNS; i++) {
     sqlite3_finalize(p->stmtIvfCellMeta[i]); p->stmtIvfCellMeta[i] = NULL;
-    sqlite3_finalize(p->stmtIvfCellUpdateN[i]); p->stmtIvfCellUpdateN[i] = NULL;
+    sqlite3_finalize(p->stmtIvfCellWrite[i]); p->stmtIvfCellWrite[i] = NULL;
     sqlite3_finalize(p->stmtIvfRowidMapInsert[i]); p->stmtIvfRowidMapInsert[i] = NULL;
     sqlite3_finalize(p->stmtIvfRowidMapLookup[i]); p->stmtIvfRowidMapLookup[i] = NULL;
     sqlite3_finalize(p->stmtIvfRowidMapDelete[i]); p->stmtIvfRowidMapDelete[i] = NULL;
@@ -4569,8 +4572,14 @@ void vec0_free_resources(vec0_vtab *p) {
 #if SQLITE_VEC_ENABLE_HNSW
 static void hnsw_cache_free_all(vec0_vtab *p);  // sqlite-vec-hnsw.c
 #endif
+#if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
+static void ivf_buffer_clear(vec0_vtab *p);
+#endif
 void vec0_free(vec0_vtab *p) {
   vec0_free_resources(p);
+#if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
+  ivf_buffer_clear(p);
+#endif
   if (p->storage) {
     p->storage->xClose(p->storageHandle);
     p->storage = NULL;
@@ -9935,6 +9944,10 @@ static int vec0Filter(sqlite3_vtab_cursor *pVtabCursor, int idxNum,
   vec0_vtab *p = (vec0_vtab *)pVtabCursor->pVtab;
   vec0_cursor *pCur = (vec0_cursor *)pVtabCursor;
   vec0_cursor_clear(pCur);
+#if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
+  int rc = ivf_flush(p);
+  if (rc != SQLITE_OK) return rc;
+#endif
 
   int idxStrLength = strlen(idxStr);
   if(idxStrLength <= 0) {
@@ -12248,6 +12261,10 @@ static int vec0Begin(sqlite3_vtab *pVTab) {
 }
 static int vec0Sync(sqlite3_vtab *pVTab) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
+#if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
+  int irc = ivf_flush(p);
+  if (irc != SQLITE_OK) return irc;
+#endif
 #if SQLITE_VEC_ENABLE_HNSW
   int rc = hnsw_flush_all(p);
   if (rc != SQLITE_OK) return rc;
@@ -12265,6 +12282,9 @@ static int vec0Commit(sqlite3_vtab *pVTab) {
 // Rollbacks undo shadow-table writes that in-memory index caches mirror.
 static int vec0Rollback(sqlite3_vtab *pVTab) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
+#if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
+  ivf_buffer_clear(p);
+#endif
 #if SQLITE_VEC_ENABLE_HNSW
   hnsw_cache_clear_all(p);
 #endif
@@ -12273,6 +12293,10 @@ static int vec0Rollback(sqlite3_vtab *pVTab) {
 // Persist older dirty lists before SQLite opens the new rollback boundary.
 static int vec0Savepoint(sqlite3_vtab *pVTab, int iSavepoint) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
+#if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
+  int irc = ivf_flush(p);
+  if (irc != SQLITE_OK) return irc;
+#endif
 #if SQLITE_VEC_ENABLE_HNSW
   int rc = hnsw_flush_all(p);
   if (rc != SQLITE_OK) return rc;
@@ -12290,6 +12314,10 @@ static int vec0Release(sqlite3_vtab *pVTab, int iSavepoint) {
 // Called when a statement fails inside a transaction, and on ROLLBACK TO.
 static int vec0RollbackTo(sqlite3_vtab *pVTab, int iSavepoint) {
   vec0_vtab *p = (vec0_vtab *)pVTab;
+#if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
+  // A nested shadow UPDATE rollback does not undo the pending logical writes.
+  if (!p->ivfFlushing) ivf_buffer_clear(p);
+#endif
 #if SQLITE_VEC_ENABLE_HNSW
   hnsw_cache_clear_all(p);  // conservative: the caches refill from SQLite
 #endif
@@ -12306,6 +12334,10 @@ static int vec0RollbackTo(sqlite3_vtab *pVTab, int iSavepoint) {
 static int vec0Rename(sqlite3_vtab *pVtab, const char *zNew) {
   vec0_vtab *p = (vec0_vtab *)pVtab;
   int rc = SQLITE_OK;
+#if SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE
+  rc = ivf_flush(p);
+  if (rc != SQLITE_OK) return rc;
+#endif
 
   // Build a single SQL string with ALTER TABLE RENAME for every shadow table.
   sqlite3_str *s = sqlite3_str_new(p->db);

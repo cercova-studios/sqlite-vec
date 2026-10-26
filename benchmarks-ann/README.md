@@ -1,5 +1,25 @@
 # KNN Benchmarks for sqlite-vec
 
+## IVF write-batching benchmark
+
+Build the current and previous extensions with
+`SQLITE_VEC_EXPERIMENTAL_IVF_ENABLE=1`, then run from the repository root:
+
+```sh
+uv run --managed-python --project tests python benchmarks-ann/ivf-batch.py --baseline /path/to/previous/vec0.dylib
+uv run --managed-python --project tests python benchmarks-ann/ivf-batch.py --baseline /path/to/previous/vec0.dylib --trained
+uv run --managed-python --project tests python benchmarks-ann/ivf-batch.py --baseline /path/to/previous/vec0.dylib --trained --quantizer int8
+```
+
+Each run inserts 10,000 deterministic Gaussian float[32] vectors after a
+512-row seed dataset. It reports insert and commit time, shadow-row changes,
+retained WAL bytes, query time and recall@10. Ten queries use an independent
+Python oracle; results and original-vector distances must match across builds.
+Both builds run in separate processes and temporary databases. `--candidate`
+selects a different current library and `--rows` changes the insert count.
+All 16 centroids are probed in trained runs. This synthetic workload does not
+establish production throughput; fewer row changes need not reduce WAL bytes.
+
 ## HNSW write-batching benchmark
 
 After `make loadable`, run from the repository root with a previous extension:
