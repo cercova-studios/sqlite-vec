@@ -1,0 +1,61 @@
+{
+  "format": "graph-semantics-fixtures/1",
+  "graphs": [
+    {
+      "name": "diamond", "node_type": "Function", "nodes": [1, 2, 3, 4, 5],
+      "edges": [[101, 1, 2], [102, 1, 3], [103, 2, 4], [104, 3, 4], [105, 1, 2]],
+      "cases": [
+        {"start": 1, "depth": null, "expected": [[1, 0], [2, 1], [3, 1], [4, 2]]},
+        {"start": 1, "depth": 1, "expected": [[1, 0], [2, 1], [3, 1]]},
+        {"start": 1, "depth": 0, "expected": [[1, 0]]},
+        {"start": 5, "depth": null, "expected": [[5, 0]]},
+        {"start": 99, "depth": null, "expected": [[99, 0]]},
+        {"start": 4, "depth": null, "expected": [[4, 0]]}
+      ]
+    },
+    {
+      "name": "cycles", "node_type": "Function", "nodes": [1, 2, 3, 4],
+      "edges": [[101, 1, 1], [102, 1, 2], [103, 2, 3], [104, 3, 1], [105, 3, 3]],
+      "cases": [
+        {"start": 1, "depth": null, "expected": [[1, 0], [2, 1], [3, 2]]},
+        {"start": 1, "depth": 1, "expected": [[1, 0], [2, 1]]},
+        {"start": 3, "depth": 8, "expected": [[3, 0], [1, 1], [2, 2]]}
+      ]
+    },
+    {
+      "name": "shortcut", "node_type": "Function", "nodes": [1, 2, 3],
+      "edges": [[101, 1, 2], [102, 2, 3], [103, 1, 3]],
+      "cases": [
+        {"start": 1, "depth": 2, "expected": [[1, 0], [2, 1], [3, 1]]},
+        {"start": 3, "depth": null, "expected": [[3, 0]]}
+      ]
+    },
+    {
+      "name": "integer_ids", "node_type": "Function",
+      "nodes": [-9223372036854775808, 0, 9223372036854775807],
+      "edges": [[101, -9223372036854775808, 0], [102, 0, 9223372036854775807], [103, 9223372036854775807, 9223372036854775807]],
+      "cases": [
+        {"start": -9223372036854775808, "depth": null, "expected": [[-9223372036854775808, 0], [0, 1], [9223372036854775807, 2]]},
+        {"start": 0, "depth": 1, "expected": [[0, 0], [9223372036854775807, 1]]}
+      ]
+    },
+    {
+      "name": "null_endpoints", "node_type": "Function", "nodes": [1, 2, 3],
+      "edges": [[101, 1, 2], [102, null, 2], [103, 2, null], [104, null, null]],
+      "cases": [
+        {"start": 1, "depth": null, "expected": [[1, 0], [2, 1]]},
+        {"start": 3, "depth": 0, "expected": [[3, 0]]}
+      ]
+    },
+    {
+      "name": "empty", "node_type": "Function", "nodes": [1], "edges": [],
+      "cases": [
+        {"start": 1, "depth": null, "expected": [[1, 0]]},
+        {"start": 99, "depth": 0, "expected": [[99, 0]]}
+      ]
+    }
+  ],
+  "identity_examples": [
+    ["diamond", "Function", 1], ["diamond", "File", 1], ["cycles", "Function", 1]
+  ]
+}

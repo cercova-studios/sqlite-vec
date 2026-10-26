@@ -5,6 +5,9 @@ the same read-only operations in a JSON/JSONL CLI or a local stdio MCP server.
 The optional Python adapter loads this fork's native extension. It runs no model
 or embedding service.
 
+For graph identity, minimum-hop behavior and reusable conformance fixtures, see
+the [graph semantics contract](graph-semantics.md).
+
 ## Run the fixture
 
 Run these commands from the repository root on a machine with `uv`, Python 3.12

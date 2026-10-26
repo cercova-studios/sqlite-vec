@@ -89,6 +89,24 @@ the same snapshot. Admission limits restrict supported workloads; they do not
 provide hard native memory, work or cancellation budgets. See the adapter
 [contract and runnable example](examples/search-lab/README.md).
 
+## Graph traversal
+
+`sqlite-vec-graph.c` registers `graph_bfs` and `graph_shortest_path` over a selected
+ordinary edge table/view. Native node IDs are signed 64-bit integers scoped by the
+selected source and columns; no catalog or type binder is implied. BFS emits each
+reachable node once with minimum hop distance and includes its anchor at zero,
+even when absent from the edge source. The path helper returns one shortest node
+sequence, including a zero-step sequence for equal endpoints. Neither helper
+returns edge identities or path multiplicities.
+
+Each connection caches up to eight CSR graphs. Write transactions rebuild rather
+than reuse cached adjacency so own writes and savepoint rollback remain visible.
+Native traversal materializes its output before SQL limits apply. The search-lab
+[graph contract and fixtures](examples/search-lab/graph-semantics.md) distinguish
+these native semantics from catalog admission, typed fixture identities, scoped
+subgraphs and SQL bag/optional-binding behavior. Its independent all-pairs oracle
+is test-only; it adds no runtime dependency or GraphIR execution surface.
+
 ## `vec0`
 
 ### Shadow Tables
