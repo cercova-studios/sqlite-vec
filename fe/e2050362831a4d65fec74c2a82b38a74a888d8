@@ -1,0 +1,33 @@
+examples/search-lab/graph_oracle.py
+  s_70b027a60d4a55::t_01a7c808862be9 1-29
+examples/search-lab/README.md
+  s_70b027a60d4a55::t_7ef22ed45fba22 8-10
+examples/search-lab/graph-semantics.md
+  s_70b027a60d4a55::t_7ef22ed45fba22 1-135
+ARCHITECTURE.md
+  s_70b027a60d4a55::t_7ef22ed45fba22 92-109
+examples/search-lab/test_graph_semantics.py
+  s_70b027a60d4a55::t_01a7c808862be9 1-149,184-200,204-265,267-294
+  s_70b027a60d4a55::t_14767c741c92a7 150-183,266
+  s_70b027a60d4a55::t_7ef22ed45fba22 201-203
+examples/search-lab/experiments/2026-10-26-g0/VALIDATION.md
+  s_70b027a60d4a55::t_7deec1c1e7def4 1-81
+examples/search-lab/graph-fixtures.json
+  s_70b027a60d4a55::t_01a7c808862be9 1-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fee2050362831a4d65fec74c2a82b38a74a888d8",
+  "prompts": {},
+  "sessions": {
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
