@@ -17,6 +17,11 @@ Very much a WIP.
   `lance0`. Dependencies point only one way: Rust may use the C core, but the
   C core never depends on Rust, Lance or protoc.
 
+`make test-unit` builds and runs the C unit tests with the bundled SQLite
+amalgamation and experimental IVF enabled. `tests/test-unit.c` includes the C
+core directly, so tests use the production internal types and definitions.
+The harness rejects `NDEBUG` builds to prevent silently disabling assertions.
+
 `lance0` follows the same transaction rules as the vec0 index caches: rollback
 and `xRollbackTo` undo pending state, and SQLite's shadow table
 `<name>_lance` records which Lance version is committed (see `lance/README.md`).
