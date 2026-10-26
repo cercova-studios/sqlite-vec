@@ -1,0 +1,26 @@
+tests/test-unit.c
+  s_ca7d5125ef33b2::t_4f055d9b4d8024 1385,1391,2099-2100,2185,2204
+  s_ca7d5125ef33b2::t_43c6eb3a86404f 1-2,8-10,582,654,656,756,941,1063-1172,1383-1384,1386-1390,1392-1422,1507,2161,2174,2179-2180
+  s_ca7d5125ef33b2::t_a6c635df60e8d4 997,1002,1006,1010-1011,1014,1019,1022,1026,1036,1038-1040
+Makefile
+  s_ca7d5125ef33b2::t_6742d05e483928 224
+  s_ca7d5125ef33b2::t_644760b363f25e 242-243
+ARCHITECTURE.md
+  s_ca7d5125ef33b2::t_6742d05e483928 20-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ac7c60d64a72d31f82e0835cf13310732f15bd60",
+  "prompts": {},
+  "sessions": {
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
