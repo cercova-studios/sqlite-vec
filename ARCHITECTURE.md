@@ -71,6 +71,24 @@ the requested candidates using original vectors (`ef >= max(128, 4*k)`). Returne
 distances remain L2; indexed neighbor selection is approximate. Small tables and
 tables without a vector index continue to scan exactly.
 
+## Optional search adapter
+
+`examples/search-lab/adapter.py` exposes one host-side `Adapter.call` boundary
+through JSON/JSONL CLI records and local stdio MCP tools. Its Python/MCP
+dependencies are isolated from the C and hybrid builds. Trusted host configuration
+selects the database, native extension, corpus tables and fixed tenant/time scope.
+The adapter loads the extension once per process, disables further loading and
+enforces read-only access with SQLite URI `mode=ro`, `query_only` and an authorizer.
+
+Each operation uses one explicit read transaction. Separate calls may observe
+different commits. Search ranks eligible flat float/L2 vectors with scalar distance
+SQL for deterministic cutoff ties, combines branch ranks with RRF, and fetches
+evidence by stable corpus/document IDs. Traversal reuses distinct-node native BFS
+over a configured edge source after checking its size and endpoint eligibility in
+the same snapshot. Admission limits restrict supported workloads; they do not
+provide hard native memory, work or cancellation budgets. See the adapter
+[contract and runnable example](examples/search-lab/README.md).
+
 ## `vec0`
 
 ### Shadow Tables
