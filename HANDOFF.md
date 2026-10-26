@@ -90,9 +90,13 @@ are estimates only. Unknown constructor options currently fail at connect;
 old numeric point readers lack codec-header checks, so any future compressed
 format must be rejected by unsupported readers before data is accessed.
 
-Report: /tmp/sqlite-vec-metadata-compression-assessment.md
-Benchmark: /tmp/vec-metadata-compression-assess.py
-Raw timing batches/page-length proxies: /tmp/vec-metadata-compression-results.json
+Durable archive (2026-10-26):
+[assessment, scripts and raw receipts](benchmarks-ann/experiments/2026-10-26-metadata-compression/README.md).
+Original files are preserved verbatim with SHA256s; a path-adapted runnable
+benchmark writes fresh output separately. Compression remains unimplemented.
+Archive verification checks hashes, Python syntax, all 30 profiles and 60 codec
+receipts. A fresh replay passes SQLite equality and all 60 roundtrip assertions;
+historical timing values are preserved, not claimed reproduced.
 Measured macOS arm64, Python 3.12.13, SQLite 3.53.1, zlib 1.2.12. Nine timing
 batches of 20 calls after five warmups. No production data, partially filled
 chunks, end-to-end SQL performance/RSS or implementation fault tests. Shared
