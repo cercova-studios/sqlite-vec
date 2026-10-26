@@ -134,6 +134,50 @@ def test_hnsw_batch_flush_failure_rolls_back(db):
     assert _nearest(db, '[2,0]')[0] == 2
 
 
+@pytest.mark.parametrize("fault_column", [0, 1])
+@pytest.mark.parametrize("fault_rowid", [3, 10])
+@pytest.mark.parametrize("action", ["abort", "rollback"])
+def test_hnsw_failed_savepoint_flush_preserves_pending_edges(tmp_path, fault_column, fault_rowid, action):
+    path = tmp_path / "failed-savepoint.db"
+    db = connect(path)
+    db.execute("create virtual table t using vec0("
+               "v float[2] indexed by hnsw(m=4),"
+               "w float[2] indexed by hnsw(m=4))")
+    db.executemany("insert into t(rowid,v,w) values (?,?,?)",
+                   [(i, _f32([i, 0]), _f32([-i, 0])) for i in (1, 2)])
+    db.commit()
+    # Fault injection only: fail an early or a later neighbor write.
+    db.execute(f"create trigger fault before insert on t_hnsw_edges{fault_column:02d} "
+               f"when new.rowid={fault_rowid} begin select raise({action},'edge fault'); end")
+    db.commit()
+    db.executemany("insert into t(rowid,v,w) values (?,?,?)",
+                   [(i, _f32([i, 0]), _f32([-i, 0])) for i in range(3, 41)])
+    with pytest.raises(sqlite3.Error):
+        db.execute("savepoint failed")
+        # SQLite can defer the vtab savepoint callback until its next write.
+        db.execute("insert into t(rowid,v,w) values (50,'[50,0]','[-50,0]')")
+    assert db.in_transaction == (action == "abort")
+    db.execute("drop trigger fault")
+    last = 40 if action == "abort" else 2
+    assert dict(db.execute("select rowid,v from t")) == {i: _f32([i, 0]) for i in range(1, last + 1)}
+    for column, query in [("v", '[20.1,0]'), ("w", '[-20.1,0]')]:
+        expected = [(20,), (21,), (19,)] if action == "abort" else [(2,), (1,)]
+        assert db.execute(f"select rowid from t where {column} match ? and k=3", [query]).fetchall() == expected
+    # Retry a boundary, then roll back later edits through a real savepoint.
+    db.execute("savepoint retry")
+    db.execute("insert into t(rowid,v,w) values (50,'[50,0]','[-50,0]')")
+    db.execute("rollback to retry")
+    db.execute("release retry")
+    assert db.execute("select rowid from t where rowid=50").fetchall() == []
+    db.commit()
+    db.close()
+    db = connect(path)
+    for column, query in [("v", '[20.1,0]'), ("w", '[-20.1,0]')]:
+        expected = [(20,), (21,), (19,)] if action == "abort" else [(2,), (1,)]
+        assert db.execute(f"select rowid from t where {column} match ? and k=3", [query]).fetchall() == expected
+    db.close()
+
+
 def test_hnsw_batch_partial_flush_failure(db):
     db.execute("create virtual table t using vec0(v float[2] indexed by hnsw(m=4))")
     # Fault injection only: shadow-table triggers are not an application API.

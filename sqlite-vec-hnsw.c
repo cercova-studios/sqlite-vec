@@ -315,6 +315,14 @@ static void hnsw_cache_clear_all(vec0_vtab *p) {
   }
 }
 
+static void hnsw_cache_rollback_to(vec0_vtab *p) {
+  // A nested edge-write rollback must retain every column's pending lists.
+  for (int i = 0; i < VEC0_MAX_VECTOR_COLUMNS; i++) {
+    if (p->hnswCache[i] && p->hnswCache[i]->flushing) return;
+  }
+  hnsw_cache_clear_all(p);
+}
+
 static void hnsw_cache_free_all(vec0_vtab *p) {
   hnsw_cache_clear_all(p);
   for (int i = 0; i < VEC0_MAX_VECTOR_COLUMNS; i++) {

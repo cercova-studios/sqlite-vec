@@ -12322,7 +12322,7 @@ static int vec0RollbackTo(sqlite3_vtab *pVTab, int iSavepoint) {
   if (!p->ivfFlushing) ivf_buffer_clear(p);
 #endif
 #if SQLITE_VEC_ENABLE_HNSW
-  hnsw_cache_clear_all(p);  // conservative: the caches refill from SQLite
+  hnsw_cache_rollback_to(p);
 #endif
   return p->storage
              ? vec0_storage_error(p, p->storage->xRollbackTo(p->storageHandle, iSavepoint))

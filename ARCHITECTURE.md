@@ -164,12 +164,16 @@ and when a rebuild finishes. `cache_mb=0` retains immediate neighbor writes.
 The cache budget is checked between operations, so one operation can exceed it.
 
 `xSavepoint` flushes older dirty lists before the new SQLite rollback boundary;
-statement savepoints therefore bound batching too. `xRollback` and
-`xRollbackTo` clear the cache after SQLite restores shadow tables, including
-flushed lists. Flush errors propagate to the caller; a failed `xSync` aborts
-the transaction. Dirty flags are cleared only after the entire cache flush
-succeeds. The pager's data version invalidates cached rows after another
-connection commits. Deleted nodes have their pending lists canceled, so a
+statement savepoints therefore bound batching too. Full transaction rollback
+and ordinary `ROLLBACK TO` clear the cache after SQLite restores shadow tables,
+including flushed lists. A nested edge-write rollback during an active flush
+retains every HNSW column's cache, so retry preserves all pending lists.
+Full rollback always clears caches, including during a flush; cache objects
+remain allocated while their contents are reset. Flush errors propagate to
+the caller; a failed `xSync` aborts the transaction. Dirty flags are cleared
+only after the entire cache flush succeeds. The pager's data version
+invalidates cached rows after another connection commits. Deleted nodes have
+their pending lists canceled, so a
 later flush cannot recreate their edges. This changes write scheduling, not
 the persisted graph format or neighbor-selection algorithm.
 
