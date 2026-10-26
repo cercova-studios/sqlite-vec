@@ -1,0 +1,40 @@
+benchmarks-ann/experiments/2026-10-26-metadata-compression/manifest.json
+  s_676ff82f71e79c::t_f9a1d12ec4d829 6
+  s_676ff82f71e79c::t_ec8d681f902e95 1-5,7-11
+HANDOFF.md
+  s_676ff82f71e79c::t_792fbd050a4adc 93-99
+benchmarks-ann/experiments/2026-10-26-metadata-compression/README.md
+  s_676ff82f71e79c::t_3de9059be05610 1-28
+benchmarks-ann/experiments/2026-10-26-metadata-compression/REPORT.md
+  s_676ff82f71e79c::t_8db1ca4299ae44 1-81
+benchmarks-ann/experiments/2026-10-26-metadata-compression/benchmark.py
+  s_676ff82f71e79c::t_2198dd7f0b82a6 1-64
+benchmarks-ann/experiments/2026-10-26-metadata-compression/recorded/REPORT-original.md
+  s_676ff82f71e79c::t_22c10257515b55 1-81
+benchmarks-ann/experiments/2026-10-26-metadata-compression/recorded/archive-replay.json
+  s_676ff82f71e79c::t_d001dbe59d3a45 1-2571
+benchmarks-ann/experiments/2026-10-26-metadata-compression/recorded/benchmark-original.py
+  s_676ff82f71e79c::t_c9b922ad9682c8 1-60
+benchmarks-ann/experiments/2026-10-26-metadata-compression/recorded/report-original.py
+  s_676ff82f71e79c::t_4c39e866eda360 1-40
+benchmarks-ann/experiments/2026-10-26-metadata-compression/recorded/results.json
+  s_676ff82f71e79c::t_d4ce0bb1ff7c74 1-2628
+benchmarks-ann/experiments/2026-10-26-metadata-compression/verify.py
+  s_676ff82f71e79c::t_0287f7b6055271 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "52d1f144a75b2ce8faeb3c2ce21cc42b15b99c12",
+  "prompts": {},
+  "sessions": {
+    "s_676ff82f71e79c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
