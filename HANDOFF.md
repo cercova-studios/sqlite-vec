@@ -1,5 +1,50 @@
 # Handoff — read this first
 
+## Scoped hybrid retrieval evaluation — completed controlled slice 2026-10-26
+
+The metadata compression archive was committed first in `52d1f14`.
+The requested synthetic retrieval evaluation is now complete and archived in
+[benchmarks-ann/experiments/2026-10-26-scoped-hybrid/README.md](benchmarks-ann/experiments/2026-10-26-scoped-hybrid/README.md).
+Production-corpus relevance and downstream agent usefulness remain unverified.
+No engine/default change, push or CI. Preserve the unrelated HNSW helper edit
+and .claude/ worktrees. The concurrent search-lab commit `d8800a2` changes no
+measured C source/header hashes and remains outside this evaluation.
+
+The evaluation compares vector-only, FTS-only and the existing published RRF
+recipe using sixteen authored procedure records, explicit relevance labels and
+nine queries. Distractors grow from 0 to 1,000/10,000; three insertion orders,
+branch budgets 10/50 and nine timed rounds cover baseline, committed invalidation,
+atomic scope/text/vector replacement and reopen. Flat four-dimensional authored
+vectors isolate recipe behavior; they are not learned production embeddings.
+A separate eligibility model and exhaustive distance/fusion checks validate
+1,944 quality points and 17,496 timed queries. No ineligible or expired/invalidated
+results; reopened IDs equal post-update IDs in every configuration.
+
+Baseline macro recall@10 at zero distractors: hybrid 96.4%, vector 82.1%,
+FTS 61.9%. At 10,000 distractors: hybrid/vector 53.6%, FTS 0% on adversarial
+keyword matches. At 1,000 distractors, increasing hybrid budget 10 -> 50 lowers
+recall 53.6% -> 39.3%. At 10,000/budget 10, pooled median query latency is
+0.66 ms vector, 16.4 ms FTS and 17.0 ms hybrid. These descriptive synthetic
+measurements do not justify new ranking defaults. The unanswerable query still
+returns unrelated vector/hybrid results: nonempty output does not imply usefulness.
+Late global filtering loses all deployment candidates at both nonzero sizes.
+
+Retained raw receipts include result IDs, judgments, wall/CPU timings, insert,
+invalidate/update and FTS-optimize costs, allocated/free pages and final file
+bytes. Source/library/script/fixture/guide hashes and query plans are archived.
+The measured C build uses committed sources at `52d1f14`, excluding the existing
+HNSW edit. Six evaluation tests pass, including pending writes, savepoint/full
+rollback, commit/reopen and four deliberate unsafe-filter mutations. Three
+existing vec_rrf loadable tests pass. Archive verification regenerates metrics;
+full application suites/sanitizers were not rerun for this benchmark-only work.
+
+Recommended next step: a representative labelled corpus and real embeddings,
+with a specified read/write mix. Retain these eligibility/lifecycle checks and
+compare all three baselines. Investigate the filtered FTS query path with plans
+and profiling before proposing a schema or engine optimization. Compression,
+TEXT pruning, broader buffering and Lance version cleanup remain separate scope
+decisions. Keep alpha=1.0; push and CI remain deferred.
+
 ## HNSW alpha experiment — completed 2026-10-26
 
 User requested realistic-dataset recall/QPS comparisons against the current
@@ -552,9 +597,10 @@ Keep RRF; the talk's illustrative weighted scores do not establish a better
 calibration. Application redaction/lifecycle/access policy remains separate from
 these retrieval predicates, and invalidation never deletes Lance recovery data.
 
-Evaluation follow-up (not implemented): compare vector-only, FTS-only and hybrid
-queries under scope/time/status skew, invalidation, updates, growing distractors
-and corpus size. Use independently specified expected records; measure ineligible
+Controlled synthetic evaluation is complete; see the latest entry above.
+The remaining production-corpus follow-up compares vector-only, FTS-only and
+hybrid queries under scope/time/status skew, invalidation, updates, growing
+distractors and corpus size. Use independently specified expected records; measure ineligible
 and stale results, relevant recall, empty-result rate, latency, write/maintenance
 cost and retained bytes. Measure downstream agent outcomes separately only when
 a real workload exists. Synthetic SQL correctness and the current ANN/zone-map

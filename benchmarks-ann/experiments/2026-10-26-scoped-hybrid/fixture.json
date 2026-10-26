@@ -1,0 +1,449 @@
+{
+  "scope": "Authored synthetic relevance: only the sixteen actionable procedure records answer their labelled topic. Distractors are unrelated or ineligible regardless of similarity or keyword match. Vectors are controlled coordinates, not learned embeddings.",
+  "documents": [
+    {
+      "id": 1,
+      "tenant": "ours",
+      "valid_from": 100,
+      "valid_to": 101,
+      "invalidated_at": null,
+      "source_id": "procedure:deploy:0",
+      "body": "deploy procedure. Release the service using the approved rollout procedure.",
+      "vector": [
+        1.02,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "relevant_to": [
+        "deploy"
+      ],
+      "version": 1
+    },
+    {
+      "id": 2,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:deploy:1",
+      "body": "Release the service using the approved rollout procedure.",
+      "vector": [
+        1.04,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "relevant_to": [
+        "deploy"
+      ],
+      "version": 1
+    },
+    {
+      "id": 3,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:deploy:2",
+      "body": "deploy runbook. Release the service using the approved rollout procedure.",
+      "vector": [
+        1.06,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "relevant_to": [
+        "deploy"
+      ],
+      "version": 1
+    },
+    {
+      "id": 4,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:deploy:3",
+      "body": "deploy reference checklist. Release the service using the approved rollout procedure.",
+      "vector": [
+        3.5,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "relevant_to": [
+        "deploy"
+      ],
+      "version": 1
+    },
+    {
+      "id": 5,
+      "tenant": "ours",
+      "valid_from": 100,
+      "valid_to": 101,
+      "invalidated_at": null,
+      "source_id": "procedure:rotate:0",
+      "body": "rotate procedure. Replace the credential and revoke the previous secret.",
+      "vector": [
+        0.0,
+        1.02,
+        0.0,
+        0.0
+      ],
+      "relevant_to": [
+        "rotate"
+      ],
+      "version": 1
+    },
+    {
+      "id": 6,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:rotate:1",
+      "body": "Replace the credential and revoke the previous secret.",
+      "vector": [
+        0.0,
+        1.04,
+        0.0,
+        0.0
+      ],
+      "relevant_to": [
+        "rotate"
+      ],
+      "version": 1
+    },
+    {
+      "id": 7,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:rotate:2",
+      "body": "rotate runbook. Replace the credential and revoke the previous secret.",
+      "vector": [
+        0.0,
+        1.06,
+        0.0,
+        0.0
+      ],
+      "relevant_to": [
+        "rotate"
+      ],
+      "version": 1
+    },
+    {
+      "id": 8,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:rotate:3",
+      "body": "rotate reference checklist. Replace the credential and revoke the previous secret.",
+      "vector": [
+        0.0,
+        3.5,
+        0.0,
+        0.0
+      ],
+      "relevant_to": [
+        "rotate"
+      ],
+      "version": 1
+    },
+    {
+      "id": 9,
+      "tenant": "ours",
+      "valid_from": 100,
+      "valid_to": 101,
+      "invalidated_at": null,
+      "source_id": "procedure:refund:0",
+      "body": "refund procedure. Return the customer payment after checking the receipt.",
+      "vector": [
+        0.0,
+        0.0,
+        1.02,
+        0.0
+      ],
+      "relevant_to": [
+        "refund"
+      ],
+      "version": 1
+    },
+    {
+      "id": 10,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:refund:1",
+      "body": "Return the customer payment after checking the receipt.",
+      "vector": [
+        0.0,
+        0.0,
+        1.04,
+        0.0
+      ],
+      "relevant_to": [
+        "refund"
+      ],
+      "version": 1
+    },
+    {
+      "id": 11,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:refund:2",
+      "body": "refund runbook. Return the customer payment after checking the receipt.",
+      "vector": [
+        0.0,
+        0.0,
+        1.06,
+        0.0
+      ],
+      "relevant_to": [
+        "refund"
+      ],
+      "version": 1
+    },
+    {
+      "id": 12,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:refund:3",
+      "body": "refund reference checklist. Return the customer payment after checking the receipt.",
+      "vector": [
+        0.0,
+        0.0,
+        3.5,
+        0.0
+      ],
+      "relevant_to": [
+        "refund"
+      ],
+      "version": 1
+    },
+    {
+      "id": 13,
+      "tenant": "ours",
+      "valid_from": 100,
+      "valid_to": 101,
+      "invalidated_at": null,
+      "source_id": "procedure:backup:0",
+      "body": "backup procedure. Create a recoverable copy and verify restoration.",
+      "vector": [
+        0.0,
+        0.0,
+        0.0,
+        1.02
+      ],
+      "relevant_to": [
+        "backup"
+      ],
+      "version": 1
+    },
+    {
+      "id": 14,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:backup:1",
+      "body": "Create a recoverable copy and verify restoration.",
+      "vector": [
+        0.0,
+        0.0,
+        0.0,
+        1.04
+      ],
+      "relevant_to": [
+        "backup"
+      ],
+      "version": 1
+    },
+    {
+      "id": 15,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:backup:2",
+      "body": "backup runbook. Create a recoverable copy and verify restoration.",
+      "vector": [
+        0.0,
+        0.0,
+        0.0,
+        1.06
+      ],
+      "relevant_to": [
+        "backup"
+      ],
+      "version": 1
+    },
+    {
+      "id": 16,
+      "tenant": "ours",
+      "valid_from": 0,
+      "valid_to": null,
+      "invalidated_at": null,
+      "source_id": "procedure:backup:3",
+      "body": "backup reference checklist. Create a recoverable copy and verify restoration.",
+      "vector": [
+        0.0,
+        0.0,
+        0.0,
+        3.5
+      ],
+      "relevant_to": [
+        "backup"
+      ],
+      "version": 1
+    }
+  ],
+  "queries": [
+    {
+      "name": "deploy",
+      "tenant": "ours",
+      "as_of": 100,
+      "q_vec": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "q_text": "deploy",
+      "judgment": "How do we ship the service?",
+      "topic": "deploy"
+    },
+    {
+      "name": "rotate",
+      "tenant": "ours",
+      "as_of": 100,
+      "q_vec": [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "q_text": "rotate",
+      "judgment": "How do we replace a credential?",
+      "topic": "rotate"
+    },
+    {
+      "name": "refund",
+      "tenant": "ours",
+      "as_of": 100,
+      "q_vec": [
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "q_text": "refund",
+      "judgment": "How do we return a payment?",
+      "topic": "refund"
+    },
+    {
+      "name": "backup",
+      "tenant": "ours",
+      "as_of": 100,
+      "q_vec": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "q_text": "backup",
+      "judgment": "How do we preserve recoverable data?",
+      "topic": "backup"
+    },
+    {
+      "name": "before-start",
+      "tenant": "ours",
+      "as_of": 99,
+      "q_vec": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "q_text": "deploy",
+      "judgment": "How do we ship the service?",
+      "topic": "deploy"
+    },
+    {
+      "name": "at-expiry",
+      "tenant": "ours",
+      "as_of": 101,
+      "q_vec": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "q_text": "deploy",
+      "judgment": "How do we ship the service?",
+      "topic": "deploy"
+    },
+    {
+      "name": "no-keyword-match",
+      "tenant": "ours",
+      "as_of": 100,
+      "q_vec": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "q_text": "unfindabletoken",
+      "judgment": "How do we preserve recoverable data?",
+      "topic": "backup"
+    },
+    {
+      "name": "absent-tenant",
+      "tenant": "absent",
+      "as_of": 100,
+      "q_vec": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "q_text": "deploy",
+      "judgment": "How do we ship the service?",
+      "topic": "deploy"
+    },
+    {
+      "name": "unanswerable",
+      "tenant": "ours",
+      "as_of": 100,
+      "q_vec": [
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0
+      ],
+      "q_text": "evacuate",
+      "topic": "evacuate",
+      "judgment": "Where are the emergency evacuation assembly points? No record answers this question."
+    }
+  ],
+  "invalidate_id": 1,
+  "update_id": 4,
+  "update": {
+    "body": "Replaced by an unrelated cafeteria schedule.",
+    "vector": [
+      -4.0,
+      -4.0,
+      -4.0,
+      -4.0
+    ],
+    "relevant_to": []
+  }
+}

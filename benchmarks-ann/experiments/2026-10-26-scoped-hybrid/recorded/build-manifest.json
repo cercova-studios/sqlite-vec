@@ -1,0 +1,32 @@
+{
+  "head": "52d1f144a75b2ce8faeb3c2ce21cc42b15b99c12",
+  "command": [
+    "cc",
+    "-fPIC",
+    "-shared",
+    "-Wall",
+    "-Wextra",
+    "-O3",
+    "-mcpu=apple-m1",
+    "-DSQLITE_VEC_ENABLE_NEON",
+    "-I/Users/rohit/sandbox/sqlite-vec/vendor",
+    "/tmp/sqlite-vec-scoped-hybrid-build/sqlite-vec.c",
+    "-o",
+    "/tmp/sqlite-vec-scoped-hybrid-build/vec0.dylib"
+  ],
+  "compiler": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin\n",
+  "build_stderr": "In file included from /tmp/sqlite-vec-scoped-hybrid-build/sqlite-vec.c:4652:\n/tmp/sqlite-vec-scoped-hybrid-build/sqlite-vec-diskann.c:1016:30: warning: unused parameter 'p_vector' [-Wunused-parameter]\n 1016 |     i64 p_rowid, const void *p_vector,\n      |                              ^\n1 warning generated.\n",
+  "source_hashes": {
+    "sqlite-vec-ivf-kmeans.c": "50cd3ecc0fd0b5b75900821e2b9d1a4d1157da589c39bd1faa8749e047d8fc14",
+    "sqlite-vec-ivf.c": "d641618ffeea44995b79ea4e36eaf15afce07360ec71c5f5cabe351ca44f36b3",
+    "sqlite-vec.h": "08fb326d1bbc9020158d3fdadb97a7c0e9a327a3cef21517b88d84089979a8e9",
+    "sqlite-vec-hnsw.c": "db58bf6098f5dbc46beb48810f4ea2929ae71b1ff640c8344d604ff250a252f7",
+    "sqlite-vec-rescore.c": "23036fcde5734629393cef009e21b1b18fd41e27d29a1859805555e147146cb2",
+    "sqlite-vec-graph.c": "2f7049404ec60ba2b90aff5c9f6f21cbf5feb416e128741f74f4c776503d1b35",
+    "sqlite-vec.c": "01f601e658d1ecaf787d2d6918417143bfa23f223e6902cee509a7e7c98cfa36",
+    "sqlite-vec-sparse.c": "f30f5adcfa58a36a756573f6c53681341d358cb5b368b75488e7538725d2fc27",
+    "sqlite-vec-diskann.c": "21a4c05f65c2bce498e8b5e729e18b8f64b70b5b805513e2bae346cf92481882"
+  },
+  "working_diff_excluded": "diff --git a/ARCHITECTURE.md b/ARCHITECTURE.md\nindex e34772d..95ad226 100644\n--- a/ARCHITECTURE.md\n+++ b/ARCHITECTURE.md\n@@ -71,6 +71,24 @@ the requested candidates using original vectors (`ef >= max(128, 4*k)`). Returne\n distances remain L2; indexed neighbor selection is approximate. Small tables and\n tables without a vector index continue to scan exactly.\n \n+## Optional search adapter\n+\n+`examples/search-lab/adapter.py` exposes one host-side `Adapter.call` boundary\n+through JSON/JSONL CLI records and local stdio MCP tools. Its Python/MCP\n+dependencies are isolated from the C and hybrid builds. Trusted host configuration\n+selects the database, native extension, corpus tables and fixed tenant/time scope.\n+The adapter loads the extension once per process, disables further loading and\n+enforces read-only access with SQLite URI `mode=ro`, `query_only` and an authorizer.\n+\n+Each operation uses one explicit read transaction. Separate calls may observe\n+different commits. Search ranks eligible flat float/L2 vectors with scalar distance\n+SQL for deterministic cutoff ties, combines branch ranks with RRF, and fetches\n+evidence by stable corpus/document IDs. Traversal reuses distinct-node native BFS\n+over a configured edge source after checking its size and endpoint eligibility in\n+the same snapshot. Admission limits restrict supported workloads; they do not\n+provide hard native memory, work or cancellation budgets. See the adapter\n+[contract and runnable example](examples/search-lab/README.md).\n+\n ## `vec0`\n \n ### Shadow Tables\ndiff --git a/sqlite-vec-hnsw.c b/sqlite-vec-hnsw.c\nindex d382771..286514f 100644\n--- a/sqlite-vec-hnsw.c\n+++ b/sqlite-vec-hnsw.c\n@@ -990,8 +990,7 @@ static int hnsw_drop_shadow_tables(vec0_vtab *p, int col) {\n // ============================================================================\n \n static int hnsw_allowed(struct HnswCtx *x, const struct Array *a, int32_t idx) {\n-  i64 rowid = x->c->rowid[idx];\n-  return !a || bsearch(&rowid, a->z, a->length, sizeof(i64), _cmp) != NULL;\n+  return vec0_rowids_contains(a, x->c->rowid[idx]);\n }\n \n static void hnsw_visit_reset(struct HnswCache *c) {\n",
+  "extension_sha256": "ce5ffef0b0284473dbc3e1533e5cd061d62f7d12b88b60e01591a09d32ca1193"
+}
