@@ -1,0 +1,30 @@
+site/guides/hybrid-search.md
+  s_ca7d5125ef33b2::t_3aa69d3e9ccf9a 47-111
+tests/test-loadable.py
+  s_ca7d5125ef33b2::t_3aa69d3e9ccf9a 10,2640-2692
+  s_db9adde6125bd5::t_49101936d012ba 2693-2694
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "934889374537fdc0ef375bac79082eb471882822",
+  "prompts": {},
+  "sessions": {
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_db9adde6125bd5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12e31-44b0-78c2-9ebc-d2dc42b645d3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
