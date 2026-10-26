@@ -1,0 +1,53 @@
+benchmarks-ann/README.md
+  s_ca7d5125ef33b2::t_3b2f926bc7f40b 3-22
+sqlite-vec.c
+  s_ca7d5125ef33b2::t_f5e948db70093f 4383,4388,4539,4575-4577,4580-4582
+  s_ca7d5125ef33b2::t_3ae1831c053733 4385,12318-12319
+  s_ca7d5125ef33b2::t_3b6cfd35947714 4384
+  s_ca7d5125ef33b2::t_14075937cb4ab3 4387
+  s_ca7d5125ef33b2::t_30ce9d5b71dd76 9947-9950,12264-12267,12285-12287,12296-12299,12317,12320,12337-12340
+tests/test-ivf-mutations.py
+  s_ca7d5125ef33b2::t_a2e21dfa4277b0 24,31,38
+tests/test-ivf-batch.py
+  s_ca7d5125ef33b2::t_bcecda1ac2b752 37,83-134,140-177
+  s_ca7d5125ef33b2::t_921b4119ae47ac 1-2,4-15,17,19-36,38-50
+  s_ca7d5125ef33b2::t_220b21a9a187bf 3,178-179,197-248,252-259
+  s_ca7d5125ef33b2::t_0482f593002e8f 16,18
+  s_ca7d5125ef33b2::t_06145a0ee2b866 180-196
+  s_ca7d5125ef33b2::t_076397c48c088c 249-251
+  s_ca7d5125ef33b2::t_430015c2c8d350 53,64-65,72,135-139
+  s_ca7d5125ef33b2::t_ea166a4ed8d15b 61,68-71
+  s_ca7d5125ef33b2::t_57d75d507220a7 51-52,54-60,62-63,66-67,73-82
+ARCHITECTURE.md
+  s_ca7d5125ef33b2::t_bb80e37c5acf66 175-199
+sqlite-vec-ivf.c
+  s_ca7d5125ef33b2::t_576f68e893a178 537-549,551-553,560,563-576,582-597,599-602,606-654,656-663,1890
+  s_ca7d5125ef33b2::t_7bcd0a96322f4c 603
+  s_ca7d5125ef33b2::t_3e2ed1650ed44a 699-702,704-706,708,710-711,715-721,724-725,730,740-741,743-749,756
+  s_ca7d5125ef33b2::t_6cdcba3555c344 550,554-559,561-562,577-579,581,598,604-605
+  s_ca7d5125ef33b2::t_8a429c9308bd77 936-937,939-942,1177
+  s_ca7d5125ef33b2::t_bd90f3d61b11b0 580
+  s_ca7d5125ef33b2::t_b5f3e4efbcffbb 655,695,698,703,709,726,737
+  s_ca7d5125ef33b2::t_3970b3a7886006 1014-1015,1832,1884-1889
+  s_ca7d5125ef33b2::t_48ce3f6299aa81 1891
+tests/test-ivf.py
+  s_ca7d5125ef33b2::t_3d75e04f401a0d 21,29,37
+benchmarks-ann/ivf-batch.py
+  s_ca7d5125ef33b2::t_79bb4e8b9cf9c1 1-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f734136c69ffc81f853545761949c585c2c3518",
+  "prompts": {},
+  "sessions": {
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
