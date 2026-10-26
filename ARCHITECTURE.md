@@ -177,6 +177,19 @@ the persisted graph format or neighbor-selection algorithm.
 shadow-table savepoint before this callback, so it is too late for a fallible
 flush there. Opening a new savepoint flushes prior edits before that boundary.
 
+### DiskANN search visits
+
+`diskann_search` bounds its candidate list by the search-list size, but can
+visit more unique nodes than that size. Its per-search `DiskannVisitedSet`
+grows when half full and retains every visited rowid, including zero. Search
+records a visit before reading the node's edges, so dropped candidates and
+missing nodes cannot cause repeated expansion.
+
+Visited-set memory grows with unique visits. Resizing temporarily holds both
+slot arrays; allocation failure returns `SQLITE_NOMEM` and frees the search
+state. Failed growth leaves the existing set intact. This state is local to
+one search and does not change the persisted graph format or SQL options.
+
 ### Flat-vector write batching
 
 For vector columns stored in `xyz_vector_chunksNN`, `Vec0FlatWrite` buffers

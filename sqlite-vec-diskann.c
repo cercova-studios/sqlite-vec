@@ -694,13 +694,18 @@ struct DiskannVisitedSet {
   i64 *slots;
   int capacity;
   int count;
+  int has_zero;
 };
 
 static int diskann_visited_set_init(struct DiskannVisitedSet *set, int capacity) {
+  memset(set, 0, sizeof(*set));
   // Round up to power of 2
   int cap = 16;
-  while (cap < capacity) cap *= 2;
-  set->slots = sqlite3_malloc(cap * sizeof(i64));
+  while (cap < capacity) {
+    if (cap > INT_MAX / 2) return SQLITE_NOMEM;
+    cap *= 2;
+  }
+  set->slots = sqlite3_malloc64((sqlite3_uint64)cap * sizeof(i64));
   if (!set->slots) return SQLITE_NOMEM;
   memset(set->slots, 0, cap * sizeof(i64));
   set->capacity = cap;
@@ -713,10 +718,11 @@ static void diskann_visited_set_free(struct DiskannVisitedSet *set) {
   set->slots = NULL;
   set->capacity = 0;
   set->count = 0;
+  set->has_zero = 0;
 }
 
 static int diskann_visited_set_contains(const struct DiskannVisitedSet *set, i64 rowid) {
-  if (rowid == 0) return 0;  // 0 is our sentinel for empty
+  if (rowid == 0) return set->has_zero;
   int mask = set->capacity - 1;
   int idx = (int)(((u64)rowid * 0x9E3779B97F4A7C15ULL) >> 32) & mask;
   for (int i = 0; i < set->capacity; i++) {
@@ -727,8 +733,32 @@ static int diskann_visited_set_contains(const struct DiskannVisitedSet *set, i64
   return 0;
 }
 
+// Returns 1 for a new visit, 0 for a duplicate, -1 on allocation failure.
 static int diskann_visited_set_insert(struct DiskannVisitedSet *set, i64 rowid) {
-  if (rowid == 0) return 0;
+  if (rowid == 0) {
+    if (set->has_zero) return 0;
+    set->has_zero = 1;
+    set->count++;
+    return 1;
+  }
+  if (diskann_visited_set_contains(set, rowid)) return 0;
+  if (set->count >= set->capacity / 2) {
+    if (set->capacity > INT_MAX / 2) return -1;
+    int capacity = set->capacity * 2;
+    i64 *slots = sqlite3_malloc64((sqlite3_uint64)capacity * sizeof(i64));
+    if (!slots) return -1;
+    memset(slots, 0, (size_t)capacity * sizeof(i64));
+    for (int i = 0; i < set->capacity; i++) {
+      i64 entry = set->slots[i];
+      if (entry == 0) continue;
+      int idx = (int)(((u64)entry * 0x9E3779B97F4A7C15ULL) >> 32) & (capacity - 1);
+      while (slots[idx] != 0) idx = (idx + 1) & (capacity - 1);
+      slots[idx] = entry;
+    }
+    sqlite3_free(set->slots);
+    set->slots = slots;
+    set->capacity = capacity;
+  }
   int mask = set->capacity - 1;
   int idx = (int)(((u64)rowid * 0x9E3779B97F4A7C15ULL) >> 32) & mask;
   for (int i = 0; i < set->capacity; i++) {
@@ -740,7 +770,7 @@ static int diskann_visited_set_insert(struct DiskannVisitedSet *set, i64 rowid) 
     }
     if (set->slots[slot] == rowid) return 0;  // Already there
   }
-  return 0;  // Full (shouldn't happen with proper sizing)
+  return -1;
 }
 
 // ============================================================
@@ -801,7 +831,7 @@ static int diskann_search(
   if (rc != SQLITE_OK) return rc;
 
   struct DiskannVisitedSet visited;
-  rc = diskann_visited_set_init(&visited, searchListSize * 4);
+  rc = diskann_visited_set_init(&visited, searchListSize);
   if (rc != SQLITE_OK) {
     diskann_candidate_list_free(&candidates);
     return rc;
@@ -829,6 +859,12 @@ static int diskann_search(
     struct Vec0DiskannCandidate *current = &candidates.items[nextIdx];
     current->visited = 1;
     i64 currentRowid = current->rowid;
+    int inserted = diskann_visited_set_insert(&visited, currentRowid);
+    if (inserted < 0) {
+      rc = SQLITE_NOMEM;
+      goto cleanup;
+    }
+    if (!inserted) continue;
 
     // Read the node's neighbor data
     u8 *validity = NULL, *neighborIds = NULL, *qvecs = NULL;
@@ -862,9 +898,6 @@ static int diskann_search(
     sqlite3_free(validity);
     sqlite3_free(neighborIds);
     sqlite3_free(qvecs);
-
-    // Add to visited set
-    diskann_visited_set_insert(&visited, currentRowid);
 
     // Paper line 13: Re-rank p* using full-precision distance
     // We already have exact distance for medoid; for others, update now
@@ -903,10 +936,12 @@ static int diskann_search(
   }
   *outCount = resultCount;
 
+  rc = SQLITE_OK;
+cleanup:
   sqlite3_free(queryQuantized);
   diskann_candidate_list_free(&candidates);
   diskann_visited_set_free(&visited);
-  return SQLITE_OK;
+  return rc;
 }
 
 // ============================================================

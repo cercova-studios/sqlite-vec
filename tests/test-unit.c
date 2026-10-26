@@ -2026,14 +2026,48 @@ void test_diskann_visited_set_operations() {
   assert(_test_diskann_visited_set_contains(&set, 999) == 1);
   assert(_test_diskann_visited_set_contains(&set, 3) == 0);
 
-  // Sentinel value (rowid 0) should not be insertable
+  // SQLite rowid zero must be tracked like every other rowid.
   assert(_test_diskann_visited_set_contains(&set, 0) == 0);
   inserted = _test_diskann_visited_set_insert(&set, 0);
-  assert(inserted == 0);
+  assert(inserted == 1);
+  assert(_test_diskann_visited_set_contains(&set, 0) == 1);
+  assert(_test_diskann_visited_set_insert(&set, 0) == 0);
+
+  // Searches can visit more unique nodes than their beam size.
+  for (i64 i = -1000; i < 1000; i++) {
+    _test_diskann_visited_set_insert(&set, i);
+  }
+  for (i64 i = -1000; i < 1000; i++) {
+    assert(_test_diskann_visited_set_contains(&set, i) == 1);
+    assert(_test_diskann_visited_set_insert(&set, i) == 0);
+  }
+  assert(_test_diskann_visited_set_insert(&set, INT64_MIN) == 1);
+  assert(_test_diskann_visited_set_insert(&set, INT64_MAX) == 1);
+  assert(_test_diskann_visited_set_contains(&set, INT64_MIN) == 1);
+  assert(_test_diskann_visited_set_contains(&set, INT64_MAX) == 1);
 
   _test_diskann_visited_set_free(&set);
 
   printf("  All diskann_visited_set_operations tests passed.\n");
+}
+
+void test_diskann_visited_set_allocation_failure() {
+  printf("Starting %s...\n", __func__);
+  struct DiskannVisitedSet set;
+  assert(diskann_visited_set_init(&set, 16) == SQLITE_OK);
+  // Fill to the growth boundary, then deny the next allocation.
+  for (int i = 1; i <= 8; i++) assert(diskann_visited_set_insert(&set, i) == 1);
+  sqlite3_int64 oldLimit = sqlite3_hard_heap_limit64(sqlite3_memory_used());
+  int duplicate = diskann_visited_set_insert(&set, 1);
+  int inserted = diskann_visited_set_insert(&set, 9);
+  sqlite3_hard_heap_limit64(oldLimit);
+  assert(inserted < 0);
+  assert(duplicate == 0);
+  for (int i = 1; i <= 8; i++) assert(diskann_visited_set_contains(&set, i));
+  assert(!diskann_visited_set_contains(&set, 9));
+  assert(diskann_visited_set_insert(&set, 9) == 1);
+  diskann_visited_set_free(&set);
+  assert(diskann_visited_set_init(&set, INT_MAX) == SQLITE_NOMEM);
 }
 
 void test_diskann_prune_select_single_candidate() {
@@ -2198,6 +2232,7 @@ int main() {
   test_diskann_quantize_binary_all_negative();
   test_diskann_candidate_list_operations();
   test_diskann_visited_set_operations();
+  test_diskann_visited_set_allocation_failure();
   test_diskann_prune_select_single_candidate();
   test_diskann_prune_select_all_identical_distances();
   test_diskann_prune_select_max_neighbors_1();

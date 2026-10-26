@@ -1,7 +1,59 @@
 import sqlite3
 import struct
+import subprocess
+import sys
+from pathlib import Path
 import pytest
 from helpers import _f32, _int8, exec
+
+
+@pytest.mark.parametrize("beam", [8, 128])
+@pytest.mark.parametrize("first_rowid", [1, 0, -500])
+def test_diskann_search_remembers_visits_beyond_beam(beam, first_rowid, tmp_path):
+    """A full visited set must not let evicted candidates loop forever."""
+    # A child deadline can stop a C loop that never returns to SQLite/Python.
+    result = subprocess.run(
+        [sys.executable, "-c", r'''
+import math, random, sqlite3, struct, sys
+library, beam, first, path = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
+rng = random.Random(42)
+for _ in range(64): rng.gauss(0, 1)
+vectors = [[rng.gauss(0, 1) for _ in range(8)] for _ in range(1000)]
+def connect(path):
+    db = sqlite3.connect(path)
+    db.enable_load_extension(True)
+    db.load_extension(library)
+    return db
+db = connect(path)
+db.execute(f"create virtual table t using vec0(v float[8] indexed by diskann(neighbor_quantizer=binary, search_list_size={beam}))")
+for i, vector in enumerate(vectors):
+    db.execute("insert into t(rowid,v) values (?,?)", (first+i, struct.pack("8f", *vector)))
+assert db.execute("select count(*) from t").fetchone()[0] == 1000
+db.commit()
+db.execute("savepoint extra")
+db.execute("insert into t(rowid,v) values (?,?)", (first+1000, struct.pack("8f", *vectors[0])))
+db.execute("rollback to extra")
+db.execute("release extra")
+db.close()
+db = connect(path)
+assert db.execute("select count(*) from t").fetchone()[0] == 1000
+query = struct.pack("8f", *vectors[50])
+rows = db.execute("select rowid, distance from t where v match ? and k=10", (query,)).fetchall()
+assert 1 <= len(rows) <= 10
+assert len({row[0] for row in rows}) == len(rows)
+assert [row[1] for row in rows] == sorted(row[1] for row in rows)
+q = struct.unpack("8f", query)
+for rowid, distance in rows:
+    vector = struct.unpack("8f", struct.pack("8f", *vectors[rowid-first]))
+    expected = math.sqrt(sum((a-b)**2 for a,b in zip(q, vector)))
+    assert math.isclose(distance, expected, rel_tol=2e-5, abs_tol=2e-5), (distance, expected)
+db.close()
+''', str(Path("dist/vec0").resolve()), str(beam), str(first_rowid), str(tmp_path / "vectors.db")],
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_diskann_create_basic(db):
