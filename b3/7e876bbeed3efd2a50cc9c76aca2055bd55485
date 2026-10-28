@@ -1,0 +1,90 @@
+examples/search-lab/.gitignore
+  s_70b027a60d4a55::t_916a5ea398a590 4
+ARCHITECTURE.md
+  s_70b027a60d4a55::t_f0ad97c6d6b56c 76-80,83-85
+examples/search-lab/pyproject.toml
+  s_70b027a60d4a55::t_b10fe2f9802061 4,6,9
+examples/search-lab/experiments/2026-10-27-rust-port/VALIDATION.md
+  s_70b027a60d4a55::t_eaed6b61772cdb 1,3-6,8,10-11,14-22,30-110
+examples/search-lab/measure.py
+  s_70b027a60d4a55::t_2d3c7326db8eee 1,15-17,19-22,25-27,31,33,35,37-45,47-48,50-51,53-65,68-70,73-74,76-77,79,81-83,87-89
+examples/search-lab/src/tool-arguments.json
+  s_528e6b3f95df22::t_e8e597318fc927 1-86
+examples/search-lab/experiments/2026-10-27-rust-port/measurements.json
+  s_528e6b3f95df22::t_3c2badc6304008 4,6-25,27-28,31,33,35-52,54-55,58,60-79,81-82,85,87-106,108-109,112-113,115,117,119-138,140-141,144,146-165,167-168,171,173-192,194-195,198,200-219,221-222,225-226,228,232-234,236-243
+examples/search-lab/src/main.rs
+  s_70b027a60d4a55::t_555ce1c09d679e 62-67
+  s_70b027a60d4a55::t_a4179131579d8e 5-8,12,22,31,34-35,40-43,81-83,85,92-94
+  s_676ff82f71e79c::t_7ae475463234a8 1-4,9-11,13-17,23-30,32-33,36-39,44-49,51-60,70-80,84,86-91
+  s_70b027a60d4a55::t_6a8f99eb76512a 18-21
+  s_70b027a60d4a55::t_71cb69f9ae6ad9 61
+  s_70b027a60d4a55::t_acfbb3c8a16c44 50,68-69
+examples/search-lab/Cargo.toml
+  s_70b027a60d4a55::t_e185df3632d0a5 1-6,8-12,16-18
+  s_70b027a60d4a55::t_3ec50c0c090ced 7,13-15
+examples/search-lab/test_adapter.py
+  s_70b027a60d4a55::t_f6fbfc67c2b75b 11,29,97-98,119,133-134,203-207,211-214,223,228-229,249,257,265-267,269-271,296,311
+  s_70b027a60d4a55::t_71cb69f9ae6ad9 315-323
+  s_70b027a60d4a55::t_9a6d768406c176 127
+  s_70b027a60d4a55::t_eaed6b61772cdb 324-329
+examples/search-lab/rust_test_client.py
+  s_70b027a60d4a55::t_f6fbfc67c2b75b 1-7,9-34
+  s_70b027a60d4a55::t_f0ad97c6d6b56c 8
+examples/search-lab/src/tests.rs
+  s_70b027a60d4a55::t_082ad0c9f7b2b5 1,10,17-18,24,37,42-48,52,65-67,74-77,91,102,107,112-116,121,128,131-134,142,148-152,181-184,187,202,208,210-213,230-233,248-252,268
+  s_676ff82f71e79c::t_7ae475463234a8 2-9,11-16,19-23,25-36,38-41,49-51,53-64,68-73,78-90,92-101,103-106,108-111,117-120,122-127,129-130,135-141,143-147,153-159,164-180,185-186,188-193,203-207,209,214-229,234-247,253-267
+  s_528e6b3f95df22::t_d14cd1d4bc4cfc 161-162,195-197
+  s_70b027a60d4a55::t_d1315c43dd0ca7 160,163,194,198-201
+examples/search-lab/README.md
+  s_70b027a60d4a55::t_f0ad97c6d6b56c 5-7,14-18,21-22,25,49,135-136,177-179,186-188,194-196
+examples/search-lab/test_graph_semantics.py
+  s_70b027a60d4a55::t_f6fbfc67c2b75b 272,293-295
+  s_70b027a60d4a55::t_3ec50c0c090ced 3,11-13,300-345
+examples/search-lab/src/lib.rs
+  s_528e6b3f95df22::t_d14cd1d4bc4cfc 462-464
+  s_70b027a60d4a55::t_d1315c43dd0ca7 465
+  s_70b027a60d4a55::t_082ad0c9f7b2b5 754-756
+  s_70b027a60d4a55::t_916a5ea398a590 1-2,4-5,12-24,29,36,40-41,45-49,52,65,70,75-77,86,89-90,107-109,120-125,132,142,146,151-156,177-180,186,203,221,245-248,251-252,264-265,278-280,300,318,320-325,328,371,400-401,412-414,421-427,480,490-494,583,595-596,598,615,621,624-625,628-629,637-638,644,648-649,666,675,688,695-696,707,710-712,715,718,729,751-753
+  s_70b027a60d4a55::t_71cb69f9ae6ad9 50-51
+  s_676ff82f71e79c::t_7ae475463234a8 3,6-11,25-28,30-35,37-39,42-44,53-64,66-69,71-74,78-85,87-88,91-106,110-119,126-131,133-141,143-145,147-150,157-176,181-185,188-190,204-220,222-244,249-250,253-263,266-277,281-299,301-317,319,326-327,329-370,372-399,402-411,415-420,428-461,466-479,481-489,495-582,584-594,597,599-614,616-620,622-623,626-627,630-636,639-643,645-647,650-665,667-674,676-687,689-694,697-706,708-709,713-714,716-717,719-728,730-750
+  s_70b027a60d4a55::t_a4179131579d8e 187,191-195,198,200-202
+  s_70b027a60d4a55::t_653063cc03a9df 196-197,199
+examples/search-lab/graph-semantics.md
+  s_70b027a60d4a55::t_f0ad97c6d6b56c 3-5,8,136
+examples/search-lab/Cargo.lock
+  s_528e6b3f95df22::t_5efb8cb72a766a 1-876
+examples/search-lab/uv.lock
+  s_528e6b3f95df22::t_e67c0aa2e3ba9c 701,708-711
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b37e876bbeed3efd2a50cc9c76aca2055bd55485",
+  "prompts": {},
+  "sessions": {
+    "s_528e6b3f95df22": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_676ff82f71e79c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
