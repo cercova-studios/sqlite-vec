@@ -2,24 +2,27 @@
 
 Search a small SQLite corpus, expand related nodes, and fetch evidence through
 the same read-only operations in a JSON/JSONL CLI or a local stdio MCP server.
-The optional Python adapter loads this fork's native extension. It runs no model
-or embedding service.
+The optional Rust binary loads this fork's native extension and bundles SQLite.
+It runs without a Python installation, model or embedding service. Python tools
+generate the fixture and run independent tests.
 
 For graph identity, minimum-hop behavior and reusable conformance fixtures, see
 the [graph semantics contract](graph-semantics.md).
 
 ## Run the fixture
 
-Run these commands from the repository root on a machine with `uv`, Python 3.12
-with SQLite extension loading, and a built `dist/vec0` library. `make loadable`
-builds the library; use its actual `.dylib` or `.so` path. Managed Python 3.12
-worked on macOS arm64; Apple's system Python did not expose extension loading.
+Run these commands from the repository root with Cargo, a C compiler, `uv`, and a
+built `dist/vec0` library. `make loadable` builds the native extension; use its
+actual `.dylib` or `.so` path. The adapter loads that library directly. The fixture
+generator also needs a Python SQLite binding with extension loading; managed
+Python 3.12 worked on macOS arm64. Apple's system Python lacked that capability.
 
 ```sh
-uv sync --project examples/search-lab --locked
+cargo build --release --locked --manifest-path examples/search-lab/Cargo.toml
+uv sync --project examples/search-lab --locked --group dev
 uv run --project examples/search-lab python examples/search-lab/fixture.py \
   /tmp/search-lab-demo --extension dist/vec0.dylib
-uv run --project examples/search-lab python examples/search-lab/adapter.py \
+examples/search-lab/target/release/sqlite-vec-search-lab \
   --config /tmp/search-lab-demo/config.json cli <<'JSON'
 {"op":"describe","corpus":"demo"}
 {"op":"search","corpus":"demo","args":{"text":"deploy","vector":[0,0],"candidates":3,"limit":3}}
@@ -43,7 +46,7 @@ startup failure. Startup errors go to stderr. It retains one connection until EO
 Configure a local MCP host to start this command, using absolute paths in the host:
 
 ```sh
-uv run --project examples/search-lab python examples/search-lab/adapter.py \
+examples/search-lab/target/release/sqlite-vec-search-lab \
   --config /tmp/search-lab-demo/config.json mcp
 ```
 
@@ -129,8 +132,8 @@ select any configured corpus. The local host must control which users/processes
 can launch it and protect config/database files. There is no remote endpoint or
 per-caller authorization service. Requests cannot select files, extensions or SQL.
 
-SQLite opens the database with URI `mode=ro`. After native loading, extension
-loading is disabled, `query_only` is enabled, and an authorizer rejects writes,
+SQLite opens the database with `SQLITE_OPEN_READ_ONLY`. After native loading, a
+scoped guard disables further loading, `query_only` is enabled, and an authorizer rejects writes,
 ATTACH, unsafe functions and configuration changes. The tests exercise each layer,
 including a disk write after removing the other two protections. Database errors
 remain structured errors; their messages may expose trusted schema names.
@@ -171,21 +174,26 @@ object. Trusted views may themselves be expensive; review them before admission.
 ## Verify and measure
 
 ```sh
-uv run --project examples/search-lab --group dev pytest -q examples/search-lab/test_adapter.py
+cargo test --release --locked --manifest-path examples/search-lab/Cargo.toml
+uv run --project examples/search-lab --group dev pytest -q \
+  examples/search-lab/test_adapter.py examples/search-lab/test_graph_semantics.py
 uv run --project examples/search-lab python examples/search-lab/measure.py \
   --config /tmp/search-lab-demo/config.json
 ```
 
 Tests run the complete journey through real CLI and MCP subprocesses and compare
 against independent direct SQL, including scalar distances, window-ranked RRF and
-recursive minimum-hop reachability. [Recorded measurements and validation](experiments/2026-10-26-a0/VALIDATION.md)
+recursive minimum-hop reachability. Rust unit tests exercise the connection's
+read-only layers, cache invalidation, failed-operation rollback and WAL snapshots.
+[Recorded measurements and validation](experiments/2026-10-27-rust-port/VALIDATION.md)
 describe the tested environment and remaining gaps. They do not claim an agent
 task-success or production performance benefit.
 
 The design borrows named parameterized tools/toolsets from
 [Google MCP Toolbox](https://github.com/googleapis/mcp-toolbox#quick-start-custom-tools).
-It uses the maintained [MCP Python SDK v1](https://py.sdk.modelcontextprotocol.io/v1/)
-for local protocol handling. Toolbox is not a runtime dependency, and no assumption
+It uses the official [MCP Rust SDK](https://github.com/modelcontextprotocol/rust-sdk)
+for local protocol handling. The Python MCP SDK is a test-client dependency only.
+Toolbox is not a runtime dependency, and no assumption
 about its pure-Go SQLite driver's native-extension loading is needed here.
 
 Removing this optional directory and its architecture entry rolls back the adapter.

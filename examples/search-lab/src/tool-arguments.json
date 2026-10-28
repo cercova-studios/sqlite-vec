@@ -1,0 +1,86 @@
+{
+  "describe": {},
+  "search": {
+    "mode": {
+      "type": "string",
+      "enum": [
+        "lexical",
+        "dense",
+        "hybrid"
+      ],
+      "default": "hybrid"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "description": "FTS5 query syntax"
+    },
+    "vector": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": -10000000000.0,
+        "maximum": 10000000000.0
+      },
+      "minItems": 1,
+      "maxItems": 4096,
+      "description": "Must match configured dimensions"
+    },
+    "embedding_id": {
+      "type": "integer",
+      "minimum": -9223372036854775808,
+      "maximum": 9223372036854775807
+    },
+    "candidates": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4096,
+      "default": 50
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 10
+    }
+  },
+  "traverse": {
+    "ids": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": -9223372036854775808,
+        "maximum": 9223372036854775807
+      },
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "depth": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 8,
+      "default": 1
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 50
+    }
+  },
+  "fetch": {
+    "ids": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": -9223372036854775808,
+        "maximum": 9223372036854775807
+      },
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true
+    }
+  }
+}

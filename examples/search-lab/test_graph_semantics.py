@@ -1,5 +1,6 @@
 """G0 conformance fixtures; neither a GraphIR binder nor a new traversal API."""
 
+import asyncio
 import json
 from pathlib import Path
 import random
@@ -7,7 +8,9 @@ import sqlite3
 
 import pytest
 
-from adapter import Adapter
+from rust_test_client import RustAdapter, command
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 from fixture import create
 from graph_oracle import minimum_hops
 
@@ -266,7 +269,7 @@ def test_adapter_catalog_scope_multiseed_and_paging(tmp_path):
     writer.executemany("insert into edges values (?,?)",[(1,6),(6,5)])
     writer.close()
     db=connect(cfg["database"])
-    adapter=Adapter(config)
+    adapter=RustAdapter(config)
     try:
         eligible={1,2,3,4,5,10}
         raw=db.execute("select src,dst from edges").fetchall()
@@ -287,8 +290,56 @@ def test_adapter_catalog_scope_multiseed_and_paging(tmp_path):
                     assert result["complete"]==(len(expected)<=limit)
         # Native absent anchor behavior remains distinct from catalog admission.
         assert native(db,99)==[(99,0)]
-        adapter.config["corpora"]["demo"]["edges"]="edges"
+        adapter.close()
+        cfg["corpora"]["demo"]["edges"]="edges"
+        config.write_text(json.dumps(cfg));adapter=RustAdapter(config)
         assert adapter.call(dict(op="traverse",corpus="demo",args=dict(ids=[1])))["error"]["code"]=="graph_scope"
     finally:
         adapter.close()
         db.close()
+
+
+@pytest.mark.parametrize("graph",GRAPHS,ids=lambda g:g["name"])
+def test_rust_cli_and_mcp_cover_g0_fixtures(graph,tmp_path):
+    config=create(tmp_path,EXTENSION)
+    cfg=json.loads(config.read_text())
+    db=connect(cfg["database"])
+    try:
+        db.execute("delete from edges")
+        db.execute("delete from documents")
+        db.execute("delete from lexical")
+        for key in range(1,11):
+            db.execute("delete from vectors where rowid=?",(key,))
+        for key in graph["nodes"]:
+            db.execute("insert into documents(id,document_id,tenant,valid_from,source_id,body) values (?,?,'ours',0,?,'evidence')",
+                       (key,f"doc:{key}",f"source:{key}"))
+            db.execute("insert into vectors(rowid,embedding) values (?,'[0,0]')",(key,))
+            db.execute("insert into lexical(rowid,body) values (?,'evidence')",(key,))
+        db.executemany("insert into edges values (?,?)",pairs(graph))
+    finally:
+        db.close()
+    def check(result,case):
+        admitted=case["start"] in graph["nodes"]
+        expected=case["expected"] if admitted else []
+        assert result["ok"],result
+        assert result["rows"]==[dict(id=n,depth=d) for n,d in expected]
+        assert result["missing_ids"]==([] if admitted else [case["start"]])
+        assert result["total_reachable"]==len(expected)
+    def args(case):
+        return dict(ids=[case["start"]],depth=8 if case["depth"] is None else case["depth"],limit=100)
+    client=RustAdapter(config)
+    try:
+        for case in graph["cases"]:
+            check(client.call(dict(op="traverse",corpus="demo",args=args(case))),case)
+    finally:
+        client.close()
+    async def run():
+        cmd=command(config,"mcp")
+        async with stdio_client(StdioServerParameters(command=cmd[0],args=cmd[1:])) as (read,write):
+            async with ClientSession(read,write) as session:
+                await session.initialize()
+                for case in graph["cases"]:
+                    result=await session.call_tool("traverse",dict(corpus="demo",args=args(case)))
+                    assert not result.isError
+                    check(result.structuredContent,case)
+    asyncio.run(run())

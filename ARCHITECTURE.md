@@ -73,12 +73,16 @@ tables without a vector index continue to scan exactly.
 
 ## Optional search adapter
 
-`examples/search-lab/adapter.py` exposes one host-side `Adapter.call` boundary
-through JSON/JSONL CLI records and local stdio MCP tools. Its Python/MCP
-dependencies are isolated from the C and hybrid builds. Trusted host configuration
+`examples/search-lab/src/lib.rs` exposes one host-side `Adapter::call` boundary
+through JSON/JSONL CLI records and local stdio MCP tools in `src/main.rs`.
+The optional Rust binary uses `rusqlite` with bundled SQLite and the official
+`rmcp` SDK. Its dependencies are isolated from the C and hybrid builds. Python
+is used only for fixture generation and independent tests. Trusted host configuration
 selects the database, native extension, corpus tables and fixed tenant/time scope.
 The adapter loads the extension once per process, disables further loading and
-enforces read-only access with SQLite URI `mode=ro`, `query_only` and an authorizer.
+enforces read-only access with SQLite read-only open flags, `query_only` and an
+authorizer. A scoped extension-loading guard disables further loading even when
+loading fails. One serialized connection serves both transports.
 
 Each operation uses one explicit read transaction. Separate calls may observe
 different commits. Search ranks eligible flat float/L2 vectors with scalar distance

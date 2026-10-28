@@ -1,16 +1,14 @@
 import asyncio
-import io
 import json
 from pathlib import Path
 import sqlite3
 import subprocess
-import sys
 
 import pytest
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-from adapter import Adapter, LIMITS, cli
+from rust_test_client import RustAdapter, command
 from fixture import create
 
 
@@ -28,7 +26,7 @@ def config(tmp_path):
 
 @pytest.fixture
 def adapter(config):
-    a = Adapter(config)
+    a = RustAdapter(config)
     yield a
     a.close()
 
@@ -96,7 +94,8 @@ def oracle(config):
 def journey(call, config):
     description = call(request("describe"))
     assert description["ok"] and description["dimensions"] == 2
-    assert description["sqlite_version"] == sqlite3.sqlite_version
+    # Rust verifies this field against its own bundled SQLite in its unit suite.
+    assert tuple(map(int,description["sqlite_version"].split("."))) >= (3,39,0)
     assert not description["cancellation"] and not description["approximation"]
     search = call(request("search",dict(text="deploy",vector=[0,0],candidates=3,limit=3)))
     assert search["ok"], search
@@ -117,7 +116,7 @@ def test_cli_journey(config):
     records = [request("describe"), request("search",dict(text="deploy",vector=[0,0],candidates=3,limit=3)),
                request("traverse",dict(ids=[r["id"] for r in want_search],depth=2)),
                request("fetch",dict(ids=[r["id"] for r in want_graph]))]
-    p = subprocess.run([sys.executable,str(HERE/"adapter.py"),"--config",str(config),"cli"],
+    p = subprocess.run(command(config),
                        input="".join(json.dumps(r)+"\n" for r in records),text=True,capture_output=True,check=True)
     results = iter(json.loads(line) for line in p.stdout.splitlines())
     journey(lambda r:next(results),config)
@@ -125,13 +124,14 @@ def test_cli_journey(config):
     assert not p.stderr
 
 
-def test_handlers_journey(adapter,config):
+def test_persistent_cli_journey(adapter,config):
     journey(adapter.call, config)
 
 
 def test_mcp_journey_and_errors(config,adapter):
     async def run():
-        params = StdioServerParameters(command=sys.executable,args=[str(HERE/"adapter.py"),"--config",str(config),"mcp"])
+        cmd=command(config,"mcp")
+        params = StdioServerParameters(command=cmd[0],args=cmd[1:])
         async with stdio_client(params) as (read,write):
             async with ClientSession(read,write) as session:
                 await session.initialize()
@@ -200,37 +200,19 @@ def test_scope_empty_and_truncation(adapter):
     assert adapter.call(request("search",dict(mode="dense",embedding_id=6)))["error"]["code"] == "missing_embedding"
 
 
-def test_readonly_controls(adapter):
-    for sql in ["delete from documents", "create temp table x(a)", "pragma query_only=off",
-                "attach ':memory:' as other", "select load_extension('ignored')"]:
-        with pytest.raises(sqlite3.DatabaseError):
-            adapter.db.execute(sql)
-    assert adapter.call(request("describe"))["ok"]
-
-
-def test_uri_ro_without_authorizer(adapter):
-    adapter.db.set_authorizer(None)
-    adapter.db.execute("pragma query_only=off")
-    with pytest.raises(sqlite3.OperationalError, match="readonly"):
-        adapter.db.execute("delete from documents")
-
-
-def test_cli_bad_records(adapter):
-    source = io.BytesIO(b'not json\n'+b'x'*(LIMITS['input_bytes']+20)+b'\n'+json.dumps(request("describe")).encode()+b'\n')
-    sink=io.BytesIO()
-    assert cli(adapter,source,sink) == 1
-    rows = [json.loads(r) for r in sink.getvalue().splitlines()]
+def test_cli_bad_records(config):
+    source=b'not json\n'+b'x'*(65536+20)+b'\n'+json.dumps(request("describe")).encode()+b'\n'
+    run=subprocess.run(command(config),input=source,capture_output=True)
+    assert run.returncode==1 and not run.stderr
+    rows = [json.loads(r) for r in run.stdout.splitlines()]
     assert [r.get("error",{}).get("code") for r in rows] == ["invalid_json","input_limit",None]
 
 
-def test_database_error(adapter):
-    adapter.config["corpora"]["demo"]["documents"]="absent"
+def test_database_error(adapter,config):
+    assert adapter.call(request("describe"))["ok"]
+    with sqlite3.connect(json.loads(config.read_text())["database"]) as writer:
+        writer.execute("drop table documents")
     assert adapter.call(request("describe"))["error"]["code"] == "database_error"
-
-
-def test_output_cap(adapter,monkeypatch):
-    monkeypatch.setitem(LIMITS,"output_bytes",500)
-    assert adapter.call(request("fetch",dict(ids=[1,2,3,4,5])))["error"]["code"] == "output_limit"
 
 
 def test_real_transport_caps(config):
@@ -238,12 +220,13 @@ def test_real_transport_caps(config):
     with sqlite3.connect(cfg["database"]) as writer:
         writer.execute("update documents set body=? where id=1",("x"*270000,))
     records=[request("fetch",dict(ids=[1])),request("search",dict(text="x"*65536,vector=[0,0]))]
-    p=subprocess.run([sys.executable,str(HERE/"adapter.py"),"--config",str(config),"cli"],
+    p=subprocess.run(command(config),
                      input="".join(json.dumps(r)+"\n" for r in records),text=True,capture_output=True)
     assert p.returncode==1
     assert [json.loads(r)["error"]["code"] for r in p.stdout.splitlines()]==["output_limit","input_limit"]
     async def run():
-        params=StdioServerParameters(command=sys.executable,args=[str(HERE/"adapter.py"),"--config",str(config),"mcp"])
+        cmd=command(config,"mcp")
+        params=StdioServerParameters(command=cmd[0],args=cmd[1:])
         async with stdio_client(params) as (read,write):
             async with ClientSession(read,write) as session:
                 await session.initialize()
@@ -259,16 +242,11 @@ def test_invalid_vectors(adapter,vector):
     assert out["error"]["code"]=="invalid_vector"
 
 
-def test_admission_caps(adapter,monkeypatch):
-    monkeypatch.setitem(LIMITS,"database_bytes",1)
-    assert adapter.call(request("describe"))["error"]["code"]=="workload_limit"
-
-
 def test_corpus_admission(config):
     cfg=json.loads(config.read_text())
     with sqlite3.connect(cfg["database"]) as writer:
         writer.executemany("insert into documents(id) values (?)",((n,) for n in range(100,10101)))
-    a=Adapter(config)
+    a=RustAdapter(config)
     try:
         assert a.call(request("describe"))["error"]["code"]=="workload_limit"
     finally:
@@ -276,7 +254,7 @@ def test_corpus_admission(config):
 
 
 def test_graph_admission_and_snapshot(config):
-    a=Adapter(config)
+    a=RustAdapter(config)
     try:
         assert a.call(request("traverse",dict(ids=[1])))["ok"]
         d=sqlite3.connect(json.loads(config.read_text())["database"])
@@ -284,48 +262,19 @@ def test_graph_admission_and_snapshot(config):
         d.execute("insert into edges values (1,5)")
         d.commit()
         assert 5 in [r["id"] for r in a.call(request("traverse",dict(ids=[1])))["rows"]]
-        a.config["corpora"]["demo"]["edges"]="edges"
+        a.close()
+        cfg=json.loads(config.read_text());cfg["corpora"]["demo"]["edges"]="edges"
+        config.write_text(json.dumps(cfg));a=RustAdapter(config)
         assert a.call(request("traverse",dict(ids=[1])))["error"]["code"] == "graph_scope"
-        a.config["corpora"]["demo"]["edges"]="admitted_edges"
+        a.close()
+        cfg["corpora"]["demo"]["edges"]="admitted_edges"
+        config.write_text(json.dumps(cfg));a=RustAdapter(config)
         d.executemany("insert into edges values (1,2)",[()] * 20001)
         d.commit()
         assert a.call(request("traverse",dict(ids=[1])))["error"]["code"] == "workload_limit"
         d.close()
     finally:
         a.close()
-
-
-def test_graph_cache_reuse(adapter):
-    trace=[]
-    adapter.db.set_trace_callback(trace.append)
-    query=request("traverse",dict(ids=[1],depth=2))
-    assert adapter.call(query)["ok"]
-    build='-- SELECT "src", "dst" FROM "admitted_edges"'
-    assert trace.count(build)==1
-    assert adapter.call(query)["ok"]
-    assert trace.count(build)==1
-
-
-def test_operation_snapshot(config):
-    cfg=json.loads(config.read_text())
-    writer=sqlite3.connect(cfg["database"])
-    writer.execute("pragma journal_mode=wal")
-    a=Adapter(config)
-    original=a.fetch
-    def fetch_during_commit(c,args):
-        # call() has already read admission counts, establishing its snapshot.
-        writer.execute("update documents set body='new evidence' where id=1")
-        writer.commit()
-        return original(c,args)
-    a.fetch=fetch_during_commit
-    try:
-        rec=request("fetch",dict(ids=[1]))
-        assert a.call(rec)["rows"][0]["body"]=="Deploy a small database safely."
-        a.fetch=original
-        assert a.call(rec)["rows"][0]["body"]=="new evidence"
-    finally:
-        a.close()
-        writer.close()
 
 
 def test_cutoff_ties_are_deterministic(adapter):
@@ -344,7 +293,7 @@ def test_empty_dense_and_all_branches(config):
     cfg=json.loads(config.read_text())
     cfg["corpora"]["demo"]["tenant"]="no-records"
     config.write_text(json.dumps(cfg))
-    a=Adapter(config)
+    a=RustAdapter(config)
     try:
         for mode in ("dense","hybrid","lexical"):
             args=dict(mode=mode)
@@ -359,7 +308,22 @@ def test_empty_dense_and_all_branches(config):
 def test_startup_missing_database(tmp_path):
     p = tmp_path/"config.json"
     p.write_text(json.dumps(dict(database="absent.db",extension=str(EXTENSION),corpora={})))
-    run=subprocess.run([sys.executable,str(HERE/"adapter.py"),"--config",str(p),"mcp"],capture_output=True,text=True)
+    run=subprocess.run(command(p,"mcp"),capture_output=True,text=True)
     assert run.returncode==2 and not run.stdout
     assert json.loads(run.stderr)["error"]["code"]=="startup_error"
     assert not (tmp_path/"absent.db").exists()
+
+
+def test_cli_flag_order_and_help(config):
+    binary=command(config)[0]
+    for args in [["cli","--config",str(config)],[f"--config={config}","cli"]]:
+        run=subprocess.run([binary,*args],input=json.dumps(request("describe")),text=True,capture_output=True)
+        assert run.returncode==0 and json.loads(run.stdout)["ok"] and not run.stderr
+    help_run=subprocess.run([binary,"--help"],text=True,capture_output=True)
+    assert help_run.returncode==0 and "--config" in help_run.stdout and not help_run.stderr
+
+
+def test_rust_runtime_needs_no_python(config):
+    run=subprocess.run(command(config),input=json.dumps(request("describe")),text=True,capture_output=True,
+                       env={"PATH":"/nonexistent"})
+    assert run.returncode==0 and json.loads(run.stdout)["ok"] and not run.stderr

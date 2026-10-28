@@ -1,0 +1,18 @@
+[package]
+name = "sqlite-vec-search-lab"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rusqlite = { version = "0.41", features = ["bundled", "load_extension", "hooks"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = "1"
+rmcp = { version = "3", default-features = false, features = ["server", "transport-io"] }
+tokio = { version = "1", features = ["rt", "macros", "io-std"] }
+
+[dev-dependencies]
+rusqlite = { version = "0.41", features = ["trace"] }
+
+[profile.release]
+strip = true

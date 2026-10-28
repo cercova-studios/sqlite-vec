@@ -1,10 +1,11 @@
 # Graph semantics and conformance fixtures
 
-These fixtures specify existing native graph behavior and the search adapter's
-catalog/scope rules. Run them before changing graph execution or porting the host
-adapter. They establish G0's baseline; they add no GraphIR request language or binder.
+These fixtures specify existing native graph behavior and the Rust adapter's
+catalog/scope rules. Run them before changing graph execution or the host adapter.
+They establish G0's baseline; they add no GraphIR request language or binder.
 
 ```sh
+cargo build --release --locked --manifest-path examples/search-lab/Cargo.toml
 uv run --project examples/search-lab --group dev pytest -q \
   examples/search-lab/test_graph_semantics.py
 ```
@@ -132,4 +133,4 @@ does not add a native execution budget.
 The tests preserve the existing C graph code and A0 handlers. G0 is a contract and
 conformance baseline; a validated reachability compiler belongs to G1, and native
 resource accounting belongs to G2. Detailed validation belongs in the
-[G0 receipt](experiments/2026-10-26-g0/VALIDATION.md).
+[current verification receipt](experiments/2026-10-27-rust-port/VALIDATION.md).
