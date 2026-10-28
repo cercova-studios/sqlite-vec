@@ -1,0 +1,54 @@
+[
+  {
+    "scenario": "full",
+    "baseline": "vector",
+    "answerable_queries": 300,
+    "mean_ndcg_delta": 0.0003032891946401195,
+    "paired_query_bootstrap_95_ci": [
+      -0.025002517044991724,
+      0.02556326038618637
+    ],
+    "wins": 54,
+    "ties": 200,
+    "losses": 46
+  },
+  {
+    "scenario": "full",
+    "baseline": "keyword",
+    "answerable_queries": 300,
+    "mean_ndcg_delta": 0.04355364454447599,
+    "paired_query_bootstrap_95_ci": [
+      0.021057197866058898,
+      0.06593856802109871
+    ],
+    "wins": 73,
+    "ties": 199,
+    "losses": 28
+  },
+  {
+    "scenario": "scoped",
+    "baseline": "vector",
+    "answerable_queries": 182,
+    "mean_ndcg_delta": -0.006260228275779591,
+    "paired_query_bootstrap_95_ci": [
+      -0.04234953431787902,
+      0.02724272300461712
+    ],
+    "wins": 30,
+    "ties": 125,
+    "losses": 27
+  },
+  {
+    "scenario": "scoped",
+    "baseline": "keyword",
+    "answerable_queries": 182,
+    "mean_ndcg_delta": 0.049214095252681056,
+    "paired_query_bootstrap_95_ci": [
+      0.017705404735448665,
+      0.08173352048179144
+    ],
+    "wins": 46,
+    "ties": 121,
+    "losses": 15
+  }
+]

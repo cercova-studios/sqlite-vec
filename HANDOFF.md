@@ -1,5 +1,51 @@
 # Handoff — read this first
 
+## Public labelled hybrid evaluation — complete 2026-10-27
+
+[Public SciFact report and replay](benchmarks-ann/experiments/2026-10-26-scifact-hybrid/README.md).
+All 5,183 BEIR SciFact abstracts and 300 test queries (339 positive judgments)
+were evaluated with real, locally generated BGE-small-en-v1.5 embeddings. The
+model revision, tokenizer, dataset and array hashes are archived. CLS pooling,
+query-only instruction, 512-token cap and normalized 384-dimensional float32
+vectors follow the model documentation. No training or ranking tuning occurred.
+
+The current scoped RRF SQL, equal weights/constant 60 and branch budget 50 remain
+unchanged. Exact flat L2 isolates retrieval quality from ANN approximation.
+Full-corpus nDCG@10: vector 0.7127, SQLite FTS 0.6695, hybrid 0.7130.
+Recall@10: 0.8362 / 0.7989 / 0.8387. Hybrid minus vector nDCG is +0.0003;
+paired query-bootstrap 95% interval [-0.0250, +0.0256], so no demonstrated
+advantage over dense retrieval. Hybrid improves over this keyword baseline.
+
+The independent hash-based scope overlay leaves 3,091 eligible documents and
+182 queries with eligible positive judgments. Scoped nDCG@10 is 0.7649 vector,
+0.7094 FTS, 0.7586 hybrid; do not compare these conditional means directly with
+the full-corpus means. All methods return results even for the 118 queries
+without remaining positive judgments. Sparse public qrels do not establish that
+all unjudged results are irrelevant; nonempty output is no usefulness guarantee.
+
+All 1,800 query/method/context quality points pass; zero ineligible IDs returned.
+Native distances and fusion/provenance match exhaustive float64/reference checks.
+Five calibration/real-embedding lifecycle tests pass, including pending invalidation,
+savepoint/full rollback and commit/reopen. trec_eval independently matches all
+4,338 answerable recall/nDCG/MRR values. Frozen archive verification regenerates
+metrics; checksums, Python syntax, documentation links and corruption rejection
+are checked. Full application suites/sanitizers were not rerun for benchmark work.
+
+Latency uses a fixed seed-42 sample of 30 queries, five rounds per method/context
+(900 timed calls), not all 300 queries. Full-corpus medians: vector 2.36 ms,
+FTS 1,298.57 ms, hybrid 1,278.45 ms. The unchanged filtered keyword SQL is costly;
+these numbers are not generic FTS5 or production latency claims. No profiler or
+isolated-host run was collected. Current defaults and alpha=1.0 stay unchanged.
+
+Next: profile the filtered FTS query path and validate any proposed SQL-plan
+change against these labels, candidates and eligibility checks. This public
+benchmark completes the requested real-embedding follow-up; deployment-specific
+relevance/read-write mix and downstream agent outcomes remain unverified.
+Downloaded data/models, arrays and the measured C build remain in ignored
+`.work/` for replay/profiling. The C snapshot is `fee2050`; concurrent Rust adapter
+work changes no measured C sources and is outside this commit. Preserve all
+unrelated edits. Push and CI remain deferred.
+
 ## Scoped hybrid retrieval evaluation — completed controlled slice 2026-10-26
 
 The metadata compression archive was committed first in `52d1f14`.
@@ -38,10 +84,10 @@ rollback, commit/reopen and four deliberate unsafe-filter mutations. Three
 existing vec_rrf loadable tests pass. Archive verification regenerates metrics;
 full application suites/sanitizers were not rerun for this benchmark-only work.
 
-Recommended next step: a representative labelled corpus and real embeddings,
-with a specified read/write mix. Retain these eligibility/lifecycle checks and
-compare all three baselines. Investigate the filtered FTS query path with plans
-and profiling before proposing a schema or engine optimization. Compression,
+The public SciFact/real-embedding follow-up is complete in the latest entry.
+A deployment-specific corpus/read-write mix and downstream outcomes remain open.
+Retain these eligibility/lifecycle checks; profile the filtered FTS query path
+before proposing a schema or engine optimization. Compression,
 TEXT pruning, broader buffering and Lance version cleanup remain separate scope
 decisions. Keep alpha=1.0; push and CI remain deferred.
 
