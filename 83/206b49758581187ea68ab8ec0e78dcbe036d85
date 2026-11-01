@@ -1,0 +1,49 @@
+examples/search-lab/README.md
+  s_70b027a60d4a55::t_21f01da10793d2 53-54,74,109-110,123-149
+  s_70b027a60d4a55::t_cd3d607070a3d9 150
+examples/search-lab/fixture.py
+  s_70b027a60d4a55::t_dacca2895912a6 60
+examples/search-lab/src/tool-arguments.json
+  s_70b027a60d4a55::t_dacca2895912a6 73-77,79-81
+  s_70b027a60d4a55::t_21f01da10793d2 78
+examples/search-lab/test_adapter.py
+  s_70b027a60d4a55::t_dacca2895912a6 139
+examples/search-lab/src/lib.rs
+  s_528e6b3f95df22::t_c9b3a8711c02ab 146-149,679-687,690-693,695-712,714-725
+  s_70b027a60d4a55::t_21f01da10793d2 385
+  s_70b027a60d4a55::t_dacca2895912a6 13,141-145,150-160,214,247-250,423,449,676-678,688-689,694,713,726-732
+  s_70b027a60d4a55::t_fae278f6e798ee 733-734
+ARCHITECTURE.md
+  s_70b027a60d4a55::t_21f01da10793d2 112-116
+examples/search-lab/graph-semantics.md
+  s_70b027a60d4a55::t_41b1136d601030 36-38
+  s_70b027a60d4a55::t_21f01da10793d2 5,134-137
+examples/search-lab/test_graph_semantics.py
+  s_70b027a60d4a55::t_21f01da10793d2 324-325
+  s_70b027a60d4a55::t_0ca938e6aec947 380-391
+  s_70b027a60d4a55::t_718c10bb5576a0 332-334,339-341,353-355,357-379,392-416
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "83206b49758581187ea68ab8ec0e78dcbe036d85",
+  "prompts": {},
+  "sessions": {
+    "s_528e6b3f95df22": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
