@@ -1,0 +1,79 @@
+examples/search-lab/src/main.rs
+  s_528e6b3f95df22::t_737dec3be4f3dc 13-14,17-38,51,58,66-67,83-93,135
+  s_70b027a60d4a55::t_e18d54efcd7f82 75
+  s_70b027a60d4a55::t_2d10edb4762b94 4-11,15-16,68-74,76-82,136-137
+examples/search-lab/src/lib.rs
+  s_528e6b3f95df22::t_59633886a6e916 42-47,376,379-381,383-385
+  s_528e6b3f95df22::t_737dec3be4f3dc 369,371,373-375,377-378,382,394-396,809
+  s_70b027a60d4a55::t_e18d54efcd7f82 372,386-393
+  s_70b027a60d4a55::t_e98bd462392962 13,15,49,161-162,228,264-266,367-368,432,471,502-503,725-735,737,739-747,749-752,754-767,769-770,772,774-783,785-788,790-798,800-806,808,907
+  s_528e6b3f95df22::t_7a77ea527758f3 14,40-41,48,50,370,736,738,748,753,768,771,773,784,789,799,807,810,904-906
+examples/search-lab/test_adapter.py
+  s_528e6b3f95df22::t_168400a16dc104 139,330-375,412
+  s_70b027a60d4a55::t_76aa2b60d0a99a 379-405
+  s_528e6b3f95df22::t_43b4a87be18316 413-436
+  s_528e6b3f95df22::t_c89baf224c92b3 376-378,406-411
+examples/search-lab/src/tool-arguments.json
+  s_70b027a60d4a55::t_e98bd462392962 74-112,126-161
+sqlite-vec-graph.c
+  s_70b027a60d4a55::t_2ad605cad32708 689
+  s_70b027a60d4a55::t_a3aaf2a5578621 31-32,62-79,313-326,805
+  s_70b027a60d4a55::t_d56044051d9b36 59,94,792-796,799,803-804,806-808
+HANDOFF.md
+  s_70b027a60d4a55::t_1a4f56e51fb0dd 32
+  s_528e6b3f95df22::t_667d6c72832769 3-31,33-40,951
+tests/test-graph.py
+  s_528e6b3f95df22::t_168400a16dc104 310-341
+tests/test-loadable.py
+  s_676ff82f71e79c::t_3b112d6432dded 2708-2716
+  s_528e6b3f95df22::t_168400a16dc104 2738-2744
+  s_676ff82f71e79c::t_91c355bafb3dd6 2718
+  s_528e6b3f95df22::t_2fac362e9f34fc 101,2717
+examples/search-lab/src/tests.rs
+  s_528e6b3f95df22::t_b739c367d60797 302
+  s_528e6b3f95df22::t_ec5b5f06fbca70 269-276,278-285,287-301,303-307,311-339
+  s_528e6b3f95df22::t_81b6865f6c8305 277,286,309-310
+  s_70b027a60d4a55::t_7cda12c1daca3a 308
+tests/test-unit.c
+  s_70b027a60d4a55::t_d9f6ca0cb1dbbf 2187-2201,2256
+reference.yaml
+  s_70b027a60d4a55::t_1a4f56e51fb0dd 532-554
+ARCHITECTURE.md
+  s_70b027a60d4a55::t_e074e18d2ca44c 85,93,106,430-446
+examples/search-lab/README.md
+  s_528e6b3f95df22::t_a62a42b1250410 53-54,64,74,197-201,233-272
+examples/search-lab/graph-semantics.md
+  s_70b027a60d4a55::t_292c255ec900ac 31,136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5415af2dec39a776d63e7669433b81c85dd812a0",
+  "prompts": {},
+  "sessions": {
+    "s_528e6b3f95df22": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_676ff82f71e79c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
