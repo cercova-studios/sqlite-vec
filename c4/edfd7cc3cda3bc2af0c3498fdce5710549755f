@@ -1,0 +1,39 @@
+ARCHITECTURE.md
+  s_70b027a60d4a55::t_491d63266a5869 405-431
+reference.yaml
+  s_70b027a60d4a55::t_491d63266a5869 562-574
+tests/test-graph.py
+  s_70b027a60d4a55::t_401ccbe401b7bc 207-278
+  s_70b027a60d4a55::t_491d63266a5869 279-309
+HANDOFF.md
+  s_528e6b3f95df22::t_9c40af5b508837 919-922
+  s_70b027a60d4a55::t_07ead6d9d15303 894-918
+sqlite-vec-graph.c
+  s_70b027a60d4a55::t_06bfd487774310 601-749,766-768
+tests/test-loadable.py
+  s_70b027a60d4a55::t_f32cd42ab07ebb 101,129-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c4edfd7cc3cda3bc2af0c3498fdce5710549755f",
+  "prompts": {},
+  "sessions": {
+    "s_528e6b3f95df22": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
