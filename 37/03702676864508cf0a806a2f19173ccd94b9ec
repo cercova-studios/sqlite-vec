@@ -1,0 +1,66 @@
+benchmarks-ann/experiments/2026-11-01-filtered-fts/recorded/summary.json
+  s_676ff82f71e79c::t_c75a7e624fe1a4 1-42
+benchmarks-ann/experiments/2026-11-01-filtered-fts/recorded/diagnostic.json
+  s_676ff82f71e79c::t_c75a7e624fe1a4 1-2878
+benchmarks-ann/experiments/2026-11-01-filtered-fts/REPORT.md
+  s_676ff82f71e79c::t_c75a7e624fe1a4 1-62,67-153
+  s_ca7d5125ef33b2::t_d3b9ea236e3aa5 63-66
+benchmarks-ann/experiments/2026-11-01-filtered-fts/test_equivalence.py
+  s_ca7d5125ef33b2::t_4164b5150ac284 1-76
+benchmarks-ann/experiments/2026-11-01-filtered-fts/diagnose.py
+  s_ca7d5125ef33b2::t_4164b5150ac284 1-41
+benchmarks-ann/experiments/2026-11-01-filtered-fts/recorded/build-manifest.json
+  s_676ff82f71e79c::t_a20261a8df1bb8 1-32
+benchmarks-ann/experiments/2026-11-01-filtered-fts/alternatives.py
+  s_676ff82f71e79c::t_6674028e737304 1-20
+benchmarks-ann/experiments/2026-11-01-filtered-fts/recorded/alternatives.json
+  s_676ff82f71e79c::t_c75a7e624fe1a4 1-984
+benchmarks-ann/experiments/2026-11-01-filtered-fts/recorded/sample-status.json
+  s_676ff82f71e79c::t_c75a7e624fe1a4 1-5
+HANDOFF.md
+  s_676ff82f71e79c::t_5b4bb602c82791 3-38,114-117,163-165
+site/guides/hybrid-search.md
+  s_676ff82f71e79c::t_3b112d6432dded 89-90,103-108
+  s_676ff82f71e79c::t_f5b97182836bce 109
+benchmarks-ann/experiments/2026-11-01-filtered-fts/README.md
+  s_ca7d5125ef33b2::t_ad833edc6458af 1-57
+benchmarks-ann/experiments/2026-11-01-filtered-fts/manifest.json
+  s_ca7d5125ef33b2::t_d3b9ea236e3aa5 4
+  s_ca7d5125ef33b2::t_358518d57ea21a 1-3,5-18
+benchmarks-ann/experiments/2026-11-01-filtered-fts/verify.py
+  s_676ff82f71e79c::t_95414b15b1bdc9 34-35
+  s_ca7d5125ef33b2::t_5d2b88ffb1e503 23-27
+  s_676ff82f71e79c::t_6674028e737304 1-22,28-33,36-71
+benchmarks-ann/experiments/2026-11-01-filtered-fts/.gitignore
+  s_ca7d5125ef33b2::t_4633cacd730005 1-3
+benchmarks-ann/experiments/2026-11-01-filtered-fts/benchmark.py
+  s_ca7d5125ef33b2::t_ebf87b2a6f5b91 1-144
+benchmarks-ann/experiments/2026-11-01-filtered-fts/recorded/baseline-guide.md
+  s_ca7d5125ef33b2::t_e30504e0eb5a9c 1-123
+benchmarks-ann/experiments/2026-11-01-filtered-fts/recorded/candidate-guide.md
+  s_ca7d5125ef33b2::t_b4458fa4654598 1-131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3703702676864508cf0a806a2f19173ccd94b9ec",
+  "prompts": {},
+  "sessions": {
+    "s_676ff82f71e79c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
