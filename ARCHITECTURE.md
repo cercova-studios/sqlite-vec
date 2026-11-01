@@ -402,3 +402,30 @@ The third character of the block is the constraint operator. It will be one of
 metadata column KNN filters.
 
 The foruth character of the block is a `_` filler.
+
+## Bounded native graph evidence
+
+`graph_witness(table, src_column, dst_column, id_column, source, target,
+work, bytes)` returns a JSON array of `[node, incoming_edge_id]` pairs for one
+unweighted shortest directed path. The first incoming edge is JSON null;
+unreachable targets return `[]`. Equal endpoints return one node after validating
+the source. Edge IDs must be unique non-NULL signed integers in the selected
+relation; endpoints must also be non-NULL integers. Ties follow source scan order.
+IDs are supplied by the host, which owns their persistence and graph scope.
+
+The operation requires SQLite 3.41+, checks `sqlite3_interrupt` during native
+loops, and consumes one work unit per scanned row or native comparison/visit.
+Budget exhaustion fails the entire result (`SQLITE_FULL` for work,
+`SQLITE_TOOBIG` for memory); interruption returns `SQLITE_INTERRUPT`.
+A single arena holds edge rows, BFS queue/parents and JSON construction, bounded
+by `bytes` (128 through 64 MiB). SQLite VM/schema/SQL preparation memory, allocator
+bookkeeping and the caller's returned-text copy are outside this payload limit.
+This is not a process RSS limit. Source SQL work requires the host's SQLite
+progress handler if a separate VM budget is needed.
+
+This direct-only scalar function rebuilds from the current statement snapshot
+and keeps no adjacency cache. Failure releases its state and writes no database
+rows. It uses bounded linear scans rather than CSR/hash construction; uniqueness
+validation and witness construction can be quadratic and consume the work budget.
+The existing BFS/path helpers and Rust adapter retain their prior contracts;
+these native limits do not apply to their cache or execution.

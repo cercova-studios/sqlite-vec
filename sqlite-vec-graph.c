@@ -598,6 +598,155 @@ static int graphColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i) {
 static sqlite3_module graph_bfsModule = GRAPH_MODULE(graph_bfsConnect);
 static sqlite3_module graph_pathModule = GRAPH_MODULE(graph_pathConnect);
 
+typedef struct { i64 src, dst, id; } GraphWitnessEdge;
+typedef struct { i64 id, edge; u64 parent; } GraphWitnessNode;
+
+static int graph_witness_tick(sqlite3 *db, i64 *work) {
+#if SQLITE_VERSION_NUMBER >= 3041000
+  if (sqlite3_is_interrupted(db)) return SQLITE_INTERRUPT;
+#else
+  UNUSED_PARAMETER(db);
+#endif
+  if (*work == 0) return SQLITE_FULL;
+  --*work;
+  return SQLITE_OK;
+}
+
+/* One arena bounds native payload, including the returned JSON. SQLite VM,
+ * allocator bookkeeping and the caller's result copy are outside this budget. */
+static void graph_witness(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+  UNUSED_PARAMETER(argc);
+  sqlite3 *db = sqlite3_context_db_handle(ctx);
+  sqlite3_stmt *stmt = NULL;
+  unsigned char *arena = NULL;
+  int rc = SQLITE_OK;
+  const char *err = NULL;
+  const char *names[4];
+  for (int i = 0; i < 4; i++) {
+    if (sqlite3_value_type(argv[i]) != SQLITE_TEXT) {
+      err = "graph_witness: names must be text"; goto done;
+    }
+    names[i] = (const char *)sqlite3_value_text(argv[i]);
+    if (!names[i]) { rc = SQLITE_NOMEM; goto done; }
+    if ((int)strlen(names[i]) != sqlite3_value_bytes(argv[i])) {
+      err = "graph_witness: names must not contain NUL"; goto done;
+    }
+  }
+  for (int i = 4; i < 8; i++) {
+    if (sqlite3_value_type(argv[i]) != SQLITE_INTEGER) {
+      err = "graph_witness: endpoints and budgets must be integers"; goto done;
+    }
+  }
+#if SQLITE_VERSION_NUMBER >= 3041000
+  if (sqlite3_libversion_number() < 3041000) {
+    err = "graph_witness requires SQLite 3.41 or later"; goto done;
+  }
+#else
+  err = "graph_witness requires SQLite 3.41 or later"; goto done;
+#endif
+  i64 source = sqlite3_value_int64(argv[4]);
+  i64 target = sqlite3_value_int64(argv[5]);
+  i64 work = sqlite3_value_int64(argv[6]);
+  i64 bytes = sqlite3_value_int64(argv[7]);
+  if (work < 1 || bytes < 128 || bytes > 64 * 1024 * 1024) {
+    err = "graph_witness: positive work and 128..67108864 bytes required"; goto done;
+  }
+  if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+  for (int i = 1; i < 4; i++) {
+    if (!graph_has_column(db, names[0], names[i])) {
+      err = "graph_witness: missing table or column"; goto done;
+    }
+  }
+  arena = sqlite3_malloc64((u64)bytes);
+  if (!arena) { rc = SQLITE_NOMEM; goto done; }
+  if (sqlite3_msize(arena) > (u64)bytes) { rc = SQLITE_TOOBIG; goto done; }
+  char *sql = sqlite3_mprintf("SELECT \"%w\",\"%w\",\"%w\" FROM \"%w\"",
+                              names[1], names[2], names[3], names[0]);
+  if (!sql) { rc = SQLITE_NOMEM; goto done; }
+  rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+  sqlite3_free(sql);
+  if (rc != SQLITE_OK) goto done;
+  GraphWitnessEdge *edges = (GraphWitnessEdge *)arena;
+  u64 ne = 0;
+  while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+    if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+    for (int i = 0; i < 3; i++) {
+      if (sqlite3_column_type(stmt, i) != SQLITE_INTEGER) {
+        err = "graph_witness: endpoints and edge IDs must be non-NULL integers";
+        goto done;
+      }
+    }
+    i64 id = sqlite3_column_int64(stmt, 2);
+    for (u64 i = 0; i < ne; i++) {
+      if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+      if (edges[i].id == id) { err = "graph_witness: duplicate edge ID"; goto done; }
+    }
+    if ((ne + 1) * sizeof(*edges) > (u64)bytes) { rc = SQLITE_TOOBIG; goto done; }
+    edges[ne++] = (GraphWitnessEdge){sqlite3_column_int64(stmt, 0),
+                                   sqlite3_column_int64(stmt, 1), id};
+  }
+  if (rc != SQLITE_DONE) goto done;
+  sqlite3_finalize(stmt); stmt = NULL;
+  u64 used = ne * sizeof(*edges);
+  GraphWitnessNode *nodes = (GraphWitnessNode *)(arena + used);
+  if (used + sizeof(*nodes) > (u64)bytes) { rc = SQLITE_TOOBIG; goto done; }
+  nodes[0] = (GraphWitnessNode){source, 0, 0};
+  u64 nn = 1, head = 0, found = source == target ? 0 : (u64)-1;
+  while (head < nn && found == (u64)-1) {
+    for (u64 e = 0; e < ne; e++) {
+      if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+      if (edges[e].src != nodes[head].id) continue;
+      u64 n;
+      for (n = 0; n < nn; n++) {
+        if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+        if (nodes[n].id == edges[e].dst) break;
+      }
+      if (n != nn) continue;
+      if (used + (nn + 1) * sizeof(*nodes) > (u64)bytes) { rc = SQLITE_TOOBIG; goto done; }
+      nodes[nn] = (GraphWitnessNode){edges[e].dst, edges[e].id, head};
+      if (edges[e].dst == target) found = nn;
+      nn++;
+      if (found != (u64)-1) break;
+    }
+    head++;
+  }
+  used += nn * sizeof(*nodes);
+  u64 len = 0;
+  if (found != (u64)-1) {
+    for (u64 n = found;; n = nodes[n].parent) {
+      if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+      len++;
+      if (n == 0) break;
+    }
+  }
+  /* Signed int64 JSON pairs need at most 46 bytes per node. */
+  if (used + len * 48 + 3 > (u64)bytes) { rc = SQLITE_TOOBIG; goto done; }
+  char *out = (char *)arena + used;
+  char *p = out;
+  *p++ = '[';
+  for (u64 step = 0; step < len; step++) {
+    u64 n = found;
+    for (u64 j = step + 1; j < len; j++) {
+      if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+      n = nodes[n].parent;
+    }
+    sqlite3_snprintf(48, p, step ? ",[%lld,%lld]" : "[%lld,null]",
+                     nodes[n].id, nodes[n].edge);
+    p += strlen(p);
+  }
+  *p++ = ']'; *p = 0;
+  sqlite3_result_text(ctx, out, (int)(p - out), SQLITE_TRANSIENT);
+  rc = SQLITE_OK;
+done:
+  sqlite3_finalize(stmt);
+  sqlite3_free(arena);
+  if (err || rc != SQLITE_OK) {
+    sqlite3_result_error(ctx, err ? err : rc == SQLITE_FULL ? "graph_witness: work limit exceeded" :
+                         rc == SQLITE_TOOBIG ? "graph_witness: memory limit exceeded" : sqlite3_errstr(rc), -1);
+    if (!err) sqlite3_result_error_code(ctx, rc);
+  }
+}
+
 /** Registers graph_bfs and graph_shortest_path with one shared per-connection cache. */
 static int graph_register(sqlite3 *db, char **pzErrMsg) {
   if (sqlite3_libversion_number() < 3037000) {
@@ -614,6 +763,9 @@ static int graph_register(sqlite3 *db, char **pzErrMsg) {
                                   graph_cache_free);
   else
     sqlite3_free(c);
+  if (rc == SQLITE_OK)
+    rc = sqlite3_create_function_v2(db, "graph_witness", 8, SQLITE_UTF8 | SQLITE_DIRECTONLY,
+                                    NULL, graph_witness, NULL, NULL, NULL);
   if (rc != SQLITE_OK)
     *pzErrMsg = sqlite3_mprintf("Error creating graph modules: %s", sqlite3_errmsg(db));
   return rc;

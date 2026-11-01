@@ -891,3 +891,32 @@ The two worktree branches still exist: `worktree-agent-ad2af631ab1036179` and `w
 - **Feature commits carry `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` plus a body that explains *why* and cites the numbers when there are numbers.** Match that shape for large changes (`git log -3` for the tone).
 - **Explicit paths in `git add`.** No broad `git add -A`; `.claude/`, `dist/`, `vendor` symlinks, and build artifacts must never be committed (the latter two are gitignored except for the worktree symlinks, which only exist because of the sandbox).
 - **No push, no tag, no `reset --hard` to publish anything** — commits are local until the user asks. Treat anything outside this workspace as read-only unless told otherwise.
+
+## G2 native bounded witness slice — 2026-11-01
+
+Added direct-only `graph_witness(table,src,dst,id,source,target,work,bytes)`.
+It returns one shortest witness as JSON node/incoming-edge pairs, validates
+unique stable host-supplied integer edge IDs, and checks cancellation in native
+loops. One arena bounds edge/BFS/output-construction payload to the byte budget;
+SQLite VM/preparation, allocator bookkeeping and returned-text copy are excluded.
+Work exhaustion, memory exhaustion and interruption fail without partial evidence.
+It keeps no cache and performs no writes, preserving statement/rollback visibility.
+Legacy BFS behavior is unchanged. Linear scans trade speed for bounded state;
+uniqueness validation and reconstruction may require quadratic work.
+
+Verified locally: loadable build; graph and loadable suites 81 passed/4 skipped;
+graph-vector plus initial graph tests 22 passed. New checks cover G0 Floyd-Warshall
+oracle witnesses, parallel IDs, duplicate/NULL rejection, work and memory failure,
+retry, savepoint/full rollback and cross-thread native interruption. Existing
+DiskANN unused parameter and NumPy stress warnings remain.
+
+G2 remains incomplete at the adapter boundary: Rust CLI/MCP traversal still uses
+the existing unbounded native BFS path and reports its budget/cancellation flags
+as false. The legacy eight-entry CSR cache is not byte-bounded. Next integrate
+bounded reachability and witnesses into the trusted typed adapter, including MCP
+cancellation, before calling the entire G2 milestone complete. No push or CI.
+Preserve unrelated HNSW edits, .claude worktrees and concurrent filtered-FTS work.
+
+Full default verification for this slice: 498 passed, 141 skipped, 219 snapshots
+passed. Experimental IVF/hybrid variants, sanitizers and adapter integration were
+not run for this native-only change. Whitespace check passed.

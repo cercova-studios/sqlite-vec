@@ -98,6 +98,7 @@ def spread_args(args):
 
 
 FUNCTIONS = [
+    "graph_witness",
     "vec_add",
     "vec_bit",
     "vec_concat",
@@ -125,6 +126,14 @@ FUNCTIONS = [
     "vec_type",
     "vec_version",
 ]
+
+def test_graph_witness():
+    db = sqlite3.connect(":memory:")
+    db.enable_load_extension(True)
+    db.load_extension(EXT_PATH)
+    db.execute("create table e(id integer primary key, src, dst)")
+    db.execute("insert into e values (7,1,2)")
+    assert json.loads(db.execute("select graph_witness('e','src','dst','id',1,2,100,4096)").fetchone()[0]) == [[1,None],[2,7]]
 MODULES = [
     "graph_bfs",
     "graph_shortest_path",

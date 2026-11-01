@@ -204,3 +204,106 @@ def test_join_two_traversals(db):
            order by 1, 2"""
     ).fetchall()
     assert rows == [(1, 1), (1, 2), (1, 3), (2, 2), (2, 4), (3, 3), (3, 4)]
+
+
+def witness(db, source=1, target=5, work=100000, memory=65536):
+    import json
+    return json.loads(db.execute(
+        "select graph_witness('evidence_edges','src','dst','id',?,?,?,?)",
+        [source, target, work, memory]).fetchone()[0])
+
+
+def test_graph_witness_oracle_and_rollback(db):
+    db.execute("create table evidence_edges(id integer primary key, src, dst)")
+    edges = [(10,1,2),(11,1,3),(12,2,4),(13,3,4),(14,4,5),(15,1,2)]
+    db.executemany("insert into evidence_edges values (?,?,?)", edges)
+    def check():
+        for source in (1, 2, 5, 99):
+            for target in (1, 4, 5, 99):
+                path = witness(db, source, target)
+                distances = ref_bfs([(s,d) for _,s,d in edges], source)
+                if target not in distances:
+                    assert path == []
+                    continue
+                assert len(path) == distances[target] + 1
+                assert path[0] == [source, None]
+                assert path[-1][0] == target
+                for previous, current in zip(path, path[1:]):
+                    assert (current[1], previous[0], current[0]) in edges
+    check()
+    db.execute("begin")
+    db.execute("savepoint s")
+    db.execute("insert into evidence_edges values (20,1,5)")
+    assert witness(db) == [[1,None],[5,20]]
+    with pytest.raises(sqlite3.Error, match="work limit"):
+        witness(db, work=1)
+    assert db.in_transaction
+    db.execute("rollback to s")
+    check()
+    db.execute("rollback")
+    check()
+
+
+def test_graph_witness_failure_recovery(db):
+    db.execute("create table evidence_edges(id,src,dst)")
+    db.executemany("insert into evidence_edges values (?,?,?)", [(1,1,2),(2,2,5)])
+    for _ in range(3):
+        with pytest.raises(sqlite3.Error, match="memory limit"):
+            witness(db, memory=128)
+        assert witness(db) == [[1,None],[2,1],[5,2]]
+    db.execute("insert into evidence_edges values (1,8,9)")
+    with pytest.raises(sqlite3.Error, match="duplicate edge ID"):
+        witness(db)
+    db.execute("delete from evidence_edges where src=8")
+    db.execute("insert into evidence_edges values (NULL,8,9)")
+    with pytest.raises(sqlite3.Error, match="non-NULL integers"):
+        witness(db)
+    db.execute("delete from evidence_edges where src=8")
+    assert witness(db)[-1] == [5,2]
+
+
+def test_graph_witness_cancellation(db):
+    import threading
+    db.execute("create table evidence_edges(id,src,dst)")
+    db.executemany("insert into evidence_edges values (?,?,?)", [(i,i,i+1) for i in range(40000)])
+    timer = threading.Timer(0.02, db.interrupt)
+    timer.start()
+    try:
+        with pytest.raises(sqlite3.OperationalError, match="interrupt"):
+            witness(db, target=40000, work=10**12, memory=4*1024*1024)
+    finally:
+        timer.cancel()
+        timer.join()
+    assert db.execute("select count(*) from evidence_edges").fetchone()[0] == 40000
+    assert witness(db, source=7, target=7, work=10**12, memory=4*1024*1024) == [[7,None]]
+
+
+def test_graph_witness_g0_oracle(db):
+    import importlib.util
+    import json
+    from pathlib import Path
+    root = Path('examples/search-lab')
+    spec = importlib.util.spec_from_file_location('g0_oracle', root / 'graph_oracle.py')
+    oracle = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(oracle)
+    db.execute('create table evidence_edges(id,src,dst)')
+    for graph in json.loads((root / 'graph-fixtures.json').read_text())['graphs']:
+        edges = graph['edges']
+        # Bounded evidence deliberately rejects NULL endpoints; legacy BFS skips them.
+        if any(s is None or d is None for _,s,d in edges):
+            continue
+        db.execute('delete from evidence_edges')
+        db.executemany('insert into evidence_edges values (?,?,?)', edges)
+        for case in graph['cases']:
+            source = case['start']
+            distances = oracle.minimum_hops([(s,d) for _,s,d in edges], [source])
+            for target in graph['nodes'] + [source]:
+                path = witness(db, source, target)
+                if target not in distances:
+                    assert path == []
+                    continue
+                assert len(path) == distances[target] + 1
+                assert path[0] == [source, None]
+                assert path[-1][0] == target
+                for a,b in zip(path,path[1:]):
+                    assert [b[1],a[0],b[0]] in edges
