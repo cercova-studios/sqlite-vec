@@ -2184,6 +2184,21 @@ void test_vec0_fullscan_schema_rollback() {
   }
 }
 
+static void test_graph_cache_module_lifetime(void) {
+  sqlite3 *db = NULL;
+  sqlite3_stmt *stmt = NULL;
+  assert(sqlite3_open(":memory:", &db) == SQLITE_OK);
+  assert(sqlite3_vec_init(db, NULL, NULL) == SQLITE_OK);
+  assert(sqlite3_exec(db, "CREATE TABLE e(src,dst); INSERT INTO e VALUES(1,2);"
+                         "SELECT * FROM graph_bfs('e','src','dst',1);", NULL, NULL, NULL) == SQLITE_OK);
+  assert(sqlite3_drop_modules(db, NULL) == SQLITE_OK);
+  assert(sqlite3_prepare_v2(db, "SELECT graph_cache_bytes()", -1, &stmt, NULL) == SQLITE_OK);
+  assert(sqlite3_step(stmt) == SQLITE_ROW);
+  assert(sqlite3_column_int64(stmt, 0) > 0);
+  sqlite3_finalize(stmt);
+  assert(sqlite3_close(db) == SQLITE_OK);
+}
+
 int main() {
   printf("Starting unit tests...\n");
 #ifdef SQLITE_VEC_ENABLE_AVX
@@ -2238,5 +2253,6 @@ int main() {
   test_diskann_prune_select_max_neighbors_1();
 #endif
   test_vec0_fullscan_schema_rollback();
+  test_graph_cache_module_lifetime();
   printf("All unit tests passed.\n");
 }

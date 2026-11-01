@@ -266,3 +266,74 @@ fn cli_bad_utf8_final_record_and_empty_input() {
     assert_eq!(rows[0]["error"]["code"], "invalid_json");
     assert_eq!(rows[1]["ok"], true);
 }
+
+#[test]
+fn bounded_witness_cancellation_releases_transaction_and_progress_hook() {
+    let fixture = Fixture::new();
+    let writer = Connection::open(&fixture.database).unwrap();
+    writer
+        .execute_batch("create table evidence_edges(id integer primary key,src,dst)")
+        .unwrap();
+    writer.execute_batch("BEGIN").unwrap();
+    {
+        let mut stmt = writer
+            .prepare("insert into evidence_edges values (?1,1,2)")
+            .unwrap();
+        for i in 0..19999 {
+            stmt.execute([i]).unwrap();
+        }
+    }
+    writer.execute_batch("COMMIT").unwrap();
+    let mut config: Value =
+        serde_json::from_slice(&std::fs::read(&fixture.config).unwrap()).unwrap();
+    config["corpora"]["demo"]["edges"] = json!("evidence_edges");
+    config["corpora"]["demo"]["graph"] =
+        json!({"node_type":"Function","edge_type":"CALLS","edge_id":"id"});
+    std::fs::write(&fixture.config, config.to_string()).unwrap();
+    let mut adapter = fixture.adapter();
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let started = Arc::new(AtomicBool::new(false));
+    let observed = started.clone();
+    // Trace runs immediately before the native SELECT enters SQLite execution.
+    adapter
+        .db
+        .trace_v2(
+            TraceEventCodes::SQLITE_TRACE_STMT,
+            Some(move |event: TraceEvent<'_>| {
+                if let TraceEvent::Stmt(_, sql) = event {
+                    if sql.contains("graph_witness(") {
+                        observed.store(true, Ordering::SeqCst);
+                    }
+                }
+            }),
+        )
+        .unwrap();
+    let interrupt = adapter.interrupt_handle();
+    let flag = cancelled.clone();
+    let worker = std::thread::spawn(move || {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !started.load(Ordering::SeqCst) {
+            assert!(Instant::now() < deadline, "native witness never started");
+            std::thread::yield_now();
+        }
+        std::thread::sleep(Duration::from_millis(5));
+        flag.store(true, Ordering::SeqCst);
+        interrupt.interrupt();
+    });
+    let input = request(
+        "witness",
+        json!({"version":"g2/1","node_type":"Function","edge_type":"CALLS","direction":"out","source":1,"target":2,"work":1000000000,"bytes":4194304}),
+    );
+    let result = adapter.call_cancellable(&input, cancelled);
+    worker.join().unwrap();
+    assert_eq!(result["error"]["code"], "cancelled", "{result}");
+    assert!(adapter.db.is_autocommit());
+    assert_eq!(
+        adapter.call(&request("fetch", json!({"ids":[1]})))["ok"],
+        true
+    );
+    let result = adapter.call_cancellable(&input, Arc::new(AtomicBool::new(true)));
+    assert_eq!(result["error"]["code"], "cancelled");
+    assert!(adapter.db.is_autocommit());
+    assert_eq!(adapter.call(&request("describe", json!({})))["ok"], true);
+}

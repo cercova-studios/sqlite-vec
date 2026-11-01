@@ -136,7 +136,7 @@ def test_mcp_journey_and_errors(config,adapter):
             async with ClientSession(read,write) as session:
                 await session.initialize()
                 tools = await session.list_tools()
-                assert [t.name for t in tools.tools] == ["describe","search","traverse","fetch","reach"]
+                assert [t.name for t in tools.tools] == ["describe","search","traverse","fetch","reach","witness"]
                 assert all(t.annotations.readOnlyHint for t in tools.tools)
                 results = []
                 for rec in [request("describe"), request("search",dict(text="deploy",vector=[0,0],candidates=3,limit=3))]:
@@ -327,3 +327,110 @@ def test_rust_runtime_needs_no_python(config):
     run=subprocess.run(command(config),input=json.dumps(request("describe")),text=True,capture_output=True,
                        env={"PATH":"/nonexistent"})
     assert run.returncode==0 and json.loads(run.stdout)["ok"] and not run.stderr
+
+
+@pytest.fixture
+def witness_config(config):
+    cfg = json.loads(config.read_text())
+    with sqlite3.connect(cfg['database']) as db:
+        db.execute('create table evidence_edges(id integer primary key,src,dst)')
+        db.executemany('insert into evidence_edges values (?,?,?)', [(101,1,2),(102,2,4),(103,1,3),(104,3,4),(105,1,2)])
+    cfg['corpora']['demo']['edges'] = 'evidence_edges'
+    cfg['corpora']['demo']['graph']['edge_id'] = 'id'
+    config.write_text(json.dumps(cfg))
+    return config
+
+
+def witness_request(**updates):
+    args = dict(version='g2/1',node_type='Function',edge_type='CALLS',direction='out',source=1,target=4,work=100000,bytes=65536)
+    args.update(updates)
+    return request('witness',args)
+
+
+def test_witness_cli_failures_and_recovery(witness_config):
+    adapter = RustAdapter(witness_config)
+    try:
+        result = adapter.call(witness_request())
+        assert result['ok'] and result['path'] in ([[1,None],[2,101],[4,102]], [[1,None],[3,103],[4,104]])
+        assert adapter.call(witness_request(work=1))['error']['code'] == 'work_limit'
+        assert adapter.call(witness_request(bytes=128))['error']['code'] == 'memory_limit'
+        assert adapter.call(witness_request())['ok']
+        assert adapter.call(witness_request(source=6))['missing_ids'] == [6]
+        assert adapter.call(witness_request(target=1))['path'] == [[1,None]]
+        assert adapter.call(request('fetch', {'ids':[1]}))['ok']
+    finally:
+        adapter.close()
+
+
+def test_witness_mcp_parity(witness_config):
+    async def run():
+        cmd = command(witness_config, 'mcp')
+        async with stdio_client(StdioServerParameters(command=cmd[0],args=cmd[1:])) as (read,write):
+            async with ClientSession(read,write) as session:
+                await session.initialize()
+                record = witness_request()
+                result = await session.call_tool('witness', {k:v for k,v in record.items() if k != 'op'})
+                assert result.structuredContent['ok']
+                assert result.structuredContent['path'][0] == [1,None]
+    asyncio.run(run())
+
+
+
+@pytest.mark.parametrize("cancel_queued", [False, True])
+def test_witness_mcp_cancel_then_reuse(witness_config, cancel_queued):
+    cfg = json.loads(witness_config.read_text())
+    with sqlite3.connect(cfg['database']) as db:
+        db.execute('delete from evidence_edges')
+        db.executemany('insert into evidence_edges values (?,?,?)', [(i,1,2) for i in range(19999)])
+    async def run():
+        cmd = command(witness_config, 'mcp')
+        async with stdio_client(StdioServerParameters(command=cmd[0],args=cmd[1:])) as (read,write):
+            async with ClientSession(read,write) as session:
+                await session.initialize()
+                record = witness_request(work=1000000000,bytes=4*1024*1024)
+                call = asyncio.create_task(session.call_tool('witness', {k:v for k,v in record.items() if k != 'op'}))
+                await asyncio.sleep(0.01)
+                assert not call.done(), 'cancellation workload must still be running'
+                if cancel_queued:
+                    queued = asyncio.create_task(session.call_tool('fetch', {'corpus':'demo','args':{'ids':[1]}}))
+                    await asyncio.sleep(0.01)
+                    queued.cancel()
+                    with pytest.raises(asyncio.CancelledError):
+                        await queued
+                    completed = await asyncio.wait_for(call, timeout=5)
+                    assert completed.structuredContent['ok'], completed
+                else:
+                    call.cancel()
+                    with pytest.raises(asyncio.CancelledError):
+                        await call
+                # Discovery must stay responsive while a native call is stopping.
+                tools = await asyncio.wait_for(session.list_tools(), timeout=5)
+                assert any(t.name == 'witness' for t in tools.tools)
+                response = await asyncio.wait_for(session.call_tool('fetch', {'corpus':'demo','args':{'ids':[1]}}), timeout=5)
+                assert response.structuredContent['ok']
+                assert response.structuredContent['rows'][0]['id'] == 1
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('mutation,code', [
+    ('missing_column','schema_error'),('duplicate_id','database_error'),
+    ('null_id','database_error'),('wrong_type','unsupported')])
+def test_witness_mapping_rejection(witness_config, mutation, code):
+    cfg = json.loads(witness_config.read_text())
+    if mutation == 'missing_column':
+        cfg['corpora']['demo']['graph']['edge_id'] = 'missing'
+    elif mutation in ('duplicate_id','null_id'):
+        with sqlite3.connect(cfg['database']) as db:
+            if mutation == 'duplicate_id':
+                db.execute('create view bad_ids as select * from evidence_edges union all select * from evidence_edges')
+            else:
+                db.execute('create view bad_ids as select NULL as id,src,dst from evidence_edges')
+        cfg['corpora']['demo']['edges'] = 'bad_ids'
+    witness_config.write_text(json.dumps(cfg))
+    adapter = RustAdapter(witness_config)
+    try:
+        query = witness_request(node_type='File') if mutation == 'wrong_type' else witness_request()
+        assert adapter.call(query)['error']['code'] == code
+        assert adapter.call(request('fetch', {'ids':[1]}))['ok']
+    finally:
+        adapter.close()

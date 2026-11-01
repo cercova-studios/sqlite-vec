@@ -307,3 +307,35 @@ def test_graph_witness_g0_oracle(db):
                 assert path[-1][0] == target
                 for a,b in zip(path,path[1:]):
                     assert [b[1],a[0],b[0]] in edges
+
+
+def test_cache_resident_byte_limit_and_rollback(db):
+    # Separate names force resident entries even though all read the same data.
+    db.execute("create table many(src,dst)")
+    db.executemany("insert into many values (?,?)", [(i,i+1) for i in range(80000)])
+    for i in range(8):
+        db.execute(f"create view cache_{i} as select * from many")
+    for i in range(8):
+        assert len(bfs(db, 0, 0, table=f"cache_{i}")) == 1
+        resident = db.execute("select graph_cache_bytes()").fetchone()[0]
+        assert 0 < resident <= 16*1024*1024
+    # Fewer than eight graphs fit; revisiting an evicted graph preserves results.
+    assert bfs(db, 0, 2, table='cache_0') == {0:0,1:1,2:2}
+    db.execute("begin")
+    db.execute("delete from many where src=0")
+    assert bfs(db, 0, 2, table='cache_0') == {0:0}
+    db.execute("savepoint s")
+    db.execute("insert into many values (0,99)")
+    assert 99 in bfs(db, 0, 1, table='cache_0')
+    db.execute("rollback to s")
+    assert bfs(db, 0, 1, table='cache_0') == {0:0}
+    db.execute("rollback")
+    assert bfs(db, 0, 2, table='cache_0') == {0:0,1:1,2:2}
+
+
+def test_oversized_graph_is_not_retained(db):
+    db.execute("create table large(src,dst)")
+    db.executemany("insert into large values (?,?)", [(i,i+1) for i in range(600000)])
+    before = db.execute('select graph_cache_bytes()').fetchone()[0]
+    assert bfs(db, 0, 1, table='large') == {0:0,1:1}
+    assert db.execute('select graph_cache_bytes()').fetchone()[0] == before

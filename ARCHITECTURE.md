@@ -82,7 +82,7 @@ selects the database, native extension, corpus tables and fixed tenant/time scop
 The adapter loads the extension once per process, disables further loading and
 enforces read-only access with SQLite read-only open flags, `query_only` and an
 authorizer. A scoped extension-loading guard disables further loading even when
-loading fails. One serialized connection serves both transports.
+loading fails. One serialized connection serves both transports. MCP executes handlers on a blocking worker so the protocol loop can receive cancellation.
 
 Each operation uses one explicit read transaction. Separate calls may observe
 different commits. Search ranks eligible flat float/L2 vectors with scalar distance
@@ -90,7 +90,7 @@ SQL for deterministic cutoff ties, combines branch ranks with RRF, and fetches
 evidence by stable corpus/document IDs. Traversal reuses distinct-node native BFS
 over a configured edge source after checking its size and endpoint eligibility in
 the same snapshot. Admission limits restrict supported workloads; they do not
-provide hard native memory, work or cancellation budgets. See the adapter
+provide hard native memory or work budgets for BFS. The typed `witness` operation uses the bounded native evidence helper with per-call budgets and MCP cancellation. See the adapter
 [contract and runnable example](examples/search-lab/README.md).
 
 ## Graph traversal
@@ -103,7 +103,7 @@ even when absent from the edge source. The path helper returns one shortest node
 sequence, including a zero-step sequence for equal endpoints. Neither helper
 returns edge identities or path multiplicities.
 
-Each connection caches up to eight CSR graphs. Write transactions rebuild rather
+Each connection caches up to eight CSR graphs with at most 16 MiB of resident adjacency allocations, measured with `sqlite3_msize`. LRU eviction enforces both bounds; an oversized graph is used uncached. Build scratch, the new graph before admission and cursor output are outside the resident-cache bound. `graph_cache_bytes()` reports retained adjacency bytes. Write transactions rebuild rather
 than reuse cached adjacency so own writes and savepoint rollback remain visible.
 Native traversal materializes its output before SQL limits apply. The search-lab
 [graph contract and fixtures](examples/search-lab/graph-semantics.md) distinguish
@@ -427,5 +427,20 @@ This direct-only scalar function rebuilds from the current statement snapshot
 and keeps no adjacency cache. Failure releases its state and writes no database
 rows. It uses bounded linear scans rather than CSR/hash construction; uniqueness
 validation and witness construction can be quadratic and consume the work budget.
-The existing BFS/path helpers and Rust adapter retain their prior contracts;
-these native limits do not apply to their cache or execution.
+The existing BFS/path helpers retain their traversal contracts. Their resident cache is byte-bounded separately; query work and temporary allocations remain outside that cache bound. The Rust adapter exposes this helper through typed `witness` requests. Existing `reach` and `traverse` operations keep their admission limits and output behavior.
+
+
+The adapter `witness` operation requires a trusted `graph.edge_id` column mapping,
+`g2/1`, the configured node/edge types, outgoing direction, source/target integers,
+and explicit work/byte budgets. It reuses typed schema and scope admission in the
+same read transaction. Missing or ineligible endpoints produce `missing_ids` and
+an empty path. The native work/byte budgets apply to witness execution after SQL
+admission; they do not bound SQLite admission work or process RSS.
+
+MCP cancellation uses SQLite interruption during native witness execution and a
+per-request progress hook for SQLite VM execution. A cancellation gate protects
+queued and later requests from a stale interrupt. Cancelled operations remove the
+hook and roll back any surviving read transaction before releasing the serialized
+connection. CLI remains sequential JSONL with the same result/error envelopes;
+its process can be stopped by the host. Legacy BFS native loops do not poll for
+cancellation and may delay a cancelled legacy traversal until they return.

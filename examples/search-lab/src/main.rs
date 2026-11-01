@@ -1,9 +1,41 @@
 use rmcp::{ErrorData, RoleServer, ServerHandler, ServiceExt, model::*, service::RequestContext};
 use serde_json::{Value, json};
 use sqlite_vec_search_lab::{Adapter, cli, error};
-use std::{io, path::PathBuf, sync::Mutex};
+use std::{
+    io,
+    path::PathBuf,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
+};
 
-struct Server(Mutex<Adapter>);
+struct Server(
+    Arc<Mutex<Adapter>>,
+    Arc<rusqlite::InterruptHandle>,
+    Vec<Tool>,
+);
+
+struct Cancellation {
+    cancelled: Arc<AtomicBool>,
+    active: Mutex<bool>,
+    interrupt: Arc<rusqlite::InterruptHandle>,
+}
+impl Cancellation {
+    fn cancel(&self) {
+        self.cancelled.store(true, Ordering::SeqCst);
+        let active = self.active.lock().expect("cancellation gate");
+        if *active {
+            self.interrupt.interrupt();
+        }
+    }
+}
+struct CancelOnDrop(Arc<Cancellation>);
+impl Drop for CancelOnDrop {
+    fn drop(&mut self) {
+        self.0.cancel();
+    }
+}
 impl ServerHandler for Server {
     fn get_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build()).with_server_info(
@@ -16,14 +48,14 @@ impl ServerHandler for Server {
         _: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
         Ok(ListToolsResult {
-            tools: self.0.lock().expect("serialized adapter").tools(),
+            tools: self.2.clone(),
             ..Default::default()
         })
     }
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
-        _: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
         let arguments = request.arguments.unwrap_or_default();
         let result = if arguments.keys().any(|k| k != "corpus" && k != "args") {
@@ -31,7 +63,34 @@ impl ServerHandler for Server {
         } else {
             let mut record = Value::Object(arguments);
             record["op"] = json!(request.name);
-            self.0.lock().expect("serialized adapter").call(&record)
+            let cancellation = Arc::new(Cancellation {
+                cancelled: Arc::new(AtomicBool::new(false)),
+                active: Mutex::new(false),
+                interrupt: self.1.clone(),
+            });
+            let _guard = CancelOnDrop(cancellation.clone());
+            let adapter = self.0.clone();
+            let state = cancellation.clone();
+            let mut work = tokio::task::spawn_blocking(move || {
+                let mut adapter = adapter.lock().expect("serialized adapter");
+                {
+                    let mut active = state.active.lock().expect("cancellation gate");
+                    if state.cancelled.load(Ordering::SeqCst) {
+                        return error("cancelled", "request cancelled before execution");
+                    }
+                    *active = true;
+                }
+                let result = adapter.call_cancellable(&record, state.cancelled.clone());
+                *state.active.lock().expect("cancellation gate") = false;
+                result
+            });
+            tokio::select! {
+                result = &mut work => result.map_err(|e|ErrorData::internal_error(e.to_string(), None))?,
+                _ = context.ct.cancelled() => {
+                    cancellation.cancel();
+                    work.await.map_err(|e|ErrorData::internal_error(e.to_string(), None))?
+                }
+            }
         };
         let is_error = result["ok"] != true;
         let mut response = CallToolResult::structured(result);
@@ -73,7 +132,9 @@ async fn run() -> Result<i32, String> {
     if transport == "cli" {
         return cli(&adapter, io::stdin().lock(), io::stdout().lock()).map_err(|e| e.to_string());
     }
-    let service = Server(Mutex::new(adapter))
+    let interrupt = Arc::new(adapter.interrupt_handle());
+    let tools = adapter.tools();
+    let service = Server(Arc::new(Mutex::new(adapter)), interrupt, tools)
         .serve(rmcp::transport::stdio())
         .await
         .map_err(|e| e.to_string())?;

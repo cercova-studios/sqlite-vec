@@ -98,6 +98,7 @@ def spread_args(args):
 
 
 FUNCTIONS = [
+    "graph_cache_bytes",
     "graph_witness",
     "vec_add",
     "vec_bit",
@@ -2704,6 +2705,17 @@ def test_vec_rrf_scoped_hybrid_recipe():
     assert tuple(vector_only[2:]) == (2, None, 3.0, "episode:valid-b")
     assert vector_only[1] == pytest.approx(1 / 62)
 
+    # A keyword-only candidate keeps its rank, NULL distance and source provenance.
+    d.execute("insert into doc_scope values (7,'ours',0,null,null,'episode:keyword-only')")
+    d.execute("insert into vec_docs(rowid,embedding) values (7,'[99,0]')")
+    d.execute("insert into fts_docs(rowid,body) values (7,'deploy procedure')")
+    result = d.execute(sql, params).fetchall()
+    assert [r[0] for r in result] == [5, 6, 7]
+    assert tuple(result[2][2:]) == (None, 2, None, "episode:keyword-only")
+    assert result[2][1] == pytest.approx(1 / 62)
+    assert d.execute(sql, dict(params, tenant="absent")).fetchall() == []
+
+
 
 if __name__ == "__main__":
     unittest.main()
@@ -2723,3 +2735,10 @@ def test_graph_shortest_path():
     rows = db.execute("select step, node from graph_shortest_path('graph_smoke', 'src', 'dst', 1, 3)").fetchall()
     assert [tuple(r) for r in rows] == [(0, 1), (1, 3)]
     db.execute("drop table graph_smoke")
+
+
+def test_graph_cache_bytes():
+    db = sqlite3.connect(":memory:")
+    db.enable_load_extension(True)
+    db.load_extension(EXT_PATH)
+    assert db.execute("select graph_cache_bytes()").fetchone() == (0,)

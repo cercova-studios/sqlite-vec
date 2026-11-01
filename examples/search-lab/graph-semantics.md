@@ -28,7 +28,7 @@ must preserve integer precision. A nullable property does not make the node abse
 A fixture edge identity is `(graph, edge_id)`. Parallel edges have separate edge
 IDs even when their endpoints agree. Edge IDs are unique within one fixture graph;
 the same integer may identify edges in different graphs. These fixture IDs are
-ordinary SQL data. Native traversal receives endpoint pairs and returns no edge ID.
+ordinary SQL data. The legacy BFS/path helpers receive endpoint pairs and return no edge ID. The bounded `graph_witness` helper and typed adapter `witness` operation use explicit host-supplied edge IDs.
 
 Native `graph_bfs` has no node catalog or type binder. The selected table/view and
 source/destination columns supply the traversal domain. A source must not combine
@@ -133,6 +133,6 @@ does not add a native execution budget.
 
 The tests preserve the existing C graph code and A0 handlers. G1 binds one typed
 minimum-distance query to the configured corpus and its edge source; it does not
-implement a general graph language. Native resource accounting belongs to G2.
+implement a general graph language. G2 adds bounded shortest witnesses with explicit stable edge IDs, native cancellation and a resident byte limit for the legacy cache. The existing BFS result semantics remain unchanged.
 Detailed validation belongs in the
 [current verification receipt](experiments/2026-10-27-rust-port/VALIDATION.md).

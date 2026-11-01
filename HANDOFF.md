@@ -1,5 +1,43 @@
 # Handoff — read this first
 
+## G2 adapter integration and graph-cache byte limit — completed 2026-11-01
+
+The typed `witness` operation is available in both Rust CLI and MCP, with `g2/1`,
+configured node/edge types, outgoing source/target, and explicit native work/byte
+budgets. Trusted `graph.edge_id` selects the stable ID column. Existing configs,
+reach/traverse output and read-only defenses remain compatible. Scope and schema
+admission run in the same read transaction. No BFS graph is built for the
+zero-depth admission used by witnesses. Budget errors have explicit work_limit /
+memory_limit codes and no partial witness. G0 oracle checks remain intact.
+
+MCP runs serialized SQLite work on blocking workers while receiving cancellation
+and discovery on the protocol loop. A per-request cancellation gate prevents
+queued or stale cancellation from interrupting another call. Native witness loops
+poll interruption; a request progress hook covers SQLite VM cancellation. Cleanup
+removes the hook and rolls back any surviving transaction before reuse. CLI stays
+sequential JSONL; hosts cancel CLI work by stopping the process.
+
+The legacy CSR cache now retains at most 16 MiB across eight LRU entries, measured
+with sqlite3_msize. Oversized graphs run uncached. graph_cache_bytes() reports
+resident adjacency bytes. Cache/module/function ownership is reference-counted so
+removing graph modules cannot invalidate the metrics function. Build scratch,
+uncached graphs and cursor output are outside this resident limit. Witness limits
+cover native execution after SQL admission, not SQLite VM memory/work or RSS.
+Legacy BFS loops retain their existing work/temporary-memory contract and may
+delay cancellation until they return; the bounded evidence route is witness.
+
+Verification in this session: release adapter and loadable builds; full default
+suite 501 passed / 141 skipped, 219 snapshots; final affected native suites
+89 passed / 4 skipped; Rust unit suite 9 passed; final adapter/parity/G0 suite
+76 passed. Native unit harness passes normally and under ASan/UBSan (leak checking
+disabled). Tests cover work/byte failure and retry, native interruption, queued
+MCP cancellation, subsequent connection reuse, transaction cleanup, byte eviction,
+oversized uncached graphs, own writes, savepoint/full rollback and module lifetime.
+Existing DiskANN unused-parameter and NumPy stress warnings remain. Hybrid release,
+experimental-IVF loadable suite and other platforms were not run. No push or CI.
+Preserve unrelated HNSW and concurrent filtered-FTS/site edits and .claude worktrees.
+
+
 ## Public labelled hybrid evaluation — complete 2026-10-27
 
 [Public SciFact report and replay](benchmarks-ann/experiments/2026-10-26-scifact-hybrid/README.md).
@@ -910,7 +948,7 @@ oracle witnesses, parallel IDs, duplicate/NULL rejection, work and memory failur
 retry, savepoint/full rollback and cross-thread native interruption. Existing
 DiskANN unused parameter and NumPy stress warnings remain.
 
-G2 remains incomplete at the adapter boundary: Rust CLI/MCP traversal still uses
+At this historical slice boundary, G2 was incomplete (completed in the latest entry): Rust CLI/MCP traversal still uses
 the existing unbounded native BFS path and reports its budget/cancellation flags
 as false. The legacy eight-entry CSR cache is not byte-bounded. Next integrate
 bounded reachability and witnesses into the trusted typed adapter, including MCP

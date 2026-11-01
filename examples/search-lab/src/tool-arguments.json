@@ -71,13 +71,45 @@
     }
   },
   "reach": {
-    "version": {"type": "string", "enum": ["g1/1"]},
-    "node_type": {"type": "string"},
-    "edge_type": {"type": "string"},
-    "direction": {"type": "string", "enum": ["out"]},
-    "anchors": {"type": "array", "items": {"type": "integer", "minimum": -9223372036854775808, "maximum": 9223372036854775807}, "minItems": 1, "maxItems": 64, "uniqueItems": true},
-    "max_depth": {"type": "integer", "minimum": 0, "maximum": 8},
-    "limit": {"type": "integer", "minimum": 1, "maximum": 100}
+    "version": {
+      "type": "string",
+      "enum": [
+        "g1/1"
+      ]
+    },
+    "node_type": {
+      "type": "string"
+    },
+    "edge_type": {
+      "type": "string"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "out"
+      ]
+    },
+    "anchors": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": -9223372036854775808,
+        "maximum": 9223372036854775807
+      },
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "max_depth": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 8
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
   },
   "fetch": {
     "ids": {
@@ -90,6 +122,42 @@
       "minItems": 1,
       "maxItems": 64,
       "uniqueItems": true
+    }
+  },
+  "witness": {
+    "version": {
+      "type": "string",
+      "enum": [
+        "g2/1"
+      ]
+    },
+    "node_type": {
+      "type": "string"
+    },
+    "edge_type": {
+      "type": "string"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "out"
+      ]
+    },
+    "source": {
+      "type": "integer"
+    },
+    "target": {
+      "type": "integer"
+    },
+    "work": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000000
+    },
+    "bytes": {
+      "type": "integer",
+      "minimum": 128,
+      "maximum": 67108864
     }
   }
 }

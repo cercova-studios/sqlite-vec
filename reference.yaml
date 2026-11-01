@@ -529,6 +529,29 @@ graph:
       - select step, node from graph_shortest_path('edges', 'src', 'dst', 1, 5);
       - select step, node from graph_shortest_path('edges', 'src', 'dst', 1, 1);
 
+  graph_witness:
+    params: [edge_table, src_column, dst_column, id_column, source, target, work, bytes]
+    desc: |
+      Returns JSON pairs `[node, incoming_edge_id]` for one shortest directed path.
+      Arguments: edge table, source column, destination column, edge ID column,
+      source ID, target ID, native work units, native payload bytes (128..67108864).
+      The first edge ID is null. Disconnected targets return `[]`.
+      Edge IDs must be unique integers and endpoints must be non-NULL integers.
+      Requires SQLite 3.41+. Work/memory exhaustion and cancellation return errors.
+      The byte bound excludes SQLite VM/preparation memory and the returned-text copy.
+      Uses no graph cache; equal shortest paths follow source scan order.
+    example:
+      - select graph_witness('edges', 'src', 'dst', 'id', 1, 5, 100000, 65536);
+
+  graph_cache_bytes:
+    params: []
+    desc: |
+      Returns bytes retained by the connection's native BFS/path adjacency cache.
+      Resident allocations are limited to 16777216 bytes and eight graphs.
+      Graph construction scratch, cursor output and uncached graphs are excluded.
+    example:
+      - select graph_cache_bytes();
+
 hybrid:
   vec_rrf:
     params: [rank1, rank2, ...]
@@ -559,16 +582,3 @@ hybrid:
     example:
       - select vec_rrf(1, 3);
       - select vec_rrf(2, null);
-  graph_witness:
-    section: op
-    desc: |
-      Returns JSON pairs `[node, incoming_edge_id]` for one shortest directed path.
-      Arguments: edge table, source column, destination column, edge ID column,
-      source ID, target ID, native work units, native payload bytes (128..67108864).
-      The first edge ID is null. Disconnected targets return `[]`.
-      Edge IDs must be unique integers and endpoints must be non-NULL integers.
-      Requires SQLite 3.41+. Work/memory exhaustion and cancellation return errors.
-      The byte bound excludes SQLite VM/preparation memory and the returned-text copy.
-      Uses no graph cache; equal shortest paths follow source scan order.
-    example:
-      - select graph_witness('edges', 'src', 'dst', 'id', 1, 5, 100000, 65536);

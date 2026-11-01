@@ -50,8 +50,8 @@ examples/search-lab/target/release/sqlite-vec-search-lab \
   --config /tmp/search-lab-demo/config.json mcp
 ```
 
-The server exposes the `retrieval` toolset as five named tools: `describe`,
-`search`, `traverse`, `reach` and `fetch`. Each takes `corpus` and an optional `args` object,
+The server exposes the `retrieval` toolset as six named tools: `describe`,
+`search`, `traverse`, `reach`, `fetch` and `witness`. Each takes `corpus` and an optional `args` object,
 matching the CLI record without `op`. Tool discovery includes argument schemas.
 For example, call `search` with:
 
@@ -61,8 +61,7 @@ For example, call `search` with:
 
 Results are in `structuredContent`; errors also set MCP `isError`. Stdout contains
 only MCP protocol messages. The SDK calls the shared handlers directly on the
-server's persistent SQLite connection. Calls execute serially in the server event
-loop; a running native call blocks later calls. Stop the process to close it.
+server's persistent SQLite connection. Calls use one serialized connection on a blocking worker. The protocol loop remains responsive to cancellation and tool discovery. MCP cancellation interrupts a running witness; queued cancellation does not interrupt another request. Stop the CLI process to cancel CLI work.
 
 ## Operations and results
 
@@ -72,6 +71,7 @@ loop; a running native call blocks later calls. Stop the process to close it.
 | `search` | `mode`: `lexical`, `dense`, or default `hybrid`; lexical/hybrid require `text`; dense/hybrid require exactly one of `vector` or `embedding_id`; `candidates` default 50; `limit` default 10 | Stable IDs/source references, one-based branch ranks, vector L2 distance, keyword BM25, RRF score, branch counts and paging status |
 | `traverse` | Unique `ids`; `depth` default 1; `limit` default 50 | Distinct nodes and minimum hops from any eligible seed, ordered by depth then ID; eligible seeds included at depth zero |
 | `reach` | Typed `g1/1` request described below | Validated minimum-hop reachability in the configured node and edge domain |
+| `witness` | Typed `g2/1` request with explicit work and byte budgets, described below | One shortest path with stable incoming edge IDs |
 | `fetch` | Unique `ids` | Evidence in requested ID order, plus explicit `missing_ids` for absent or ineligible IDs |
 
 `text` uses FTS5 query syntax, including phrases and Boolean operators. Malformed
@@ -194,9 +194,11 @@ admission exhaustion and SQLite failures have distinct error codes.
 
 These bounds restrict admitted workloads and returned data. They are not hard
 process-memory or elapsed-work guarantees. Graph construction scans the entire
-configured edge source, native BFS materializes results, and its cache is slot
-bounded rather than byte bounded. SQL LIMIT does not stop that work. The adapter
-does not advertise cancellation, deadlines, continuation or a hard native budget.
+configured edge source and native BFS materializes results. Its resident cache
+is bounded to eight graphs and 16 MiB; SQL LIMIT does not bound construction or
+traversal work. The bounded `witness` operation supplies native payload/work
+limits and MCP cancellation as described below. Deadlines and continuation remain
+unsupported.
 The SDK parses MCP messages before handler validation, so the request bound is not
 a transport allocation cap. Protocol framing adds bytes to the bounded result
 object. Trusted views may themselves be expensive; review them before admission.
@@ -228,3 +230,43 @@ about its pure-Go SQLite driver's native-extension loading is needed here.
 
 Removing this optional directory and its architecture entry rolls back the adapter.
 The adapter makes no database-format change; fixture creation is a separate write tool.
+
+
+## Bounded graph evidence
+
+To enable `witness`, add a stable ID column to the trusted graph mapping:
+`"graph":{"node_type":"Function","edge_type":"CALLS","edge_id":"id"}`.
+The selected edge table/view must expose that column, plus `src` and `dst`.
+The host owns ID stability across updates and database maintenance. IDs must be
+unique non-NULL signed integers within the configured corpus. Parallel edges
+need distinct IDs. The existing demo edge view has no ID column; configure an
+ID-bearing source before using this operation.
+
+```json
+{"op":"witness","corpus":"demo","args":{"version":"g2/1","node_type":"Function","edge_type":"CALLS","direction":"out","source":1,"target":4,"work":1000000,"bytes":65536}}
+```
+
+All eight arguments are required. `work` is 1–1,000,000,000 native units;
+`bytes` is 128–67,108,864. Source and target are signed 64-bit IDs. The adapter
+validates configured types, schema and endpoint eligibility in one read snapshot.
+The result's `path` contains `[node, incoming_edge_id]` pairs; the first edge is
+null. It returns one shortest directed path, any shortest tie in scan order.
+Disconnected or missing endpoints return an empty path; missing/ineligible
+endpoints also appear in `missing_ids`. Equal eligible endpoints return one node.
+
+Budget exhaustion returns `work_limit` or `memory_limit`; MCP interruption returns
+`cancelled` when a response is delivered. No partial witness is returned. A client
+may stop waiting after sending MCP cancellation; the server still cleans up the
+operation before reusing its connection. Invalid edge IDs return `database_error`.
+
+The byte budget covers native edge rows, queue/parents and JSON construction.
+SQLite admission/VM/preparation memory, allocator bookkeeping and returned-text
+copies are excluded. Native work units cover scanned rows and loop visits or
+comparisons after admission. These are not process memory or wall-clock limits.
+Linear scans can consume quadratic work; choose a budget suitable for the corpus.
+`describe.witness_limits` reports these operation-specific capabilities. Existing
+`reach`/`traverse` requests retain their prior budgets and behavior.
+
+Separately, the native BFS cache retains at most 16 MiB across eight entries.
+Oversized graphs are used uncached. Build scratch and cursor output are outside
+that resident bound; `graph_cache_bytes()` reports current retained bytes.

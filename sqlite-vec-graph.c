@@ -28,10 +28,8 @@
 #include "sqlite-vec.c" // IWYU pragma: keep
 #endif
 
-// ponytail: the bound is a slot count, not bytes. A cached graph costs about
-// 4 B/edge + 32 B/node (ids, offsets, hash at <= 50% load, tag, parent), plus
-// 8 B/edge transient during the build. Eight slots evict least-recently-used;
-// add a byte budget (like hnsw cache_mb) if graphs get large.
+// Resident adjacency only; build scratch and cursor outputs are not cached.
+#define GRAPH_CACHE_BYTES (16 * 1024 * 1024)
 #define GRAPH_CACHE_SLOTS 8
 #define GRAPH_MAX_NODES 0xFFFFFFF0u
 
@@ -58,7 +56,26 @@ typedef struct GraphCache GraphCache;
 struct GraphCache {
   GraphCsr *a[GRAPH_CACHE_SLOTS];
   u64 clock;
+  int refs;
 };
+
+static u64 graph_csr_bytes(GraphCsr *g) {
+  if (!g) return 0;
+  return sqlite3_msize(g) + sqlite3_msize(g->zKey) + sqlite3_msize(g->ids) +
+      sqlite3_msize(g->off) + sqlite3_msize(g->adj) + sqlite3_msize(g->slot) +
+      sqlite3_msize(g->tag) + sqlite3_msize(g->parent);
+}
+
+static u64 graph_cache_bytes(GraphCache *c) {
+  u64 bytes = 0;
+  for (int i = 0; i < GRAPH_CACHE_SLOTS; i++) bytes += graph_csr_bytes(c->a[i]);
+  return bytes;
+}
+
+static void graph_cache_memory(sqlite3_context *ctx, int argc, sqlite3_value **argv) {
+  UNUSED_PARAMETER(argc); UNUSED_PARAMETER(argv);
+  sqlite3_result_int64(ctx, graph_cache_bytes(sqlite3_user_data(ctx)));
+}
 
 static void graph_csr_free(GraphCsr *g) {
   if (!g) return;
@@ -74,6 +91,7 @@ static void graph_csr_free(GraphCsr *g) {
 
 static void graph_cache_free(void *p) {
   GraphCache *c = p;
+  if (--c->refs) return;
   for (int i = 0; i < GRAPH_CACHE_SLOTS; i++) graph_csr_free(c->a[i]);
   sqlite3_free(c);
 }
@@ -292,6 +310,20 @@ static int graph_get(sqlite3 *db, GraphCache *c, const char *zTable,
   g->changes = known ? changes : -1;
   g->lastUse = ++c->clock;
   graph_csr_free(c->a[victim]);
+  c->a[victim] = NULL;
+  u64 bytes = graph_csr_bytes(g);
+  if (bytes > GRAPH_CACHE_BYTES) {
+    *pFresh = 1;
+    *out = g;
+    return SQLITE_OK;
+  }
+  while (graph_cache_bytes(c) + bytes > GRAPH_CACHE_BYTES) {
+    int oldest = -1;
+    for (int i = 0; i < GRAPH_CACHE_SLOTS; i++)
+      if (c->a[i] && (oldest < 0 || c->a[i]->lastUse < c->a[oldest]->lastUse)) oldest = i;
+    graph_csr_free(c->a[oldest]);
+    c->a[oldest] = NULL;
+  }
   c->a[victim] = g;
   *out = g;
   return SQLITE_OK;
@@ -654,6 +686,7 @@ static void graph_witness(sqlite3_context *ctx, int argc, sqlite3_value **argv) 
   if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
   for (int i = 1; i < 4; i++) {
     if (!graph_has_column(db, names[0], names[i])) {
+      if (sqlite3_errcode(db) == SQLITE_INTERRUPT) { rc = SQLITE_INTERRUPT; goto done; }
       err = "graph_witness: missing table or column"; goto done;
     }
   }
@@ -756,16 +789,23 @@ static int graph_register(sqlite3 *db, char **pzErrMsg) {
   GraphCache *c = sqlite3_malloc(sizeof(*c));
   if (!c) return SQLITE_NOMEM;
   memset(c, 0, sizeof(*c));
-  // The cache is freed with the last module that references it.
-  int rc = sqlite3_create_module_v2(db, "graph_bfs", &graph_bfsModule, c, NULL);
-  if (rc == SQLITE_OK)
+  // Keep an owner reference until every registration has completed.
+  c->refs = 2;
+  int rc = sqlite3_create_module_v2(db, "graph_bfs", &graph_bfsModule, c, graph_cache_free);
+  if (rc == SQLITE_OK) {
+    c->refs++;
     rc = sqlite3_create_module_v2(db, "graph_shortest_path", &graph_pathModule, c,
                                   graph_cache_free);
-  else
-    sqlite3_free(c);
+  }
   if (rc == SQLITE_OK)
     rc = sqlite3_create_function_v2(db, "graph_witness", 8, SQLITE_UTF8 | SQLITE_DIRECTONLY,
                                     NULL, graph_witness, NULL, NULL, NULL);
+  if (rc == SQLITE_OK) {
+    c->refs++;
+    rc = sqlite3_create_function_v2(db, "graph_cache_bytes", 0, SQLITE_UTF8 | SQLITE_DIRECTONLY,
+                                    c, graph_cache_memory, NULL, NULL, graph_cache_free);
+  }
+  graph_cache_free(c);
   if (rc != SQLITE_OK)
     *pzErrMsg = sqlite3_mprintf("Error creating graph modules: %s", sqlite3_errmsg(db));
   return rc;

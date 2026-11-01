@@ -10,7 +10,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub const OPERATIONS: [&str; 5] = ["describe", "search", "traverse", "fetch", "reach"];
+pub const OPERATIONS: [&str; 6] = [
+    "describe", "search", "traverse", "fetch", "reach", "witness",
+];
 pub const INPUT_BYTES: usize = 65536;
 pub const OUTPUT_BYTES: usize = 262144;
 const DATABASE_BYTES: u64 = 67108864;
@@ -35,7 +37,17 @@ fn reject(code: &'static str, message: impl Into<String>) -> Rejected {
 }
 impl From<rusqlite::Error> for Rejected {
     fn from(e: rusqlite::Error) -> Self {
-        reject("database_error", e.to_string())
+        let code = match e.sqlite_error_code() {
+            Some(rusqlite::ErrorCode::OperationInterrupted) => "cancelled",
+            Some(rusqlite::ErrorCode::DiskFull) if e.to_string().contains("graph_witness:") => {
+                "work_limit"
+            }
+            Some(rusqlite::ErrorCode::TooBig) if e.to_string().contains("graph_witness:") => {
+                "memory_limit"
+            }
+            _ => "database_error",
+        };
+        reject(code, e.to_string())
     }
 }
 impl From<io::Error> for Rejected {
@@ -146,6 +158,8 @@ struct Corpus {
 struct GraphBinding {
     node_type: String,
     edge_type: String,
+    #[serde(default)]
+    edge_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -211,7 +225,7 @@ impl Adapter {
         OPERATIONS.iter().map(|op| {
             let schema=json!({"type":"object","properties":{
                 "corpus":{"type":"string","enum":self.corpora.iter().map(|(n,_)|n).collect::<Vec<_>>()},
-                "args":{"type":"object","properties":properties[op],"required":if ["traverse","fetch"].contains(op) {vec!["ids"]} else if *op=="reach" {vec!["version","node_type","edge_type","direction","anchors","max_depth","limit"]} else {vec![]},"additionalProperties":false}},
+                "args":{"type":"object","properties":properties[op],"required":if ["traverse","fetch"].contains(op) {vec!["ids"]} else if *op=="reach" {vec!["version","node_type","edge_type","direction","anchors","max_depth","limit"]} else if *op=="witness" {vec!["version","node_type","edge_type","direction","source","target","work","bytes"]} else {vec![]},"additionalProperties":false}},
                 "required":["corpus"],"additionalProperties":false});
             let mut annotations=ToolAnnotations::default();
             annotations.read_only_hint=Some(true);annotations.open_world_hint=Some(false);
@@ -247,6 +261,9 @@ impl Adapter {
             if let Some(graph) = &c.graph {
                 identifier(&graph.node_type)?;
                 identifier(&graph.edge_type)?;
+                if let Some(id) = &graph.edge_id {
+                    identifier(id)?;
+                }
             }
             if c.tenant.is_empty() || c.tenant.chars().count() > 128 {
                 return Err(reject(
@@ -347,6 +364,36 @@ impl Adapter {
         Ok(rows)
     }
 
+    pub fn interrupt_handle(&self) -> rusqlite::InterruptHandle {
+        self.db.get_interrupt_handle()
+    }
+
+    pub fn call_cancellable(
+        &mut self,
+        request: &Value,
+        cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    ) -> Value {
+        if let Err(e) = self.db.progress_handler(
+            1,
+            Some(move || cancelled.load(std::sync::atomic::Ordering::SeqCst)),
+        ) {
+            return error("database_error", e.to_string());
+        }
+        let result = self.call(request);
+        if let Err(e) = self.db.progress_handler(0, None::<fn() -> bool>) {
+            return error("database_error", e.to_string());
+        }
+        if !self.db.is_autocommit() {
+            if let Err(e) = self.db.execute_batch("ROLLBACK") {
+                return error(
+                    "database_error",
+                    format!("cancellation cleanup failed: {e}"),
+                );
+            }
+        }
+        result
+    }
+
     pub fn call(&self, request: &Value) -> Value {
         let start = Instant::now();
         match self.run(request) {
@@ -382,7 +429,7 @@ impl Adapter {
             .ok_or_else(|| {
                 reject(
                     "unknown_operation",
-                    "supported operations: describe, search, traverse, fetch, reach",
+                    "supported operations: describe, search, traverse, fetch, reach, witness",
                 )
             })?;
         let empty = json!({});
@@ -421,6 +468,7 @@ impl Adapter {
             "fetch" => self.fetch(c, args)?,
             "traverse" => self.traverse(c, args)?,
             "reach" => self.reach(c, args)?,
+            "witness" => self.witness(c, args)?,
             _ => unreachable!(),
         };
         transaction.rollback()?;
@@ -451,7 +499,8 @@ impl Adapter {
             "approximation":false,"score_directions":{"l2":"lower","bm25":"lower","rrf":"higher"},
             "traversal":"outgoing distinct nodes with minimum hops; anchor included if eligible",
             "cancellation":false,"native_work_budget":false,"native_memory_budget":false,
-            "continuation":false,"edge_witnesses":false,"cross_call_snapshot":false}),
+            "witness_limits":{"work_max":1000000000,"bytes_max":67108864,"native_work_budget":true,"native_memory_budget":true,"cancellation":true},
+            "continuation":false,"edge_witnesses":c.graph.as_ref().is_some_and(|g|g.edge_id.is_some()),"cross_call_snapshot":false}),
         )
     }
 
@@ -673,6 +722,92 @@ impl Adapter {
         )
     }
 
+    fn witness(&self, c: &Corpus, a: &Map<String, Value>) -> Result<Value> {
+        only(
+            a,
+            &[
+                "version",
+                "node_type",
+                "edge_type",
+                "direction",
+                "source",
+                "target",
+                "work",
+                "bytes",
+            ],
+            "unknown witness argument",
+        )?;
+        for key in [
+            "version",
+            "node_type",
+            "edge_type",
+            "direction",
+            "source",
+            "target",
+            "work",
+            "bytes",
+        ] {
+            if !a.contains_key(key) {
+                return Err(reject(
+                    "invalid_input",
+                    "witness requires all eight arguments",
+                ));
+            }
+        }
+        if a["version"] != "g2/1" {
+            return Err(reject("unsupported", "unknown witness version"));
+        }
+        let source = integer(&a["source"], "source", i64::MIN, i64::MAX)?;
+        let target = integer(&a["target"], "target", i64::MIN, i64::MAX)?;
+        let work = integer(&a["work"], "work", 1, 1000000000)?;
+        let bytes = integer(&a["bytes"], "bytes", 128, 67108864)?;
+        let edge_id = c
+            .graph
+            .as_ref()
+            .and_then(|g| g.edge_id.as_ref())
+            .ok_or_else(|| {
+                reject(
+                    "unsupported",
+                    "witness requires a configured stable edge_id column",
+                )
+            })?;
+        // Reuse the typed binder and scope admission in this read transaction.
+        let anchors = if source == target {
+            vec![source]
+        } else {
+            vec![source, target]
+        };
+        let input = json!({"version":"g1/1","node_type":a["node_type"],"edge_type":a["edge_type"],"direction":a["direction"],"anchors":anchors,"max_depth":0,"limit":100});
+        let admission = self.reach(c, input.as_object().unwrap())?;
+        let columns = self.rows(
+            "select name from pragma_table_xinfo(:table)",
+            named_params! {":table":c.edges},
+        )?;
+        if !columns.iter().any(|r| r["name"] == *edge_id) {
+            return Err(reject(
+                "schema_error",
+                "configured edge_id column is missing",
+            ));
+        }
+        let missing = &admission["missing_ids"];
+        let path: Value = if missing.as_array().is_some_and(|a| !a.is_empty()) {
+            json!([])
+        } else {
+            let text: String = self.db.query_row(
+                "select graph_witness(?1,'src','dst',?2,?3,?4,?5,?6)",
+                rusqlite::params![c.edges, edge_id, source, target, work, bytes],
+                |r| r.get(0),
+            )?;
+            serde_json::from_str(&text)
+                .map_err(|_| reject("database_error", "invalid native witness JSON"))?
+        };
+        Ok(
+            json!({"version":"g2/1","node_type":a["node_type"],"edge_type":a["edge_type"],"source":source,"target":target,
+            "path":path,"missing_ids":missing,"complete":true,"truncated":false,"native_work_budget":true,"native_memory_budget":true,"cancellation":true,
+            "work_limit":work,"memory_limit":bytes,"identity_domain":"configured corpus + edge ID"}),
+        )
+    }
+
     fn reach(&self, c: &Corpus, a: &Map<String, Value>) -> Result<Value> {
         let query: ReachQuery = serde_json::from_value(Value::Object(a.clone()))
             .map_err(|_| reject("invalid_input", "reach requires a valid g1/1 query"))?;
@@ -764,6 +899,10 @@ impl Adapter {
             )?;
             if present.is_empty() {
                 missing.push(key);
+                continue;
+            }
+            if depth == 0 {
+                found.insert(key, 0);
                 continue;
             }
             let rows = self.rows(
