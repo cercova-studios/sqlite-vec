@@ -2,7 +2,7 @@
 
 These fixtures specify existing native graph behavior and the Rust adapter's
 catalog/scope rules. Run them before changing graph execution or the host adapter.
-They establish G0's baseline; they add no GraphIR request language or binder.
+They establish G0's baseline for the limited G1 `reach` operation.
 
 ```sh
 cargo build --release --locked --manifest-path examples/search-lab/Cargo.toml
@@ -33,8 +33,9 @@ ordinary SQL data. Native traversal receives endpoint pairs and returns no edge 
 Native `graph_bfs` has no node catalog or type binder. The selected table/view and
 source/destination columns supply the traversal domain. A source must not combine
 independent integer ID domains unless the host first supplies a collision-free
-mapping. The adapter's current ID domain is `(configured corpus, document ID)`;
-it does not accept a `node_type` parameter.
+mapping. The adapter's current ID domain is `(configured corpus, document ID)`.
+G1's `reach` validates its `node_type` against the host's configured type for
+that domain; the original `traverse` operation has no type parameter.
 
 Reachability is a **distinct node set** with one minimum distance per node.
 Cycles, self-loops, parallel edges and alternate diamond routes do not duplicate
@@ -130,7 +131,8 @@ does not add a native execution budget.
 | Transaction test | Own writes, savepoint rollback, full rollback and commit |
 | Seeded graphs | 24 tiny graphs, all selected anchors/depths, reversed insertion order, duplicate edges and self-loops |
 
-The tests preserve the existing C graph code and A0 handlers. G0 is a contract and
-conformance baseline; a validated reachability compiler belongs to G1, and native
-resource accounting belongs to G2. Detailed validation belongs in the
+The tests preserve the existing C graph code and A0 handlers. G1 binds one typed
+minimum-distance query to the configured corpus and its edge source; it does not
+implement a general graph language. Native resource accounting belongs to G2.
+Detailed validation belongs in the
 [current verification receipt](experiments/2026-10-27-rust-port/VALIDATION.md).

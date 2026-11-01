@@ -136,7 +136,7 @@ def test_mcp_journey_and_errors(config,adapter):
             async with ClientSession(read,write) as session:
                 await session.initialize()
                 tools = await session.list_tools()
-                assert [t.name for t in tools.tools] == ["describe","search","traverse","fetch"]
+                assert [t.name for t in tools.tools] == ["describe","search","traverse","fetch","reach"]
                 assert all(t.annotations.readOnlyHint for t in tools.tools)
                 results = []
                 for rec in [request("describe"), request("search",dict(text="deploy",vector=[0,0],candidates=3,limit=3))]:

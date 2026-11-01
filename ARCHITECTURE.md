@@ -109,7 +109,11 @@ Native traversal materializes its output before SQL limits apply. The search-lab
 [graph contract and fixtures](examples/search-lab/graph-semantics.md) distinguish
 these native semantics from catalog admission, typed fixture identities, scoped
 subgraphs and SQL bag/optional-binding behavior. Its independent all-pairs oracle
-is test-only; it adds no runtime dependency or GraphIR execution surface.
+is test-only. Optional corpus graph mappings enable the `g1/1` typed `reach`
+operation, which binds one node and edge type to the configured tables, checks
+their schema in the operation's read transaction, and lowers to scoped native BFS.
+It supports outgoing minimum-hop reachability only; it is not a general GraphIR
+compiler and adds no dependency to the C core.
 
 ## `vec0`
 

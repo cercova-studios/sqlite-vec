@@ -70,6 +70,15 @@
       "default": 50
     }
   },
+  "reach": {
+    "version": {"type": "string", "enum": ["g1/1"]},
+    "node_type": {"type": "string"},
+    "edge_type": {"type": "string"},
+    "direction": {"type": "string", "enum": ["out"]},
+    "anchors": {"type": "array", "items": {"type": "integer", "minimum": -9223372036854775808, "maximum": 9223372036854775807}, "minItems": 1, "maxItems": 64, "uniqueItems": true},
+    "max_depth": {"type": "integer", "minimum": 0, "maximum": 8},
+    "limit": {"type": "integer", "minimum": 1, "maximum": 100}
+  },
   "fetch": {
     "ids": {
       "type": "array",

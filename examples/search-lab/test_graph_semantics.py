@@ -321,16 +321,24 @@ def test_rust_cli_and_mcp_cover_g0_fixtures(graph,tmp_path):
     def check(result,case):
         admitted=case["start"] in graph["nodes"]
         expected=case["expected"] if admitted else []
+        oracle=canonical(minimum_hops(pairs(graph),[case["start"]] if admitted else [],case["depth"]))
+        assert [tuple(row) for row in expected]==oracle
         assert result["ok"],result
         assert result["rows"]==[dict(id=n,depth=d) for n,d in expected]
         assert result["missing_ids"]==([] if admitted else [case["start"]])
         assert result["total_reachable"]==len(expected)
     def args(case):
         return dict(ids=[case["start"]],depth=8 if case["depth"] is None else case["depth"],limit=100)
+    def typed(case):
+        return dict(version="g1/1",node_type="Function",edge_type="CALLS",direction="out",
+                    anchors=[case["start"]],max_depth=8 if case["depth"] is None else case["depth"],limit=100)
     client=RustAdapter(config)
     try:
         for case in graph["cases"]:
             check(client.call(dict(op="traverse",corpus="demo",args=args(case))),case)
+            result=client.call(dict(op="reach",corpus="demo",args=typed(case)))
+            check(result,case)
+            assert result["node_type"]=="Function" and result["edge_type"]=="CALLS"
     finally:
         client.close()
     async def run():
@@ -342,4 +350,67 @@ def test_rust_cli_and_mcp_cover_g0_fixtures(graph,tmp_path):
                     result=await session.call_tool("traverse",dict(corpus="demo",args=args(case)))
                     assert not result.isError
                     check(result.structuredContent,case)
+                    result=await session.call_tool("reach",dict(corpus="demo",args=typed(case)))
+                    assert not result.isError
+                    check(result.structuredContent,case)
     asyncio.run(run())
+
+
+def test_g1_multiseed_scope_and_rejections(tmp_path):
+    config=create(tmp_path,EXTENSION)
+    cfg=json.loads(config.read_text())
+    with sqlite3.connect(cfg["database"]) as writer:
+        writer.executemany("insert into edges values (?,?)",[(1,6),(6,5)])
+    args=dict(version="g1/1",node_type="Function",edge_type="CALLS",direction="out",anchors=[1,5,6,99],max_depth=2,limit=2)
+    client=RustAdapter(config)
+    try:
+        db=connect(cfg["database"])
+        edges=db.execute("select src,dst from admitted_edges").fetchall()
+        db.close()
+        expected=canonical(minimum_hops(edges,[1,5],2))
+        result=client.call(dict(op="reach",corpus="demo",args=args))
+        assert result["rows"]==[dict(id=n,depth=d) for n,d in expected[:2]]
+        assert result["missing_ids"]==[6,99] and result["truncated"] and not result["complete"]
+        for changes in [dict(version="g1/2"),dict(direction="in"),dict(node_type="File"),dict(edge_type="OTHER")]:
+            assert client.call(dict(op="reach",corpus="demo",args=dict(args,**changes)))["error"]["code"]=="unsupported"
+        for changes in [dict(anchors=[]),dict(anchors=[1,1]),dict(max_depth=-1),dict(max_depth=9),dict(limit=101),dict(min_depth=1),dict(anchors=[True])]:
+            assert not client.call(dict(op="reach",corpus="demo",args=dict(args,**changes)))["ok"]
+    finally:
+        client.close()
+    async def reject_mcp():
+        cmd=command(config,"mcp")
+        async with stdio_client(StdioServerParameters(command=cmd[0],args=cmd[1:])) as (read,write):
+            async with ClientSession(read,write) as session:
+                await session.initialize()
+                tools=await session.list_tools()
+                tool=next(t for t in tools.tools if t.name=="reach")
+                assert set(tool.inputSchema["properties"]["args"]["required"])==set(args)
+                for changes,code in [(dict(direction="in"),"unsupported"),(dict(min_depth=1),"invalid_input")]:
+                    result=await session.call_tool("reach",dict(corpus="demo",args=dict(args,**changes)))
+                    assert result.isError and result.structuredContent["error"]["code"]==code
+    asyncio.run(reject_mcp())
+    del cfg["corpora"]["demo"]["graph"]
+    config.write_text(json.dumps(cfg));client=RustAdapter(config)
+    try:
+        assert client.call(dict(op="reach",corpus="demo",args=args))["error"]["code"]=="unsupported"
+        assert client.call(dict(op="traverse",corpus="demo",args=dict(ids=[1])))['ok']
+    finally:
+        client.close()
+
+
+@pytest.mark.parametrize("bad_mapping",["nodes","edges"])
+def test_g1_rejects_incompatible_schema(tmp_path,bad_mapping):
+    config=create(tmp_path,EXTENSION)
+    cfg=json.loads(config.read_text())
+    if bad_mapping=="edges":
+        cfg["corpora"]["demo"]["edges"]="documents"
+    else:
+        with sqlite3.connect(cfg["database"]) as db:
+            db.execute("create table bad_nodes(id text primary key,tenant text,valid_from int,valid_to int,invalidated_at int)")
+        cfg["corpora"]["demo"]["documents"]="bad_nodes"
+    config.write_text(json.dumps(cfg));client=RustAdapter(config)
+    try:
+        args=dict(version="g1/1",node_type="Function",edge_type="CALLS",direction="out",anchors=[1],max_depth=1,limit=10)
+        assert client.call(dict(op="reach",corpus="demo",args=args))["error"]["code"]=="schema_error"
+    finally:
+        client.close()

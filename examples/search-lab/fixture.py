@@ -57,7 +57,7 @@ def create(directory, extension):
         db.close()
     config = dict(database=str(path), extension=str(Path(extension).resolve()), corpora={"demo":dict(
         documents="documents", vectors="vectors", fts="lexical", edges="admitted_edges",
-        tenant="ours", as_of=100, dimensions=2)})
+        tenant="ours", as_of=100, dimensions=2, graph=dict(node_type="Function",edge_type="CALLS"))})
     config_path = directory / "config.json"
     with config_path.open("x") as out:
         json.dump(config,out,indent=2)

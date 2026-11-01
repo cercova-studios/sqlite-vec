@@ -50,8 +50,8 @@ examples/search-lab/target/release/sqlite-vec-search-lab \
   --config /tmp/search-lab-demo/config.json mcp
 ```
 
-The server exposes the `retrieval` toolset as four named tools: `describe`,
-`search`, `traverse` and `fetch`. Each takes `corpus` and an optional `args` object,
+The server exposes the `retrieval` toolset as five named tools: `describe`,
+`search`, `traverse`, `reach` and `fetch`. Each takes `corpus` and an optional `args` object,
 matching the CLI record without `op`. Tool discovery includes argument schemas.
 For example, call `search` with:
 
@@ -71,6 +71,7 @@ loop; a running native call blocks later calls. Stop the process to close it.
 | `describe` | No arguments | SQLite/extension versions, dimension/metric, ID domain, limits and capability flags |
 | `search` | `mode`: `lexical`, `dense`, or default `hybrid`; lexical/hybrid require `text`; dense/hybrid require exactly one of `vector` or `embedding_id`; `candidates` default 50; `limit` default 10 | Stable IDs/source references, one-based branch ranks, vector L2 distance, keyword BM25, RRF score, branch counts and paging status |
 | `traverse` | Unique `ids`; `depth` default 1; `limit` default 50 | Distinct nodes and minimum hops from any eligible seed, ordered by depth then ID; eligible seeds included at depth zero |
+| `reach` | Typed `g1/1` request described below | Validated minimum-hop reachability in the configured node and edge domain |
 | `fetch` | Unique `ids` | Evidence in requested ID order, plus explicit `missing_ids` for absent or ineligible IDs |
 
 `text` uses FTS5 query syntax, including phrases and Boolean operators. Malformed
@@ -105,7 +106,8 @@ four named `corpora`; each corpus supplies:
 ```json
 {
   "documents":"documents", "vectors":"vectors", "fts":"lexical",
-  "edges":"admitted_edges", "tenant":"ours", "as_of":100, "dimensions":2
+  "edges":"admitted_edges", "tenant":"ours", "as_of":100, "dimensions":2,
+  "graph":{"node_type":"Function","edge_type":"CALLS"}
 }
 ```
 
@@ -117,6 +119,34 @@ Mappings accept simple SQL identifiers. Column names are fixed for this slice:
   rowids as documents. `N` must equal configured `dimensions`.
 - FTS: an FTS5 table with document rowids and searchable text.
 - Edges: a trusted table/view with integer `src` and `dst` columns.
+
+The optional `graph` mapping enables `reach` for one logical node type and one
+edge type. The host is responsible for mapping that edge type to a source already
+filtered to the intended relationship and scope. Existing configurations without
+`graph` continue to support the other operations. `describe` returns the
+configured types, or null when absent.
+
+For example, the following CLI record requests distinct nodes whose minimum hop
+distance from either eligible anchor is at most two:
+
+```json
+{"op":"reach","corpus":"demo","args":{"version":"g1/1","node_type":"Function","edge_type":"CALLS","direction":"out","anchors":[1,5],"max_depth":2,"limit":50}}
+```
+
+All seven arguments are required. Anchors are unique signed 64-bit IDs (1–64),
+`max_depth` is 0–8, and `limit` is 1–100. Only `g1/1` and outgoing traversal are
+supported. Unknown types, versions or directions return `unsupported`; unknown
+fields and malformed values return `invalid_input`. The binder checks the node
+table's single `INTEGER PRIMARY KEY` and eligibility columns, plus edge `src` and
+`dst` columns, in the same read transaction used for traversal. An incompatible
+mapping returns `schema_error`. Edge endpoint values and scope are validated by
+the existing traversal handler. A missing or ineligible anchor is listed in
+`missing_ids`; an eligible isolated anchor appears at depth zero.
+
+Results preserve the existing depth/ID ordering, truncation and completeness
+fields and add `version`, `node_type` and `edge_type`. This operation does not
+accept arbitrary SQL, lower hop bounds, path predicates or relationship witnesses.
+Minimum distance is not the same as the existence of a longer path.
 
 The host fixes tenant and Unix-second `as_of`. Eligibility requires
 `invalidated_at IS NULL`, `valid_from <= as_of`, and `valid_to > as_of` or NULL.

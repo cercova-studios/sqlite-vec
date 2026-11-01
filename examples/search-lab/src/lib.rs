@@ -10,7 +10,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub const OPERATIONS: [&str; 4] = ["describe", "search", "traverse", "fetch"];
+pub const OPERATIONS: [&str; 5] = ["describe", "search", "traverse", "fetch", "reach"];
 pub const INPUT_BYTES: usize = 65536;
 pub const OUTPUT_BYTES: usize = 262144;
 const DATABASE_BYTES: u64 = 67108864;
@@ -138,6 +138,26 @@ struct Corpus {
     tenant: String,
     as_of: i64,
     dimensions: usize,
+    #[serde(default)]
+    graph: Option<GraphBinding>,
+}
+#[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GraphBinding {
+    node_type: String,
+    edge_type: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReachQuery {
+    version: String,
+    node_type: String,
+    edge_type: String,
+    direction: String,
+    anchors: Vec<i64>,
+    max_depth: i64,
+    limit: i64,
 }
 impl Corpus {
     fn tables(&self) -> [&str; 4] {
@@ -191,7 +211,7 @@ impl Adapter {
         OPERATIONS.iter().map(|op| {
             let schema=json!({"type":"object","properties":{
                 "corpus":{"type":"string","enum":self.corpora.iter().map(|(n,_)|n).collect::<Vec<_>>()},
-                "args":{"type":"object","properties":properties[op],"required":if ["traverse","fetch"].contains(op) {vec!["ids"]} else {vec![]},"additionalProperties":false}},
+                "args":{"type":"object","properties":properties[op],"required":if ["traverse","fetch"].contains(op) {vec!["ids"]} else if *op=="reach" {vec!["version","node_type","edge_type","direction","anchors","max_depth","limit"]} else {vec![]},"additionalProperties":false}},
                 "required":["corpus"],"additionalProperties":false});
             let mut annotations=ToolAnnotations::default();
             annotations.read_only_hint=Some(true);annotations.open_world_hint=Some(false);
@@ -223,6 +243,10 @@ impl Adapter {
                 .map_err(|e| reject("configuration", e.to_string()))?;
             for table in c.tables() {
                 identifier(table)?;
+            }
+            if let Some(graph) = &c.graph {
+                identifier(&graph.node_type)?;
+                identifier(&graph.edge_type)?;
             }
             if c.tenant.is_empty() || c.tenant.chars().count() > 128 {
                 return Err(reject(
@@ -358,7 +382,7 @@ impl Adapter {
             .ok_or_else(|| {
                 reject(
                     "unknown_operation",
-                    "supported operations: describe, search, traverse, fetch",
+                    "supported operations: describe, search, traverse, fetch, reach",
                 )
             })?;
         let empty = json!({});
@@ -396,6 +420,7 @@ impl Adapter {
             "search" => self.search(c, args)?,
             "fetch" => self.fetch(c, args)?,
             "traverse" => self.traverse(c, args)?,
+            "reach" => self.reach(c, args)?,
             _ => unreachable!(),
         };
         transaction.rollback()?;
@@ -421,6 +446,7 @@ impl Adapter {
             "extension_version":self.extension_version,"dimensions":c.dimensions,"metric":"l2",
             "available_corpora":self.corpora.iter().map(|(n,_)|n).collect::<Vec<_>>(),
             "mappings":{"documents":c.documents,"vectors":c.vectors,"fts":c.fts,"edges":c.edges},
+            "graph_types":c.graph.as_ref().map(|g|json!({"node_type":g.node_type,"edge_type":g.edge_type})),
             "scope_is_authorization":false,"id_domain":"corpus + signed_int64_document_id","limits":limits(),
             "approximation":false,"score_directions":{"l2":"lower","bm25":"lower","rrf":"higher"},
             "traversal":"outgoing distinct nodes with minimum hops; anchor included if eligible",
@@ -645,6 +671,65 @@ impl Adapter {
         Ok(
             json!({"returned":rows.len(),"rows":rows,"missing_ids":missing,"missing_reason":"absent_or_ineligible","requested":keys.len(),"truncated":false,"complete":true}),
         )
+    }
+
+    fn reach(&self, c: &Corpus, a: &Map<String, Value>) -> Result<Value> {
+        let query: ReachQuery = serde_json::from_value(Value::Object(a.clone()))
+            .map_err(|_| reject("invalid_input", "reach requires a valid g1/1 query"))?;
+        let graph = c
+            .graph
+            .as_ref()
+            .ok_or_else(|| reject("unsupported", "corpus has no configured graph types"))?;
+        if query.version != "g1/1"
+            || query.direction != "out"
+            || query.node_type != graph.node_type
+            || query.edge_type != graph.edge_type
+        {
+            return Err(reject("unsupported", "unknown version, type or direction"));
+        }
+        let columns = self.rows(
+            "select name,type,pk from pragma_table_xinfo(:table)",
+            named_params! {":table":c.documents},
+        )?;
+        let id = columns.iter().find(|r| r["name"] == "id");
+        if !id.is_some_and(|r| {
+            r["type"]
+                .as_str()
+                .is_some_and(|t| t.eq_ignore_ascii_case("INTEGER"))
+                && r["pk"] == 1
+        }) || columns
+            .iter()
+            .filter(|r| r["pk"].as_i64().unwrap_or(0) > 0)
+            .count()
+            != 1
+            || ["tenant", "valid_from", "valid_to", "invalidated_at"]
+                .iter()
+                .any(|n| !columns.iter().any(|r| r["name"] == *n))
+        {
+            return Err(reject(
+                "schema_error",
+                "node mapping needs an INTEGER PRIMARY KEY id and eligibility columns",
+            ));
+        }
+        let edges = self.rows(
+            "select name from pragma_table_xinfo(:table)",
+            named_params! {":table":c.edges},
+        )?;
+        if ["src", "dst"]
+            .iter()
+            .any(|n| !edges.iter().any(|r| r["name"] == *n))
+        {
+            return Err(reject(
+                "schema_error",
+                "edge mapping needs src and dst columns",
+            ));
+        }
+        let input = json!({"ids":query.anchors,"depth":query.max_depth,"limit":query.limit});
+        let mut result = self.traverse(c, input.as_object().expect("object"))?;
+        result["version"] = json!(query.version);
+        result["node_type"] = json!(graph.node_type);
+        result["edge_type"] = json!(graph.edge_type);
+        Ok(result)
     }
 
     fn traverse(&self, c: &Corpus, a: &Map<String, Value>) -> Result<Value> {
