@@ -86,7 +86,8 @@ knn as (
 fts as (
   select rowid, row_number() over (order by rank, rowid) as r
   from fts_docs
-  where fts_docs match :q_text and rowid in (select id from eligible)
+  where fts_docs match :q_text
+    and exists (select 1 from eligible where eligible.id = fts_docs.rowid)
   order by rank, rowid limit :branch_limit
 )
 select coalesce(knn.rowid, fts.rowid) as id,
@@ -98,6 +99,13 @@ join doc_scope scope on scope.id = coalesce(knn.rowid, fts.rowid)
 order by score desc, id
 limit 10;
 ```
+
+The keyword branch uses a correlated `EXISTS` check so SQLite can scan the
+full-text matches and test each row's eligibility before the branch limit.
+A rowid `IN` constraint here can instead restart the full-text query for every
+eligible ID. Keep the vector branch's rowid `IN` constraint: `vec0` uses it to
+apply the filter during KNN search. Both predicates preserve the integer-ID
+membership semantics of these tables.
 
 The branch ranks and source ID let callers explain each result. A keyword-only
 result has NULL vector rank and distance. Selective ANN filters can return fewer

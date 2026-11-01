@@ -1,0 +1,18 @@
+{
+  ".gitignore": "5b561aa9ae36ca5ff408c3a22ce239167f80f4d3b6ef53ff095a6136fb824aa8",
+  "README.md": "b870079a48a4db09b0b8af7ef18d716daae550c0c56ddf03fa857cf623ae31b1",
+  "REPORT.md": "b27e4b4bd53043bcc2b2ec3c9e602ff9e87f8a9f471bb01e754ac1cc75874a3d",
+  "alternatives.py": "53e6b5184830b95c21c1ca8bf4d5c45b8df9e70ad19f8e0d36185af3c976af9f",
+  "benchmark.py": "de3a0b4f8b9078a6588fffd4fcfcc6c5c3826db051035724db372de48d672c3f",
+  "diagnose.py": "b679a36087c0b504dd7d9f36145d01840d32de9fb855a185563cb91d3ac5837e",
+  "recorded/alternatives.json": "46b58268d1806904802a52b0ff57b13bf97f1ec91e9070061d8818419bf2644a",
+  "recorded/baseline-guide.md": "6e07ec6ecd956efdd21b3dec8f386f48ccb5f3cec234419d770470ac8101d03d",
+  "recorded/build-manifest.json": "7b9444c5fc67c18cea3e9516429427567dc3ee1dc3c4764939f356e81819d4fb",
+  "recorded/candidate-guide.md": "69ca3b2bc8b9a0ca7fe52218090601cc19a5a9f4fc9f1b8d4d9309dbd9541703",
+  "recorded/comparison.json.gz": "fba64b58ab88780526b16ae0cdaae7359df74a85149ae2252f7e8c2c531eff3c",
+  "recorded/diagnostic.json": "7d01eddd1a888e67ef28544bbd677c0afc878ededd102707326c7d46556a7842",
+  "recorded/sample-status.json": "6e34c55907fa3beacc39746f3877a5b9a5d41bac1501379e4c60bb74101ed284",
+  "recorded/summary.json": "e07bb2a8c690c638838b97a916cb806d66f87881b84c47ac9aaf7b8dd78c336c",
+  "test_equivalence.py": "7b9426abfe1dbe71bdb79ad46cb3df723fe95ad5debdd7a74fb4a7f218123f1f",
+  "verify.py": "d0cb7f896d8c5cbb9b650eaaf38166cace05d9ff5b8150ff26957c2748ba56ac"
+}

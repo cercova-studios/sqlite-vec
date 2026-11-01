@@ -1,0 +1,42 @@
+[
+  {
+    "scenario": "full",
+    "method": "keyword",
+    "pairs": 150,
+    "baseline_p50_us": 1255745.75,
+    "candidate_p50_us": 3999.063,
+    "baseline_p95_us": 2576575.417,
+    "candidate_p95_us": 6398.542,
+    "geometric_mean_speedup": 294.531440828888
+  },
+  {
+    "scenario": "full",
+    "method": "hybrid",
+    "pairs": 150,
+    "baseline_p50_us": 1303518.5415,
+    "candidate_p50_us": 6706.2915,
+    "baseline_p95_us": 2614572.5,
+    "candidate_p95_us": 9082.875,
+    "geometric_mean_speedup": 175.57166308478196
+  },
+  {
+    "scenario": "scoped",
+    "method": "keyword",
+    "pairs": 150,
+    "baseline_p50_us": 752211.896,
+    "candidate_p50_us": 2783.9795,
+    "baseline_p95_us": 1498636.792,
+    "candidate_p95_us": 4211.542,
+    "geometric_mean_speedup": 251.46764137247152
+  },
+  {
+    "scenario": "scoped",
+    "method": "hybrid",
+    "pairs": 150,
+    "baseline_p50_us": 754109.8545,
+    "candidate_p50_us": 5083.458500000001,
+    "baseline_p95_us": 1505989.375,
+    "candidate_p95_us": 6553.416,
+    "geometric_mean_speedup": 137.67376003509733
+  }
+]

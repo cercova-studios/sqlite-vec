@@ -1,5 +1,41 @@
 # Handoff — read this first
 
+## Filtered FTS query profiling — completed 2026-11-01
+
+[Profile, paired benchmark and replay](benchmarks-ann/experiments/2026-11-01-filtered-fts/README.md).
+The published scoped recipe now uses correlated `EXISTS` for keyword eligibility.
+Its prior rowid `IN` plan restarted FTS for each eligible ID. Query `3` fell from
+787,512 internal term-index lookups to 152, with identical rows/BM25 scores.
+The vector branch retains `IN`; filtering remains before both branch limits.
+Ranking, ties, provenance, branch budget 50, equal RRF weights/constant 60 and
+alpha=1.0 stay unchanged. No engine or dependency changes.
+
+Fresh same-build pairs on the prior fixed 30-query sample, five rounds, show
+full-corpus median FTS 1,255.75 -> 4.00 ms and hybrid 1,303.52 -> 6.71 ms;
+scoped FTS 752.21 -> 2.78 ms and hybrid 754.11 -> 5.08 ms. All 1,200
+keyword/hybrid quality points and 600 vector candidate lists match the frozen
+SciFact results exactly. Recall/nDCG/MRR and eligibility remain unchanged.
+At zero/one eligible document, two controls cost about 0.20–0.80 ms versus
+0.10–0.41 ms before; at ten or more, both controls improve. This is not a
+universal selectivity threshold or a production/concurrency latency guarantee.
+
+Two new equivalence tests and three existing vec_rrf tests pass, including
+signed rowid boundaries, FTS operators, ties, tenant/validity/invalidation,
+pending writes, savepoint/full rollback and commit/reopen. Archive verification
+regenerates metrics/summaries and checks exact reference equality; corruption
+rejection is exercised. Native sampling was denied by macOS; CPU/wall time,
+SQLite traces/opcodes and quantified instrumentation overhead provide the profile.
+The unprofiled comparison uses 600 pairs on the committed `83206b4` C snapshot;
+its C/header hashes equal the prior SciFact run. Later graph commits, the unrelated
+HNSW edit and .claude worktrees are preserved. Native/Rust/Lance/sanitizer and
+cross-platform suites were not rerun for this guide-only SQL change. No push or CI.
+
+Next: profile the search adapter's independently constructed keyword SQL on its
+bundled SQLite before adopting this rewrite there. It retains rowid `IN`; current
+adapter/graph work is outside this measured slice. Deployment-specific scope
+selectivity/read-write mix, cold-cache/memory costs and downstream outcomes remain
+open. Do not infer a ranking/default change from this performance improvement.
+
 ## G2 adapter integration and graph-cache byte limit — completed 2026-11-01
 
 The typed `witness` operation is available in both Rust CLI and MCP, with `g2/1`,
@@ -75,10 +111,10 @@ FTS 1,298.57 ms, hybrid 1,278.45 ms. The unchanged filtered keyword SQL is costl
 these numbers are not generic FTS5 or production latency claims. No profiler or
 isolated-host run was collected. Current defaults and alpha=1.0 stay unchanged.
 
-Next: profile the filtered FTS query path and validate any proposed SQL-plan
-change against these labels, candidates and eligibility checks. This public
-benchmark completes the requested real-embedding follow-up; deployment-specific
-relevance/read-write mix and downstream agent outcomes remain unverified.
+Filtered FTS profiling and the validated guide SQL-plan change are complete in
+the 2026-11-01 entry above. This public benchmark completes the requested
+real-embedding follow-up; deployment-specific relevance/read-write mix and
+downstream agent outcomes remain unverified.
 Downloaded data/models, arrays and the measured C build remain in ignored
 `.work/` for replay/profiling. The C snapshot is `fee2050`; concurrent Rust adapter
 work changes no measured C sources and is outside this commit. Preserve all
@@ -124,8 +160,9 @@ full application suites/sanitizers were not rerun for this benchmark-only work.
 
 The public SciFact/real-embedding follow-up is complete in the latest entry.
 A deployment-specific corpus/read-write mix and downstream outcomes remain open.
-Retain these eligibility/lifecycle checks; profile the filtered FTS query path
-before proposing a schema or engine optimization. Compression,
+Retain these eligibility/lifecycle checks. The 2026-11-01 entry completes guide
+FTS profiling without a schema or engine change; adapter profiling is separate.
+Compression,
 TEXT pruning, broader buffering and Lance version cleanup remain separate scope
 decisions. Keep alpha=1.0; push and CI remain deferred.
 
