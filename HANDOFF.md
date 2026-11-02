@@ -1,5 +1,39 @@
 # Handoff — read this first
 
+## Rust adapter keyword SQL — completed 2026-11-02
+
+[Bundled SQLite profile, raw receipts and replay](benchmarks-ann/experiments/2026-11-02-adapter-fts/README.md).
+Adopted correlated EXISTS only in the adapter keyword eligibility predicate.
+Vector IN filtering, eligibility before branch limits, BM25, tie ordering, candidate
+budgets, RRF, provenance, read-only controls and transaction boundaries are unchanged.
+
+The exact keyword SQL shape was benchmarked using the adapter's locked rusqlite
+bundled SQLite 3.54.1, all 5,183 SciFact records and 300 frozen lexical expressions.
+Both scopes pass all 600 exact same-build IN/EXISTS ordered-ID/BM25 comparisons.
+Historical IDs also match; an initial cross-runtime archived score comparison had
+last-bit differences, retained as a counterexample without assigning their cause.
+
+Eight preselected queries from the earlier timing sample, three alternating paired
+rounds per scope, yield 48 pairs: full median 1778.01 -> 3.74 ms, scoped
+1082.96 -> 2.62 ms. Warm in-memory keyword component only; other document fields,
+vectors, admission, fusion, transport and MCP progress-hook overhead are excluded.
+Plans change from combined rowid/MATCH to MATCH plus indexed correlated lookup.
+VM-step counts increase, so no claim that VM counts measure native FTS work.
+Zero/one-eligible matching controls cost about 0.04–0.10 ms more; ten-or-more
+matching controls improve. No-match controls improve throughout. No universal
+selectivity threshold or production/end-to-end latency claim.
+
+Verified after adoption: release adapter build; 10 Rust unit tests and 76 adapter/
+CLI/MCP/G0 tests. New regression covers exact score equality, rowid extremes,
+ties, FTS syntax, limits, eligibility, pending invalidation/content changes,
+savepoint/full rollback, committed invalidation and the actual adapter branch.
+Archive hashes, summary regeneration, Python syntax and corruption rejection pass;
+Rust formatting and whitespace checks pass. Native C/Lance/full-IVF/sanitizer and
+other-platform suites were not rerun for this Rust SQL-only change. Deployment
+selectivity, cold-cache/RSS, concurrent workloads and downstream relevance remain
+unverified. No push or CI; preserve the unrelated HNSW edit and .claude worktrees.
+
+
 ## Filtered FTS query profiling — completed 2026-11-01
 
 [Profile, paired benchmark and replay](benchmarks-ann/experiments/2026-11-01-filtered-fts/README.md).
@@ -30,9 +64,9 @@ its C/header hashes equal the prior SciFact run. Later graph commits, the unrela
 HNSW edit and .claude worktrees are preserved. Native/Rust/Lance/sanitizer and
 cross-platform suites were not rerun for this guide-only SQL change. No push or CI.
 
-Next: profile the search adapter's independently constructed keyword SQL on its
-bundled SQLite before adopting this rewrite there. It retains rowid `IN`; current
-adapter/graph work is outside this measured slice. Deployment-specific scope
+The adapter follow-up is complete in the latest entry: its independently
+constructed keyword SQL was profiled on bundled SQLite before adopting EXISTS.
+Adapter/graph work remains outside this earlier guide-only measured slice. Deployment-specific scope
 selectivity/read-write mix, cold-cache/memory costs and downstream outcomes remain
 open. Do not infer a ranking/default change from this performance improvement.
 

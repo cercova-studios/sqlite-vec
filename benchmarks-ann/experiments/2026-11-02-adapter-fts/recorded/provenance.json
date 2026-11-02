@@ -1,0 +1,16 @@
+{
+  "baseline_commit": "3703702676864508cf0a806a2f19173ccd94b9ec",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "timing": "warm in-memory keyword branch, prepare plus complete row retrieval, no MCP progress hook",
+  "schema": "documents stores ID and eligibility columns; FTS stores full title plus abstract; other adapter document fields and vectors omitted",
+  "rounds": 3,
+  "scope_counts": {
+    "full": 5183,
+    "scoped": 3091
+  },
+  "selection": "first eight IDs in numeric order from the prior frozen seed-42 timing sample; no performance-based selection",
+  "cargo_lock_sha256": "ecfe515e264a348c9f6773d39dd50401cda3cabba06a69d8982eb67793912f75",
+  "adapter_baseline_sha256": "7067de82e64428a7e1dc548184b44e9a301a10e5ccab2ed9bbac7b577e7740b0",
+  "adapter_candidate_sha256": "ea42b3ce8013b5dbc2d87f75caeebf08c879f0148dea945aa957e4cefb7bda49"
+}

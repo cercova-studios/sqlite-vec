@@ -86,7 +86,9 @@ loading fails. One serialized connection serves both transports. MCP executes ha
 
 Each operation uses one explicit read transaction. Separate calls may observe
 different commits. Search ranks eligible flat float/L2 vectors with scalar distance
-SQL for deterministic cutoff ties, combines branch ranks with RRF, and fetches
+SQL for deterministic cutoff ties. Keyword eligibility uses correlated `EXISTS`
+inside the FTS branch before its candidate limit; vector eligibility retains
+`IN`. The adapter combines branch ranks with RRF and fetches
 evidence by stable corpus/document IDs. Traversal reuses distinct-node native BFS
 over a configured edge source after checking its size and endpoint eligibility in
 the same snapshot. Admission limits restrict supported workloads; they do not

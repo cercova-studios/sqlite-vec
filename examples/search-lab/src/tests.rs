@@ -337,3 +337,98 @@ fn bounded_witness_cancellation_releases_transaction_and_progress_hook() {
     assert!(adapter.db.is_autocommit());
     assert_eq!(adapter.call(&request("describe", json!({})))["ok"], true);
 }
+
+#[test]
+fn keyword_membership_preserves_scores_and_transaction_visibility() {
+    let fixture = Fixture::new();
+    let writer = Connection::open(&fixture.database).unwrap();
+    writer.execute_batch("insert into lexical(rowid,body) values (1,'old evidence'),(2,'old evidence'),(3,'third evidence');
+        insert into documents values (-9223372036854775808,'min','ours',100,null,null,'min','old evidence',0,1);
+        insert into documents values (9223372036854775807,'max','ours',0,100,null,'max','old evidence',0,1);
+        insert into lexical(rowid,body) values (-9223372036854775808,'old evidence'),(9223372036854775807,'old evidence');").unwrap();
+    let old = "with eligible as materialized (select id from documents where tenant=:tenant and invalidated_at is null and valid_from<=:as_of and (valid_to is null or valid_to>:as_of)) select rowid id,rank from lexical where lexical match :text and rowid in (select id from eligible) order by rank,rowid limit :cap";
+    let new = old.replace(
+        "rowid in (select id from eligible)",
+        "exists (select 1 from eligible where eligible.id = lexical.rowid)",
+    );
+    let check = || {
+        for text in [
+            "old",
+            "\"old evidence\"",
+            "old OR third",
+            "old NOT third",
+            "zznomatchzz",
+        ] {
+            for cap in [1, 2, 50] {
+                let run = |sql: &str| {
+                    writer
+                        .prepare(sql)
+                        .unwrap()
+                        .query_map(
+                            named_params! {":tenant":"ours",":as_of":100,":text":text,":cap":cap},
+                            |r| Ok((r.get::<_, i64>(0)?, r.get::<_, f64>(1)?)),
+                        )
+                        .unwrap()
+                        .collect::<std::result::Result<Vec<_>, _>>()
+                        .unwrap()
+                };
+                assert_eq!(run(old), run(&new));
+            }
+        }
+    };
+    check();
+    writer
+        .execute_batch("begin; update documents set invalidated_at=100 where id=1;")
+        .unwrap();
+    check();
+    writer.execute_batch("savepoint s; update documents set tenant='other' where id=2; update lexical set body='changed' where rowid=2").unwrap();
+    check();
+    writer.execute_batch("rollback to s").unwrap();
+    check();
+    writer.execute_batch("rollback").unwrap();
+    check();
+    // Compare the shipped adapter branch against the unchanged IN reference.
+    let adapter = fixture.adapter();
+    let reference = writer
+        .prepare(old)
+        .unwrap()
+        .query_map(
+            named_params! {":tenant":"ours",":as_of":100,":text":"old",":cap":50},
+            |r| Ok((r.get::<_, i64>(0)?, r.get::<_, f64>(1)?)),
+        )
+        .unwrap()
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .unwrap();
+    let result = adapter.call(&request(
+        "search",
+        json!({"mode":"lexical","text":"old","candidates":50,"limit":100}),
+    ));
+    assert_eq!(result["ok"], true, "{result}");
+    let actual = result["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| {
+            (
+                r["id"].as_i64().unwrap(),
+                r["keyword_bm25"].as_f64().unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(actual, reference);
+    writer
+        .execute_batch("begin; update documents set invalidated_at=100 where id=1; commit")
+        .unwrap();
+    check();
+    let result = adapter.call(&request(
+        "search",
+        json!({"mode":"lexical","text":"old","candidates":50,"limit":100}),
+    ));
+    assert!(
+        result["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|r| r["id"] != 1)
+    );
+}

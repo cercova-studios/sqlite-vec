@@ -631,8 +631,9 @@ impl Adapter {
                     )
                 })?;
             let sql = format!(
-                "with eligible as materialized ({}) select rowid id,rank from \"{}\" where \"{}\" match :text and rowid in (select id from eligible) order by rank,rowid limit :cap",
+                "with eligible as materialized ({}) select rowid id,rank from \"{}\" where \"{}\" match :text and exists (select 1 from eligible where eligible.id = \"{}\".rowid) order by rank,rowid limit :cap",
                 c.eligible(),
+                c.fts,
                 c.fts,
                 c.fts
             );
