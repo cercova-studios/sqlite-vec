@@ -1,5 +1,50 @@
 # Handoff — read this first
 
+## Embedded filtered-vector comparison — first slice complete 2026-11-03
+
+[Report, scripts and frozen receipts](benchmarks-ann/experiments/2026-11-03-engine-comparison/REPORT.md).
+Compared upstream sqlite-vec 0.1.9, committed fork exact/HNSW, Zvec 0.8.0 and
+standalone LanceDB 0.41.0 (exact and one/64-partition IVF_HNSW_FLAT). No production
+code/default changes, push or CI. The unrelated dirty HNSW helper is excluded from
+the separate fork library; existing dist libraries and .claude worktrees are intact.
+
+SciFact uses all 5,183 real BGE-small vectors and 100 seed-selected queries. SIFT
+uses 50,000 sampled vectors and 100 held-out queries; source hash matches the prior
+pinned ANN-Benchmarks file. Five eligibility cases include full, random 10%/1%,
+coordinate-band 1%, and empty. One matched insertion order, three warm rounds.
+Fourteen fresh processes complete 15,000 quality points and 45,000 timed calls.
+All exact paths reach tie-aware recall 1.0; returned IDs, masks, distances and
+count bounds are checked. Strict/tie-aware recall and matched mean targets
+0.95/0.99 regenerate from the frozen oracle and receipts. Corrupt ID/recall canaries
+are rejected; input/archive hashes and Python syntax checks pass.
+
+At observed mean recall >=0.99 on SIFT, unfiltered fork/Zvec median SDK calls are
+0.098/0.097 ms (both recall 0.999 at ef=128). Random 10% is 0.961/0.353 ms (both
+recall 1.0 at ef=32): Zvec is ~2.7x faster there. Selective fork queries may switch
+to exact eligible-ID ranking, so these are engine-path rather than pure HNSW times.
+On SIFT the fork HNSW worker peaks at 107.4 MiB vs Zvec 174.0 MiB; database paths
+are 45.3/38.2 MiB. RSS includes Python/imports/inputs/builds, not just native indexes.
+Lance one-partition unfiltered median is 1.397 ms vs 2.564 ms for 64 partitions;
+other filter cases favor different layouts. No universal winner or migration claim.
+
+The requested one-compute/one-I/O-thread Lance setup stalled in scalar-index
+creation. Bounded 512-row probes time out at one I/O thread with either one or two
+compute workers; two I/O threads complete. Final Lance measurements use one
+compute worker plus two I/O threads; logs/probes retain that configuration finding.
+No native stack diagnosis or external bug report. Per-query warning-contaminated
+pilot timings were discarded; final output columns explicitly include distance.
+
+Scope is warm local engine/SDK vector retrieval, not adapter CLI/MCP latency,
+hybrid relevance, transactions/updates/deletes or crash recovery. Reopen checks
+use fresh handles in-process. Upstream wheel compiler flags are unknown; the fork
+uses recorded M1/NEON flags on M5 Pro. Single build/order and small sample do not
+establish production, cold-cache, concurrency, million-scale or other-platform
+behavior. Application suites/sanitizers were not rerun for benchmark-only work.
+Turso/libSQL, LadybugDB, zvec-grep and SQLite–Lance remain separate comparisons.
+Next useful diagnostic: profile the SIFT 10%-eligible gap, then validate on a larger
+corpus and more insertion orders before tuning defaults.
+
+
 ## Rust adapter keyword SQL — completed 2026-11-02
 
 [Bundled SQLite profile, raw receipts and replay](benchmarks-ann/experiments/2026-11-02-adapter-fts/README.md).

@@ -1,0 +1,85 @@
+{
+  "head": "861415480054a3c2226d8bcae51f8dba6a1ace8a",
+  "sources": {
+    "sqlite-vec-diskann.c": "21a4c05f65c2bce498e8b5e729e18b8f64b70b5b805513e2bae346cf92481882",
+    "sqlite-vec-graph.c": "f787c51ed4a44dac2d335c7cdc70660a11147c33a2b218100e49ecd2f52e1174",
+    "sqlite-vec-hnsw.c": "db58bf6098f5dbc46beb48810f4ea2929ae71b1ff640c8344d604ff250a252f7",
+    "sqlite-vec-ivf-kmeans.c": "50cd3ecc0fd0b5b75900821e2b9d1a4d1157da589c39bd1faa8749e047d8fc14",
+    "sqlite-vec-ivf.c": "d641618ffeea44995b79ea4e36eaf15afce07360ec71c5f5cabe351ca44f36b3",
+    "sqlite-vec-rescore.c": "23036fcde5734629393cef009e21b1b18fd41e27d29a1859805555e147146cb2",
+    "sqlite-vec-sparse.c": "f30f5adcfa58a36a756573f6c53681341d358cb5b368b75488e7538725d2fc27",
+    "sqlite-vec.c": "01f601e658d1ecaf787d2d6918417143bfa23f223e6902cee509a7e7c98cfa36",
+    "sqlite-vec.h": "08fb326d1bbc9020158d3fdadb97a7c0e9a327a3cef21517b88d84089979a8e9"
+  },
+  "library_sha256": "a116a99f01f3e74a1f4c006751aa2eecf8e1021b11368fb1ebb9718b1fd41a1e",
+  "sift_url": "https://ann-benchmarks.com/sift-128-euclidean.hdf5",
+  "sift_sha256": "dd6f0a6ed6b7ebb8934680f861a33ed01ff33991eaee4fd60914d854a0ca5984",
+  "scifact_manifest": {
+    "dataset_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip",
+    "dataset_sha256": "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165",
+    "model": "BAAI/bge-small-en-v1.5",
+    "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "urls": {
+      "model.onnx": "https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/onnx/model.onnx",
+      "model-tokenizer.json": "https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/tokenizer.json"
+    },
+    "dimensions": 384,
+    "max_tokens": 512,
+    "pooling": "CLS then L2 normalization",
+    "query_instruction": "Represent this sentence for searching relevant passages: ",
+    "document_input": "title + single space + text; no instruction",
+    "queries": 300,
+    "documents": 5183,
+    "positive_judgments": 339,
+    "documents_at_token_cap": 459,
+    "queries_at_token_cap": 0,
+    "padding_check": true,
+    "onnxruntime": "1.23.2",
+    "numpy": "2.1.3",
+    "python": "3.12.13",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "providers": [
+      "CPUExecutionProvider"
+    ],
+    "intra_threads": 4,
+    "inter_threads": 1,
+    "batch_size": 16,
+    "seconds": 262.15149987500627,
+    "files": {
+      "scifact.zip": "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165",
+      "model.onnx": "828e1496d7fabb79cfa4dcd84fa38625c0d3d21da474a00f08db0f559940cf35",
+      "model-tokenizer.json": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66",
+      "documents.npy": "c2ae50d6b76c8a586c432c75ba964da6df92186aa82d7fce9a8409a28e9fd2cf",
+      "queries.npy": "4822861ffec15276769f462a5744ab35fdd3c90f9dd6365933d7d433501b37c3",
+      "data.json": "ae7fb262a70538ecc3120b18b70b5a2c053f59632639bc3623dfb06738cd29c8"
+    }
+  },
+  "datasets": {
+    "scifact": {
+      "rows": 5183,
+      "dimensions": 384,
+      "queries": 100,
+      "hashes": {
+        "bucket.npy": "0646cdaf1c0c03ad1a31e6e41669a52ace766864458b74877faa553a7ae41eb8",
+        "vectors.npy": "c2ae50d6b76c8a586c432c75ba964da6df92186aa82d7fce9a8409a28e9fd2cf",
+        "band.npy": "712ad3e8540a8e6d55a302b8bd5b86c63729edd5270c191352698e458cde123b",
+        "order.npy": "58b07443af80578f6c82a1c38f7dbd23feafc96f56f7af82ccc04757398d3fb8",
+        "truth.json": "cfbe141ab999bd7d5e7cfb3bedcb4d51f70174cdf5a032ccc2a40c79c3c54918",
+        "queries.npy": "db5dc66ba9a8cfb71baa5141f351d8ec21ac0f4dc9805ea8d377f4de9232f59f"
+      }
+    },
+    "sift50k": {
+      "rows": 50000,
+      "dimensions": 128,
+      "queries": 100,
+      "hashes": {
+        "bucket.npy": "45e139b4023b2102b1f28dedd645b6143137cd5009b8b5a659a42ffe466ed47f",
+        "vectors.npy": "703ebb8c0d5726c151767be28a0b84449125d089c379b322d57b187da25d1067",
+        "band.npy": "7612ce8d75252617b99c8204e2213e31cc520536cef9f7460a37f0823e9f64df",
+        "order.npy": "3cac623e17933fecff3a3a486598dd05d52955557145196f02bbc1fb70e06111",
+        "truth.json": "8cbdb9e836c8b1d5b14754426a6eaa987a60b2522b2ab94b724dd4eaf3c7c337",
+        "queries.npy": "5fc93ea99161f07c6f3f64a865433555219caa77e0425461b6628422af0c5466"
+      }
+    }
+  }
+}
