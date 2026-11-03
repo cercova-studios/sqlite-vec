@@ -1,0 +1,32 @@
+[
+  {
+    "engine": "sqlite",
+    "stages": [
+      "own writes",
+      "savepoint",
+      "full rollback",
+      "commit/reopen"
+    ],
+    "passed": true
+  },
+  {
+    "engine": "libsql",
+    "stages": [
+      "own writes",
+      "savepoint",
+      "full rollback",
+      "commit/reopen"
+    ],
+    "passed": true
+  },
+  {
+    "engine": "turso",
+    "stages": [
+      "own writes",
+      "savepoint",
+      "full rollback",
+      "commit/reopen"
+    ],
+    "passed": true
+  }
+]

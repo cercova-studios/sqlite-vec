@@ -1,0 +1,49 @@
+{
+  "head": "1d727ddaac8f3b587cc4f3136216752a97399488",
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "python": "3.12.13 (main, Aug  7 2026, 02:15:23) [Clang 22.1.3 ]",
+  "sqlite_version": "3.53.1",
+  "packages": {
+    "numpy": "2.5.4",
+    "pyturso": "0.8.3",
+    "libsql": "0.1.11",
+    "ladybug": "0.22.1",
+    "zvec": "0.8.0",
+    "lancedb": "0.41.0"
+  },
+  "prior_inputs_sha256": "a4ab22b67edda3c122534c2f7228cc49a2445ef2463cc7c617968f6da6c9dbae",
+  "prior_oracle_sha256": "e6e9f7aa6e6ba162f119f87dc1556d42dff590aa5d77e07debb431ad89ecc1a9",
+  "library_sha256": "a116a99f01f3e74a1f4c006751aa2eecf8e1021b11368fb1ebb9718b1fd41a1e",
+  "compiler": "Apple clang version 21.0.0 (clang-2100.4.1.1)",
+  "flags": [
+    "-O3",
+    "-fPIC",
+    "-shared",
+    "-mcpu=apple-m1",
+    "-DSQLITE_VEC_ENABLE_NEON"
+  ],
+  "fixtures": {
+    "examples/search-lab/graph_oracle.py": "d9acd800fc3b55ac8b71dbcade7ed985d08ebcfb66c0af80b5d683eb04a4b8cf",
+    "examples/search-lab/graph-fixtures.json": "18ed81526f14f710598a7ecada2b63e3544a0b0fcee66a4dad3a4589c4981393"
+  },
+  "diagnostic_sources": {
+    ".work/instrumented/sqlite-vec-ivf-kmeans.c": "50cd3ecc0fd0b5b75900821e2b9d1a4d1157da589c39bd1faa8749e047d8fc14",
+    ".work/instrumented/sqlite-vec-ivf.c": "d641618ffeea44995b79ea4e36eaf15afce07360ec71c5f5cabe351ca44f36b3",
+    ".work/instrumented/sqlite-vec.h": "08fb326d1bbc9020158d3fdadb97a7c0e9a327a3cef21517b88d84089979a8e9",
+    ".work/instrumented/sqlite-vec-hnsw.c": "7f3d41d14660914cd9bf54086881168cd0e79fdeeee5dcb490d97361f298675d",
+    ".work/instrumented/sqlite-vec-rescore.c": "23036fcde5734629393cef009e21b1b18fd41e27d29a1859805555e147146cb2",
+    ".work/instrumented/sqlite-vec-graph.c": "f787c51ed4a44dac2d335c7cdc70660a11147c33a2b218100e49ecd2f52e1174",
+    ".work/instrumented/sqlite-vec.c": "3db8319c481c9f5bcafc55cb89a0be3b3e76468812ad31f2cdc79a642cc69383",
+    ".work/instrumented/sqlite-vec-sparse.c": "f30f5adcfa58a36a756573f6c53681341d358cb5b368b75488e7538725d2fc27",
+    ".work/instrumented/sqlite-vec-diskann.c": "21a4c05f65c2bce498e8b5e729e18b8f64b70b5b805513e2bae346cf92481882",
+    ".work/flat/sqlite-vec-ivf-kmeans.c": "50cd3ecc0fd0b5b75900821e2b9d1a4d1157da589c39bd1faa8749e047d8fc14",
+    ".work/flat/sqlite-vec-ivf.c": "d641618ffeea44995b79ea4e36eaf15afce07360ec71c5f5cabe351ca44f36b3",
+    ".work/flat/sqlite-vec.h": "08fb326d1bbc9020158d3fdadb97a7c0e9a327a3cef21517b88d84089979a8e9",
+    ".work/flat/sqlite-vec-hnsw.c": "db58bf6098f5dbc46beb48810f4ea2929ae71b1ff640c8344d604ff250a252f7",
+    ".work/flat/sqlite-vec-rescore.c": "23036fcde5734629393cef009e21b1b18fd41e27d29a1859805555e147146cb2",
+    ".work/flat/sqlite-vec-graph.c": "f787c51ed4a44dac2d335c7cdc70660a11147c33a2b218100e49ecd2f52e1174",
+    ".work/flat/sqlite-vec.c": "638838d534cb48ddc6db692b3ae3bd720f22019ed001e5ff8122dec92536ef80",
+    ".work/flat/sqlite-vec-sparse.c": "f30f5adcfa58a36a756573f6c53681341d358cb5b368b75488e7538725d2fc27",
+    ".work/flat/sqlite-vec-diskann.c": "21a4c05f65c2bce498e8b5e729e18b8f64b70b5b805513e2bae346cf92481882"
+  }
+}

@@ -1,5 +1,53 @@
 # Handoff — read this first
 
+## Engine comparison diagnostics — completed slice 2026-11-03
+
+[Findings, replay and raw receipts](benchmarks-ann/experiments/2026-11-03-comparison-followup/REPORT.md)
+extend the first Zvec/LanceDB comparison with Turso Rust 0.8.3, libSQL 0.1.11,
+Ladybug 0.22.1 and native filter/read diagnostics. No production changes, push or
+CI; preserve the unrelated HNSW helper edit and .claude worktrees. Alpha stays 1.0.
+
+Measured gaps, in recommended investigation order:
+
+1. Bounded `graph_witness` repeats edge-ID validation, graph scans and parent
+   walks. A 29-hop query on a 4,999-edge chain costs 9.608 ms versus legacy
+   cached node-only path 0.0134 ms and Ladybug edge witness 1.737 ms. Guarantees
+   differ: do not replace bounded evidence with unbounded cached BFS. Investigate
+   shared budget-aware graph primitives with stable IDs, cancellation, policy
+   differences and transaction visibility preserved. No implementation approved.
+2. Sparse flat-vector queries still copy full surviving chunks. The 1%-eligible
+   SIFT probe reads 25,690,112 vector-BLOB bytes for 256,000 eligible payload bytes
+   (100.352x). These are API bytes, not physical I/O. Investigate existing rowid
+   mappings/BLOB slices and shared exact ranking before adding any new storage.
+3. SQL IN construction dominates the profiled 10%-eligible HNSW query: isolated
+   scalar IN 0.740 ms, full KNN 0.855 ms. Instrumented native collector/search
+   medians are 0.0425/0.130 ms, with ~4.9% instrumentation overhead. Ordered RHS
+   makes it slower. Preserve the one `KNN_ROWID_IN` boundary; assess native
+   metadata integration before algorithm tuning or any competing filter API.
+
+SQLite cached depth-3 BFS is fast on the tested random graph (0.00598 ms versus
+Ladybug 0.0936 ms). Both pass all 17 G0 reachability oracle cases. Ladybug's deep
+5,000-depth probe fails at its configured 64 MiB pool; retain the failure rather
+than presenting a completed deep timing comparison. Native work failure/retry and
+SQLite/libSQL/Turso own-write/savepoint/full-rollback/commit-reopen probes pass.
+
+SQL engines add 2,200 quality points and 6,600 timed calls on the frozen SciFact/
+SIFT inputs. libSQL filtered paths are SQL scans: the tested ANN function rejects
+a fourth predicate argument. New Turso Rust rejects the tested libSQL ANN index
+expression and fails the common distance tolerance (L2 [0,0] to [3,4] reports
+4.99704122543335); its sampled ranking recall is still 1.0. Do not hide the score
+contract difference or post-filter ANN and call it eligible top-k.
+
+Verification: live IDs/eligibility/distances/recall; offline summary regeneration,
+archive/input/source hashes, corruption rejection and Python syntax checks.
+Some follow-up workers overlapped, so use these as diagnostics, not a precise
+cross-engine leaderboard. No full application/native/Lance/sanitizer suite rerun.
+zvec-grep has a source-level host-tool assessment only; workspace extraction,
+freshness and literal/semantic orchestration belong outside the C core if pursued.
+Its runtime/app comparison, SQLite–Lance integration, larger corpora, insertion
+variance, cold/concurrent workloads and crash recovery remain open. Next choose
+one scoped gap design; do not code all three or add a graph language speculatively.
+
 ## Embedded filtered-vector comparison — first slice complete 2026-11-03
 
 [Report, scripts and frozen receipts](benchmarks-ann/experiments/2026-11-03-engine-comparison/REPORT.md).

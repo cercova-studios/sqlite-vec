@@ -1,0 +1,1005 @@
+{
+  "engine": "sqlite",
+  "g0": [
+    {
+      "graph": "diamond",
+      "start": 1,
+      "depth": null,
+      "nodes": 4
+    },
+    {
+      "graph": "diamond",
+      "start": 1,
+      "depth": 1,
+      "nodes": 3
+    },
+    {
+      "graph": "diamond",
+      "start": 1,
+      "depth": 0,
+      "nodes": 1
+    },
+    {
+      "graph": "diamond",
+      "start": 5,
+      "depth": null,
+      "nodes": 1
+    },
+    {
+      "graph": "diamond",
+      "start": 99,
+      "depth": null,
+      "nodes": 1
+    },
+    {
+      "graph": "diamond",
+      "start": 4,
+      "depth": null,
+      "nodes": 1
+    },
+    {
+      "graph": "cycles",
+      "start": 1,
+      "depth": null,
+      "nodes": 3
+    },
+    {
+      "graph": "cycles",
+      "start": 1,
+      "depth": 1,
+      "nodes": 2
+    },
+    {
+      "graph": "cycles",
+      "start": 3,
+      "depth": 8,
+      "nodes": 3
+    },
+    {
+      "graph": "shortcut",
+      "start": 1,
+      "depth": 2,
+      "nodes": 3
+    },
+    {
+      "graph": "shortcut",
+      "start": 3,
+      "depth": null,
+      "nodes": 1
+    },
+    {
+      "graph": "integer_ids",
+      "start": -9223372036854775808,
+      "depth": null,
+      "nodes": 3
+    },
+    {
+      "graph": "integer_ids",
+      "start": 0,
+      "depth": 1,
+      "nodes": 2
+    },
+    {
+      "graph": "null_endpoints",
+      "start": 1,
+      "depth": null,
+      "nodes": 2
+    },
+    {
+      "graph": "null_endpoints",
+      "start": 3,
+      "depth": 0,
+      "nodes": 1
+    },
+    {
+      "graph": "empty",
+      "start": 1,
+      "depth": null,
+      "nodes": 1
+    },
+    {
+      "graph": "empty",
+      "start": 99,
+      "depth": 0,
+      "nodes": 1
+    }
+  ],
+  "timings": [
+    {
+      "graph": "chain",
+      "mode": "legacy",
+      "source": 0,
+      "target": 4999,
+      "round": 0,
+      "ms": 1.215333,
+      "path_nodes": 5000
+    },
+    {
+      "graph": "chain",
+      "mode": "legacy",
+      "source": 0,
+      "target": 4999,
+      "round": 1,
+      "ms": 0.846167,
+      "path_nodes": 5000
+    },
+    {
+      "graph": "chain",
+      "mode": "legacy",
+      "source": 0,
+      "target": 4999,
+      "round": 2,
+      "ms": 0.893,
+      "path_nodes": 5000
+    },
+    {
+      "graph": "chain",
+      "mode": "bounded",
+      "source": 0,
+      "target": 4999,
+      "round": 0,
+      "ms": 66.167458,
+      "path_nodes": 5000
+    },
+    {
+      "graph": "chain",
+      "mode": "bounded",
+      "source": 0,
+      "target": 4999,
+      "round": 1,
+      "ms": 68.1655,
+      "path_nodes": 5000
+    },
+    {
+      "graph": "chain",
+      "mode": "bounded",
+      "source": 0,
+      "target": 4999,
+      "round": 2,
+      "ms": 65.71925,
+      "path_nodes": 5000
+    },
+    {
+      "graph": "chain",
+      "mode": "legacy",
+      "source": 2500,
+      "target": 4999,
+      "round": 0,
+      "ms": 0.494875,
+      "path_nodes": 2500
+    },
+    {
+      "graph": "chain",
+      "mode": "legacy",
+      "source": 2500,
+      "target": 4999,
+      "round": 1,
+      "ms": 0.446959,
+      "path_nodes": 2500
+    },
+    {
+      "graph": "chain",
+      "mode": "legacy",
+      "source": 2500,
+      "target": 4999,
+      "round": 2,
+      "ms": 0.407459,
+      "path_nodes": 2500
+    },
+    {
+      "graph": "chain",
+      "mode": "bounded",
+      "source": 2500,
+      "target": 4999,
+      "round": 0,
+      "ms": 29.292917,
+      "path_nodes": 2500
+    },
+    {
+      "graph": "chain",
+      "mode": "bounded",
+      "source": 2500,
+      "target": 4999,
+      "round": 1,
+      "ms": 27.438708,
+      "path_nodes": 2500
+    },
+    {
+      "graph": "chain",
+      "mode": "bounded",
+      "source": 2500,
+      "target": 4999,
+      "round": 2,
+      "ms": 29.872541,
+      "path_nodes": 2500
+    },
+    {
+      "graph": "chain",
+      "mode": "legacy",
+      "source": 4990,
+      "target": 4999,
+      "round": 0,
+      "ms": 0.062791,
+      "path_nodes": 10
+    },
+    {
+      "graph": "chain",
+      "mode": "legacy",
+      "source": 4990,
+      "target": 4999,
+      "round": 1,
+      "ms": 0.008042,
+      "path_nodes": 10
+    },
+    {
+      "graph": "chain",
+      "mode": "legacy",
+      "source": 4990,
+      "target": 4999,
+      "round": 2,
+      "ms": 0.0055,
+      "path_nodes": 10
+    },
+    {
+      "graph": "chain",
+      "mode": "bounded",
+      "source": 4990,
+      "target": 4999,
+      "round": 0,
+      "ms": 8.916042,
+      "path_nodes": 10
+    },
+    {
+      "graph": "chain",
+      "mode": "bounded",
+      "source": 4990,
+      "target": 4999,
+      "round": 1,
+      "ms": 9.011208,
+      "path_nodes": 10
+    },
+    {
+      "graph": "chain",
+      "mode": "bounded",
+      "source": 4990,
+      "target": 4999,
+      "round": 2,
+      "ms": 9.012958,
+      "path_nodes": 10
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1008,
+      "round": 0,
+      "ms": 0.007709,
+      "nodes": 26
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 219,
+      "round": 0,
+      "ms": 0.008042,
+      "nodes": 29
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1910,
+      "round": 0,
+      "ms": 0.004417,
+      "nodes": 5
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2735,
+      "round": 0,
+      "ms": 0.006917,
+      "nodes": 26
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1512,
+      "round": 0,
+      "ms": 0.006875,
+      "nodes": 25
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3619,
+      "round": 0,
+      "ms": 0.004709,
+      "nodes": 9
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 390,
+      "round": 0,
+      "ms": 0.005583,
+      "nodes": 16
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3494,
+      "round": 0,
+      "ms": 0.004792,
+      "nodes": 10
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3583,
+      "round": 0,
+      "ms": 0.003584,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2265,
+      "round": 0,
+      "ms": 0.003459,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1746,
+      "round": 0,
+      "ms": 0.008833,
+      "nodes": 23
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 182,
+      "round": 0,
+      "ms": 0.011666,
+      "nodes": 40
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1818,
+      "round": 0,
+      "ms": 0.004583,
+      "nodes": 3
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 169,
+      "round": 0,
+      "ms": 0.007041,
+      "nodes": 23
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 462,
+      "round": 0,
+      "ms": 0.006084,
+      "nodes": 17
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 108,
+      "round": 0,
+      "ms": 0.005709,
+      "nodes": 12
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2808,
+      "round": 0,
+      "ms": 0.005791,
+      "nodes": 15
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1395,
+      "round": 0,
+      "ms": 0.003916,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3537,
+      "round": 0,
+      "ms": 0.007708,
+      "nodes": 29
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1972,
+      "round": 0,
+      "ms": 0.003959,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 4883,
+      "round": 0,
+      "ms": 0.009459,
+      "nodes": 41
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2542,
+      "round": 0,
+      "ms": 0.004542,
+      "nodes": 6
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2336,
+      "round": 0,
+      "ms": 0.007083,
+      "nodes": 27
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 782,
+      "round": 0,
+      "ms": 0.003792,
+      "nodes": 2
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1591,
+      "round": 0,
+      "ms": 0.00525,
+      "nodes": 15
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1121,
+      "round": 0,
+      "ms": 0.004333,
+      "nodes": 6
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 903,
+      "round": 0,
+      "ms": 0.006625,
+      "nodes": 24
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 4676,
+      "round": 0,
+      "ms": 0.003625,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1064,
+      "round": 0,
+      "ms": 0.005833,
+      "nodes": 18
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 808,
+      "round": 0,
+      "ms": 0.004833,
+      "nodes": 11
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1008,
+      "round": 1,
+      "ms": 0.007459,
+      "nodes": 26
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 219,
+      "round": 1,
+      "ms": 0.007416,
+      "nodes": 29
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1910,
+      "round": 1,
+      "ms": 0.004084,
+      "nodes": 5
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2735,
+      "round": 1,
+      "ms": 0.006709,
+      "nodes": 26
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1512,
+      "round": 1,
+      "ms": 0.006833,
+      "nodes": 25
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3619,
+      "round": 1,
+      "ms": 0.004667,
+      "nodes": 9
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 390,
+      "round": 1,
+      "ms": 0.005542,
+      "nodes": 16
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3494,
+      "round": 1,
+      "ms": 0.004625,
+      "nodes": 10
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3583,
+      "round": 1,
+      "ms": 0.003583,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2265,
+      "round": 1,
+      "ms": 0.003458,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1746,
+      "round": 1,
+      "ms": 0.006208,
+      "nodes": 23
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 182,
+      "round": 1,
+      "ms": 0.008583,
+      "nodes": 40
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1818,
+      "round": 1,
+      "ms": 0.003833,
+      "nodes": 3
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 169,
+      "round": 1,
+      "ms": 0.006458,
+      "nodes": 23
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 462,
+      "round": 1,
+      "ms": 0.005667,
+      "nodes": 17
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 108,
+      "round": 1,
+      "ms": 0.005042,
+      "nodes": 12
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2808,
+      "round": 1,
+      "ms": 0.005333,
+      "nodes": 15
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1395,
+      "round": 1,
+      "ms": 0.003584,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3537,
+      "round": 1,
+      "ms": 0.007167,
+      "nodes": 29
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1972,
+      "round": 1,
+      "ms": 0.003583,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 4883,
+      "round": 1,
+      "ms": 0.009083,
+      "nodes": 41
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2542,
+      "round": 1,
+      "ms": 0.004291,
+      "nodes": 6
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2336,
+      "round": 1,
+      "ms": 0.007,
+      "nodes": 27
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 782,
+      "round": 1,
+      "ms": 0.003666,
+      "nodes": 2
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1591,
+      "round": 1,
+      "ms": 0.00525,
+      "nodes": 15
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1121,
+      "round": 1,
+      "ms": 0.004166,
+      "nodes": 6
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 903,
+      "round": 1,
+      "ms": 0.006458,
+      "nodes": 24
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 4676,
+      "round": 1,
+      "ms": 0.0035,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1064,
+      "round": 1,
+      "ms": 0.005666,
+      "nodes": 18
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 808,
+      "round": 1,
+      "ms": 0.004875,
+      "nodes": 11
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1008,
+      "round": 2,
+      "ms": 0.006875,
+      "nodes": 26
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 219,
+      "round": 2,
+      "ms": 0.007375,
+      "nodes": 29
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1910,
+      "round": 2,
+      "ms": 0.004042,
+      "nodes": 5
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2735,
+      "round": 2,
+      "ms": 0.006709,
+      "nodes": 26
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1512,
+      "round": 2,
+      "ms": 0.006666,
+      "nodes": 25
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3619,
+      "round": 2,
+      "ms": 0.004584,
+      "nodes": 9
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 390,
+      "round": 2,
+      "ms": 0.005416,
+      "nodes": 16
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3494,
+      "round": 2,
+      "ms": 0.004667,
+      "nodes": 10
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3583,
+      "round": 2,
+      "ms": 0.003541,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2265,
+      "round": 2,
+      "ms": 0.003375,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1746,
+      "round": 2,
+      "ms": 0.00625,
+      "nodes": 23
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 182,
+      "round": 2,
+      "ms": 0.008541,
+      "nodes": 40
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1818,
+      "round": 2,
+      "ms": 0.003833,
+      "nodes": 3
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 169,
+      "round": 2,
+      "ms": 0.006333,
+      "nodes": 23
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 462,
+      "round": 2,
+      "ms": 0.006084,
+      "nodes": 17
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 108,
+      "round": 2,
+      "ms": 0.005042,
+      "nodes": 12
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2808,
+      "round": 2,
+      "ms": 0.00525,
+      "nodes": 15
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1395,
+      "round": 2,
+      "ms": 0.003458,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 3537,
+      "round": 2,
+      "ms": 0.007084,
+      "nodes": 29
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1972,
+      "round": 2,
+      "ms": 0.003584,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 4883,
+      "round": 2,
+      "ms": 0.008583,
+      "nodes": 41
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2542,
+      "round": 2,
+      "ms": 0.004208,
+      "nodes": 6
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 2336,
+      "round": 2,
+      "ms": 0.006834,
+      "nodes": 27
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 782,
+      "round": 2,
+      "ms": 0.003708,
+      "nodes": 2
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1591,
+      "round": 2,
+      "ms": 0.005208,
+      "nodes": 15
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1121,
+      "round": 2,
+      "ms": 0.004125,
+      "nodes": 6
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 903,
+      "round": 2,
+      "ms": 0.006625,
+      "nodes": 24
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 4676,
+      "round": 2,
+      "ms": 0.003625,
+      "nodes": 1
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 1064,
+      "round": 2,
+      "ms": 0.005709,
+      "nodes": 18
+    },
+    {
+      "graph": "random",
+      "mode": "bfs3",
+      "source": 808,
+      "round": 2,
+      "ms": 0.004875,
+      "nodes": 11
+    }
+  ],
+  "setup": [
+    {
+      "graph": "chain",
+      "seconds": 0.0018607910024002194
+    },
+    {
+      "graph": "random",
+      "seconds": 0.0037347500037867576
+    }
+  ],
+  "source_hash": "5320df1a6b4b5db2fba42b82b1e85d9f59edae48d19b96261fd2f0ce3e1162c1",
+  "version": "v0.1.10-alpha.4",
+  "work_failure": "graph_witness: work limit exceeded",
+  "peak_process_rss_bytes": 44154880
+}
