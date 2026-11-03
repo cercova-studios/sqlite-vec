@@ -2199,6 +2199,35 @@ static void test_graph_cache_module_lifetime(void) {
   assert(sqlite3_close(db) == SQLITE_OK);
 }
 
+static void test_graph_witness_arena_boundaries(void) {
+  sqlite3 *db = NULL;
+  sqlite3_stmt *stmt = NULL;
+  assert(sqlite3_open(":memory:", &db) == SQLITE_OK);
+  assert(sqlite3_vec_init(db, NULL, NULL) == SQLITE_OK);
+  assert(sqlite3_exec(db, "CREATE TABLE e(id,src,dst);"
+                         "INSERT INTO e VALUES(0,0,1),(1,1,2),(2,2,3);",
+                      NULL, NULL, NULL) == SQLITE_OK);
+  assert(sqlite3_prepare_v2(db,
+      "SELECT graph_witness('e','src','dst','id',0,3,1000,?)", -1, &stmt, NULL) == SQLITE_OK);
+  int failures = 0, successes = 0;
+  for (int bytes = 128; bytes < 1024; bytes++) {
+    sqlite3_reset(stmt);
+    sqlite3_bind_int(stmt, 1, bytes);
+    int rc = sqlite3_step(stmt);
+    if (rc == SQLITE_ROW) {
+      assert(strcmp((const char *)sqlite3_column_text(stmt, 0),
+                    "[[0,null],[1,0],[2,1],[3,2]]") == 0);
+      successes++;
+    } else {
+      assert(rc == SQLITE_TOOBIG);
+      failures++;
+    }
+  }
+  assert(failures && successes);
+  sqlite3_finalize(stmt);
+  assert(sqlite3_close(db) == SQLITE_OK);
+}
+
 int main() {
   printf("Starting unit tests...\n");
 #ifdef SQLITE_VEC_ENABLE_AVX
@@ -2254,5 +2283,6 @@ int main() {
 #endif
   test_vec0_fullscan_schema_rollback();
   test_graph_cache_module_lifetime();
+  test_graph_witness_arena_boundaries();
   printf("All unit tests passed.\n");
 }

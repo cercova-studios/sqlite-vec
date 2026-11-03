@@ -416,10 +416,11 @@ relation; endpoints must also be non-NULL integers. Ties follow source scan orde
 IDs are supplied by the host, which owns their persistence and graph scope.
 
 The operation requires SQLite 3.41+, checks `sqlite3_interrupt` during native
-loops, and consumes one work unit per scanned row or native comparison/visit.
+loops, and consumes one work unit per scanned row or native comparison/visit,
+including hash probes, index initialization and path output.
 Budget exhaustion fails the entire result (`SQLITE_FULL` for work,
 `SQLITE_TOOBIG` for memory); interruption returns `SQLITE_INTERRUPT`.
-A single arena holds edge rows, BFS queue/parents and JSON construction, bounded
+A single arena holds edge rows, hash/list indexes, BFS queue/parents and JSON construction, bounded
 by `bytes` (128 through 64 MiB). SQLite VM/schema/SQL preparation memory, allocator
 bookkeeping and the caller's returned-text copy are outside this payload limit.
 This is not a process RSS limit. Source SQL work requires the host's SQLite
@@ -427,8 +428,15 @@ progress handler if a separate VM budget is needed.
 
 This direct-only scalar function rebuilds from the current statement snapshot
 and keeps no adjacency cache. Failure releases its state and writes no database
-rows. It uses bounded linear scans rather than CSR/hash construction; uniqueness
-validation and witness construction can be quadratic and consume the work budget.
+rows. Temporary indexes use the cached graph module's ID hash to validate edge
+identity, locate outgoing edge lists and find visited nodes. The edge-ID lookup
+scratch becomes the visited-node lookup after validation. Lists retain source
+scan order; the selected parent chain is reversed for linear output construction.
+Expected build/traversal work is linear in scanned edges and reached nodes;
+adversarial hash collisions still consume the explicit work budget. Index scratch
+uses additional payload bytes, so a graph may require a larger byte budget than
+the former scan-based implementation. The payload ceiling and error codes remain
+unchanged; no state is retained between calls.
 The existing BFS/path helpers retain their traversal contracts. Their resident cache is byte-bounded separately; query work and temporary allocations remain outside that cache bound. The Rust adapter exposes this helper through typed `witness` requests. Existing `reach` and `traverse` operations keep their admission limits and output behavior.
 
 

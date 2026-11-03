@@ -263,7 +263,10 @@ The byte budget covers native edge rows, queue/parents and JSON construction.
 SQLite admission/VM/preparation memory, allocator bookkeeping and returned-text
 copies are excluded. Native work units cover scanned rows and loop visits or
 comparisons after admission. These are not process memory or wall-clock limits.
-Linear scans can consume quadratic work; choose a budget suitable for the corpus.
+Temporary indexes speed edge validation and traversal within the same payload
+budget. Hash collisions can still consume quadratic work; every probe checks the
+work limit and cancellation. Index scratch may require a larger byte budget than
+earlier scan-based builds. Choose budgets suitable for the corpus.
 `describe.witness_limits` reports these operation-specific capabilities. Existing
 `reach`/`traverse` requests retain their prior budgets and behavior.
 

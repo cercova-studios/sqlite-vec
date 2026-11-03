@@ -710,10 +710,6 @@ static void graph_witness(sqlite3_context *ctx, int argc, sqlite3_value **argv) 
       }
     }
     i64 id = sqlite3_column_int64(stmt, 2);
-    for (u64 i = 0; i < ne; i++) {
-      if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
-      if (edges[i].id == id) { err = "graph_witness: duplicate edge ID"; goto done; }
-    }
     if ((ne + 1) * sizeof(*edges) > (u64)bytes) { rc = SQLITE_TOOBIG; goto done; }
     edges[ne++] = (GraphWitnessEdge){sqlite3_column_int64(stmt, 0),
                                    sqlite3_column_int64(stmt, 1), id};
@@ -721,22 +717,71 @@ static void graph_witness(sqlite3_context *ctx, int argc, sqlite3_value **argv) 
   if (rc != SQLITE_DONE) goto done;
   sqlite3_finalize(stmt); stmt = NULL;
   u64 used = ne * sizeof(*edges);
+  // Half-full hash tables use the same ID hash as the cached CSR. Every probe
+  // consumes work, so collisions remain cancellable and bounded by the caller.
+  u32 cap = 2;
+  while ((u64)cap < 2 * (ne + 1)) cap *= 2;
+  u64 scratch = (u64)cap * sizeof(u32) * 2 + ne * sizeof(u32);
+  if (used + scratch > (u64)bytes) { rc = SQLITE_TOOBIG; goto done; }
+  u32 *slots = (u32 *)(arena + used);
+  u32 *heads = slots + cap;
+  u32 *next = heads + cap;
+  used += scratch;
+  // Align the queue's int64 fields after the uint32 scratch arrays.
+  used = (used + 7) & ~(u64)7;
+  for (u32 i = 0; i < cap; i++) {
+    if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+    slots[i] = heads[i] = 0;
+  }
+  for (u64 e = 0; e < ne; e++) {
+    u32 h = graph_hash(edges[e].id) & (cap - 1);
+    for (;; h = (h + 1) & (cap - 1)) {
+      if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+      if (!slots[h]) { slots[h] = (u32)e + 1; break; }
+      if (edges[slots[h] - 1].id == edges[e].id) {
+        err = "graph_witness: duplicate edge ID"; goto done;
+      }
+    }
+  }
+  // Insert backwards so each source's list retains the SQL scan's tie order.
+  for (u64 e = ne; e > 0;) {
+    --e;
+    u32 h = graph_hash(edges[e].src) & (cap - 1);
+    for (;; h = (h + 1) & (cap - 1)) {
+      if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+      if (!heads[h] || edges[heads[h] - 1].src == edges[e].src) break;
+    }
+    next[e] = heads[h];
+    heads[h] = (u32)e + 1;
+  }
+  // Reuse edge-ID validation scratch for visited-node lookup.
+  for (u32 i = 0; i < cap; i++) {
+    if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+    slots[i] = 0;
+  }
+  if (used + sizeof(GraphWitnessNode) > (u64)bytes) { rc = SQLITE_TOOBIG; goto done; }
   GraphWitnessNode *nodes = (GraphWitnessNode *)(arena + used);
-  if (used + sizeof(*nodes) > (u64)bytes) { rc = SQLITE_TOOBIG; goto done; }
   nodes[0] = (GraphWitnessNode){source, 0, 0};
+  slots[graph_hash(source) & (cap - 1)] = 1;
   u64 nn = 1, head = 0, found = source == target ? 0 : (u64)-1;
   while (head < nn && found == (u64)-1) {
-    for (u64 e = 0; e < ne; e++) {
+    u32 h = graph_hash(nodes[head].id) & (cap - 1);
+    for (;; h = (h + 1) & (cap - 1)) {
       if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
-      if (edges[e].src != nodes[head].id) continue;
-      u64 n;
-      for (n = 0; n < nn; n++) {
+      if (!heads[h] || edges[heads[h] - 1].src == nodes[head].id) break;
+    }
+    for (u32 link = heads[h]; link; link = next[link - 1]) {
+      if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+      u32 e = link - 1;
+      u32 slot = graph_hash(edges[e].dst) & (cap - 1);
+      for (;; slot = (slot + 1) & (cap - 1)) {
         if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
-        if (nodes[n].id == edges[e].dst) break;
+        if (!slots[slot] || nodes[slots[slot] - 1].id == edges[e].dst) break;
       }
-      if (n != nn) continue;
+      if (slots[slot]) continue;
       if (used + (nn + 1) * sizeof(*nodes) > (u64)bytes) { rc = SQLITE_TOOBIG; goto done; }
       nodes[nn] = (GraphWitnessNode){edges[e].dst, edges[e].id, head};
+      slots[slot] = (u32)nn + 1;
       if (edges[e].dst == target) found = nn;
       nn++;
       if (found != (u64)-1) break;
@@ -746,10 +791,16 @@ static void graph_witness(sqlite3_context *ctx, int argc, sqlite3_value **argv) 
   used += nn * sizeof(*nodes);
   u64 len = 0;
   if (found != (u64)-1) {
-    for (u64 n = found;; n = nodes[n].parent) {
+    // Reverse only the selected parent chain, then emit it in one forward pass.
+    u64 previous = (u64)-1;
+    for (u64 n = found;;) {
       if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
+      u64 parent = nodes[n].parent;
+      nodes[n].parent = previous;
+      previous = n;
       len++;
       if (n == 0) break;
+      n = parent;
     }
   }
   /* Signed int64 JSON pairs need at most 46 bytes per node. */
@@ -757,12 +808,8 @@ static void graph_witness(sqlite3_context *ctx, int argc, sqlite3_value **argv) 
   char *out = (char *)arena + used;
   char *p = out;
   *p++ = '[';
-  for (u64 step = 0; step < len; step++) {
-    u64 n = found;
-    for (u64 j = step + 1; j < len; j++) {
-      if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
-      n = nodes[n].parent;
-    }
+  for (u64 step = 0, n = 0; step < len; step++, n = nodes[n].parent) {
+    if ((rc = graph_witness_tick(db, &work)) != SQLITE_OK) goto done;
     sqlite3_snprintf(48, p, step ? ",[%lld,%lld]" : "[%lld,null]",
                      nodes[n].id, nodes[n].edge);
     p += strlen(p);

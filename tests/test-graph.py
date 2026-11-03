@@ -264,17 +264,24 @@ def test_graph_witness_failure_recovery(db):
 
 def test_graph_witness_cancellation(db):
     import threading
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('graph_test_data', 'examples/search-lab/graph_test_data.py')
+    data = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(data)
     db.execute("create table evidence_edges(id,src,dst)")
-    db.executemany("insert into evidence_edges values (?,?,?)", [(i,i,i+1) for i in range(40000)])
+    # Hash collisions keep native validation running after the SQL scan finishes.
+    db.executemany("insert into evidence_edges values (?,?,?)", [(edge,i,i+1) for i,edge in enumerate(data.colliding_ids(10000))])
+    with pytest.raises(sqlite3.Error, match='work limit'):
+        witness(db, source=7, target=7, work=100000, memory=4*1024*1024)
     timer = threading.Timer(0.02, db.interrupt)
     timer.start()
     try:
         with pytest.raises(sqlite3.OperationalError, match="interrupt"):
-            witness(db, target=40000, work=10**12, memory=4*1024*1024)
+            witness(db, target=10000, work=10**12, memory=4*1024*1024)
     finally:
         timer.cancel()
         timer.join()
-    assert db.execute("select count(*) from evidence_edges").fetchone()[0] == 40000
+    assert db.execute("select count(*) from evidence_edges").fetchone()[0] == 10000
     assert witness(db, source=7, target=7, work=10**12, memory=4*1024*1024) == [[7,None]]
 
 
@@ -307,6 +314,75 @@ def test_graph_witness_g0_oracle(db):
                 assert path[-1][0] == target
                 for a,b in zip(path,path[1:]):
                     assert [b[1],a[0],b[0]] in edges
+
+
+def test_graph_witness_linear_work_and_scan_order(db):
+    db.execute('create table evidence_edges(id,src,dst)')
+    edges = [(i, i, i + 1) for i in range(2000)]
+    db.executemany('insert into evidence_edges values (?,?,?)', reversed(edges))
+    # The old validation/traversal scans exhaust this budget before returning.
+    path = witness(db, source=0, target=2000, work=100000, memory=512*1024)
+    assert path == [[0, None]] + [[i + 1, i] for i in range(2000)]
+    db.execute('delete from evidence_edges')
+    # Source IDs hash together, visited nodes repeat, and parallel routes tie.
+    edges = [(0, -2**63, 0), (-2**63, -2**63, 9),
+             (2**63-1, -2**63, 0), (-1, 9, 2**63-1),
+             (7, 0, 2**63-1), (8, 0, -2**63)]
+    db.executemany('insert into evidence_edges values (?,?,?)', edges)
+    assert witness(db, source=-2**63, target=2**63-1) == [[-2**63, None], [0, 0], [2**63-1, 7]]
+    db.execute('insert into evidence_edges values (0,88,99)')
+    # Even zero-hop queries must validate IDs in the entire selected relation.
+    with pytest.raises(sqlite3.Error, match='duplicate edge ID'):
+        witness(db, source=0, target=0)
+
+
+def test_graph_witness_seeded_oracle_and_budget_retries(db):
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location('oracle', Path('examples/search-lab/graph_oracle.py'))
+    oracle = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(oracle)
+    db.execute('create table evidence_edges(id,src,dst)')
+    rng = random.Random(19)
+    ids = [-2**63, 2**63-1, 0, -1] + list(range(1, 9))
+    for _ in range(16):
+        edges = [(i-30, rng.choice(ids), rng.choice(ids)) for i in range(60)]
+        rng.shuffle(edges)
+        db.execute('delete from evidence_edges')
+        db.executemany('insert into evidence_edges values (?,?,?)', edges)
+        for source in ids[:4]:
+            expected = oracle.minimum_hops([(s,d) for _,s,d in edges], [source])
+            for target in ids:
+                path = witness(db, source=source, target=target)
+                if target not in expected:
+                    assert path == []
+                else:
+                    assert len(path) == expected[target] + 1 and path[0] == [source, None] and path[-1][0] == target
+                    assert all((b[1], a[0], b[0]) in edges for a,b in zip(path,path[1:]))
+        db.execute('savepoint budget')
+        for work, memory in [(1,65536),(100,65536),(100000,128),(100000,2048)]:
+            with pytest.raises(sqlite3.Error, match='work limit|memory limit'):
+                witness(db, work=work, memory=memory)
+            assert db.in_transaction
+            assert witness(db, source=0, target=0) == [[0,None]]
+        db.execute('rollback to budget')
+        db.execute('release budget')
+
+
+def test_graph_witness_node_hash_collisions(db):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('graph_test_data', 'examples/search-lab/graph_test_data.py')
+    data = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(data)
+    ids = list(data.colliding_ids(100))
+    db.execute('create table evidence_edges(id,src,dst)')
+    edges = [(i, ids[i], ids[i+1]) for i in range(99)]
+    edges += [(100, ids[10], ids[10]), (101, ids[10], ids[11]), (102, ids[99], ids[0])]
+    db.executemany('insert into evidence_edges values (?,?,?)', edges)
+    assert witness(db, source=ids[0], target=ids[-1]) == [[ids[0],None]] + [[ids[i],i-1] for i in range(1,100)]
+    with pytest.raises(sqlite3.Error, match='work limit'):
+        witness(db, source=ids[0], target=ids[-1], work=1000)
+    assert witness(db, source=ids[99], target=ids[0]) == [[ids[99],None],[ids[0],102]]
 
 
 def test_cache_resident_byte_limit_and_rollback(db):

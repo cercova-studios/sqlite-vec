@@ -1,5 +1,43 @@
 # Handoff — read this first
 
+## Bounded witness indexing — completed 2026-11-03
+
+[Benchmark, replay and receipts](benchmarks-ann/experiments/2026-11-03-bounded-witness/README.md).
+`graph_witness` now builds temporary edge-ID, outgoing-list and visited-node
+indexes inside its existing arena, using the graph module's ID hash. Edge-ID
+scratch is reused for visited lookup. Parent-chain reversal makes output linear.
+No cache, persistent format, new dependency or SQLite planner change is added.
+Legacy BFS/path code, scan-order witness ties, signed IDs, full source validation,
+work/memory failures, cancellation and rollback visibility retain their contracts.
+
+Five alternating process pairs against committed `c956253`, identical compiler
+flags and native sources except the graph file, produce 120 validated witnesses.
+Chain medians: 29 hops 9.988 -> 0.589 ms; 4,999 hops 69.877 -> 0.683 ms.
+Parallel-edge one-hop median: 156.345 -> 1.670 ms. Every before/after path hash
+matches; a 100,000-work chain probe fails before and succeeds after.
+Synthetic graphs/single host/warm SDK calls do not establish production latency.
+
+Memory tradeoff: minimum successful budgets on a fixed power-of-two grid rise
+512 KiB -> 1 MiB for the full chain and 512 KiB -> 2 MiB for parallel edges.
+These are tested budgets, not exact payload sizes or RSS. Arbitrary budgets may
+also fail because the existing allocator-rounded arena must fit the requested
+bytes. Adversarial hash collisions can still require quadratic work, but every
+probe consumes work and checks interruption. The native byte ceiling is unchanged.
+
+Verified: final isolated candidate library (excluding the unrelated HNSW edit),
+504 default tests passed/141 skipped, 219 snapshots; all 76 adapter/CLI/MCP/G0
+tests; C unit harness; AddressSanitizer/UndefinedBehaviorSanitizer unit execution;
+no-HNSW graph smoke. New tests cover long-path work, scan-order ties, seeded
+oracle witnesses, edge/node hash collisions, cancellation/queued cancellation,
+budget failures/retries and every arena budget 128..1023. Archive regeneration,
+source/path hashes, corruption rejection and syntax checks pass. Existing DiskANN
+unused-parameter and NumPy stress warnings remain. Hybrid/full-IVF loadable and
+other platforms were not rerun. No push or CI; preserve dirty HNSW/.claude work.
+
+The first comparison gap is addressed. Next investigate sparse flat-vector
+access through existing SQLite rowid/BLOB APIs; keep the shared eligibility path
+and transaction contracts. Native metadata integration remains a separate design.
+
 ## Engine comparison diagnostics — completed slice 2026-11-03
 
 [Findings, replay and raw receipts](benchmarks-ann/experiments/2026-11-03-comparison-followup/REPORT.md)

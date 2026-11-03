@@ -1,0 +1,1615 @@
+{
+  "baseline": "c956253",
+  "source_sha256": "11065ff8cd3b2f1bfad0cae4b28dbe8d5127d15b62ad8b4f87019c09c0e41375",
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "python": "3.12.13 (main, Aug  7 2026, 02:15:23) [Clang 22.1.3 ]",
+  "sqlite_version": "3.53.1",
+  "compiler": "Apple clang version 21.0.0 (clang-2100.4.1.1)",
+  "libraries": {
+    "before": {
+      "sqlite-vec-ivf-kmeans.c": "50cd3ecc0fd0b5b75900821e2b9d1a4d1157da589c39bd1faa8749e047d8fc14",
+      "sqlite-vec-ivf.c": "d641618ffeea44995b79ea4e36eaf15afce07360ec71c5f5cabe351ca44f36b3",
+      "sqlite-vec.h": "08fb326d1bbc9020158d3fdadb97a7c0e9a327a3cef21517b88d84089979a8e9",
+      "sqlite-vec-hnsw.c": "db58bf6098f5dbc46beb48810f4ea2929ae71b1ff640c8344d604ff250a252f7",
+      "sqlite-vec-rescore.c": "23036fcde5734629393cef009e21b1b18fd41e27d29a1859805555e147146cb2",
+      "vec0.dylib": "38a10f7a567eee8f2f8255e838dbc77b10a79f55f6cbe8ad3c0c1301a071c89f",
+      "sqlite-vec-graph.c": "f787c51ed4a44dac2d335c7cdc70660a11147c33a2b218100e49ecd2f52e1174",
+      "sqlite-vec.c": "01f601e658d1ecaf787d2d6918417143bfa23f223e6902cee509a7e7c98cfa36",
+      "sqlite-vec-sparse.c": "f30f5adcfa58a36a756573f6c53681341d358cb5b368b75488e7538725d2fc27",
+      "sqlite-vec-diskann.c": "21a4c05f65c2bce498e8b5e729e18b8f64b70b5b805513e2bae346cf92481882"
+    },
+    "after": {
+      "sqlite-vec-ivf-kmeans.c": "50cd3ecc0fd0b5b75900821e2b9d1a4d1157da589c39bd1faa8749e047d8fc14",
+      "sqlite-vec-ivf.c": "d641618ffeea44995b79ea4e36eaf15afce07360ec71c5f5cabe351ca44f36b3",
+      "sqlite-vec.h": "08fb326d1bbc9020158d3fdadb97a7c0e9a327a3cef21517b88d84089979a8e9",
+      "sqlite-vec-hnsw.c": "db58bf6098f5dbc46beb48810f4ea2929ae71b1ff640c8344d604ff250a252f7",
+      "sqlite-vec-rescore.c": "23036fcde5734629393cef009e21b1b18fd41e27d29a1859805555e147146cb2",
+      "vec0.dylib": "52977bb6e81f1401ab20dfb44e1c95bb88562cb975e346199211b3ef5a8cfb7f",
+      "sqlite-vec-graph.c": "4cee95fab1d5f460c2711687c14837097c634837b50bce235d28b029b50eb0ce",
+      "sqlite-vec.c": "01f601e658d1ecaf787d2d6918417143bfa23f223e6902cee509a7e7c98cfa36",
+      "sqlite-vec-sparse.c": "f30f5adcfa58a36a756573f6c53681341d358cb5b368b75488e7538725d2fc27",
+      "sqlite-vec-diskann.c": "21a4c05f65c2bce498e8b5e729e18b8f64b70b5b805513e2bae346cf92481882"
+    }
+  },
+  "graphs_sha256": "41a0ae39097c1a76b576062abf4c95f9140225ac0e3d33cd12833122a9360fdb",
+  "runs": [
+    {
+      "variant": "before",
+      "points": [
+        {
+          "graph": "chain",
+          "source": 4970,
+          "target": 4999,
+          "ms": 9.921291,
+          "path_nodes": 30,
+          "path_sha256": "087a370f72210ff5e1745da7f99b312a6add48872aa0ff969d06e16289b39712"
+        },
+        {
+          "graph": "chain",
+          "source": 4980,
+          "target": 4999,
+          "ms": 10.968291,
+          "path_nodes": 20,
+          "path_sha256": "9483d2746428157d736b776caf308b30d95fb3496340f1751b5c25226b6745bb"
+        },
+        {
+          "graph": "chain",
+          "source": 4990,
+          "target": 4999,
+          "ms": 10.00575,
+          "path_nodes": 10,
+          "path_sha256": "06cf52ddc4d01b8c049ab6ca0e63c869c6ccd25cbb97854f51dd66db94e5b63a"
+        },
+        {
+          "graph": "chain",
+          "source": 0,
+          "target": 4999,
+          "ms": 69.877333,
+          "path_nodes": 5000,
+          "path_sha256": "f2264da62b0418d26931a16728aa066f2cd53144bd0199413df66f2f6dcffef0"
+        },
+        {
+          "graph": "star",
+          "source": 0,
+          "target": 4999,
+          "ms": 18.414208,
+          "path_nodes": 2,
+          "path_sha256": "b4b314fbbe120043600a4a088596014f9afaeb99f88e60810674ebf395032e16"
+        },
+        {
+          "graph": "star",
+          "source": 4999,
+          "target": 0,
+          "ms": 9.762,
+          "path_nodes": 0,
+          "path_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "graph": "random",
+          "source": 0,
+          "target": 999,
+          "ms": 10.191209,
+          "path_nodes": 9,
+          "path_sha256": "4ac8ad95374f2fa27d11074cc14ee5291a17caecc1b834e1c279887c1cb771bf"
+        },
+        {
+          "graph": "random",
+          "source": 100,
+          "target": 500,
+          "ms": 6.794625,
+          "path_nodes": 6,
+          "path_sha256": "5f68f94c7ad526044a01ea12e213e706c1513a0d64e1462c2588336ddeada396"
+        },
+        {
+          "graph": "random",
+          "source": 500,
+          "target": 100,
+          "ms": 9.289,
+          "path_nodes": 7,
+          "path_sha256": "f6527bd99491e2a7bfaef9e0e9c9e0f48b3fecae48497bebe6a2c91e78919350"
+        },
+        {
+          "graph": "random",
+          "source": 999,
+          "target": 0,
+          "ms": 6.44725,
+          "path_nodes": 6,
+          "path_sha256": "b0e32e923f7e4d0da0c7375c657adfd58a560704b38ef248080ea4eb9a933826"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 2,
+          "ms": 169.877875,
+          "path_nodes": 2,
+          "path_sha256": "23b83fc378c8e3d7639383725e866861ba3357adbb88d28eb74da188a6bcc0fd"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 1,
+          "ms": 144.457583,
+          "path_nodes": 1,
+          "path_sha256": "c3a7f418188d35915d14f8d06db06bc98703266618252cd00e94561223447cec"
+        }
+      ],
+      "work_100000": "graph_witness: work limit exceeded",
+      "round": 0
+    },
+    {
+      "variant": "after",
+      "points": [
+        {
+          "graph": "chain",
+          "source": 4970,
+          "target": 4999,
+          "ms": 0.583083,
+          "path_nodes": 30,
+          "path_sha256": "087a370f72210ff5e1745da7f99b312a6add48872aa0ff969d06e16289b39712"
+        },
+        {
+          "graph": "chain",
+          "source": 4980,
+          "target": 4999,
+          "ms": 0.381209,
+          "path_nodes": 20,
+          "path_sha256": "9483d2746428157d736b776caf308b30d95fb3496340f1751b5c25226b6745bb"
+        },
+        {
+          "graph": "chain",
+          "source": 4990,
+          "target": 4999,
+          "ms": 0.417833,
+          "path_nodes": 10,
+          "path_sha256": "06cf52ddc4d01b8c049ab6ca0e63c869c6ccd25cbb97854f51dd66db94e5b63a"
+        },
+        {
+          "graph": "chain",
+          "source": 0,
+          "target": 4999,
+          "ms": 0.710542,
+          "path_nodes": 5000,
+          "path_sha256": "f2264da62b0418d26931a16728aa066f2cd53144bd0199413df66f2f6dcffef0"
+        },
+        {
+          "graph": "star",
+          "source": 0,
+          "target": 4999,
+          "ms": 0.572959,
+          "path_nodes": 2,
+          "path_sha256": "b4b314fbbe120043600a4a088596014f9afaeb99f88e60810674ebf395032e16"
+        },
+        {
+          "graph": "star",
+          "source": 4999,
+          "target": 0,
+          "ms": 0.429333,
+          "path_nodes": 0,
+          "path_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "graph": "random",
+          "source": 0,
+          "target": 999,
+          "ms": 0.447584,
+          "path_nodes": 9,
+          "path_sha256": "4ac8ad95374f2fa27d11074cc14ee5291a17caecc1b834e1c279887c1cb771bf"
+        },
+        {
+          "graph": "random",
+          "source": 100,
+          "target": 500,
+          "ms": 0.3485,
+          "path_nodes": 6,
+          "path_sha256": "5f68f94c7ad526044a01ea12e213e706c1513a0d64e1462c2588336ddeada396"
+        },
+        {
+          "graph": "random",
+          "source": 500,
+          "target": 100,
+          "ms": 0.352625,
+          "path_nodes": 7,
+          "path_sha256": "f6527bd99491e2a7bfaef9e0e9c9e0f48b3fecae48497bebe6a2c91e78919350"
+        },
+        {
+          "graph": "random",
+          "source": 999,
+          "target": 0,
+          "ms": 0.339584,
+          "path_nodes": 6,
+          "path_sha256": "b0e32e923f7e4d0da0c7375c657adfd58a560704b38ef248080ea4eb9a933826"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 2,
+          "ms": 1.466833,
+          "path_nodes": 2,
+          "path_sha256": "23b83fc378c8e3d7639383725e866861ba3357adbb88d28eb74da188a6bcc0fd"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 1,
+          "ms": 1.436959,
+          "path_nodes": 1,
+          "path_sha256": "c3a7f418188d35915d14f8d06db06bc98703266618252cd00e94561223447cec"
+        }
+      ],
+      "work_100000": "passed",
+      "round": 0
+    },
+    {
+      "variant": "after",
+      "points": [
+        {
+          "graph": "chain",
+          "source": 4970,
+          "target": 4999,
+          "ms": 0.547541,
+          "path_nodes": 30,
+          "path_sha256": "087a370f72210ff5e1745da7f99b312a6add48872aa0ff969d06e16289b39712"
+        },
+        {
+          "graph": "chain",
+          "source": 4980,
+          "target": 4999,
+          "ms": 0.400458,
+          "path_nodes": 20,
+          "path_sha256": "9483d2746428157d736b776caf308b30d95fb3496340f1751b5c25226b6745bb"
+        },
+        {
+          "graph": "chain",
+          "source": 4990,
+          "target": 4999,
+          "ms": 0.397083,
+          "path_nodes": 10,
+          "path_sha256": "06cf52ddc4d01b8c049ab6ca0e63c869c6ccd25cbb97854f51dd66db94e5b63a"
+        },
+        {
+          "graph": "chain",
+          "source": 0,
+          "target": 4999,
+          "ms": 0.636917,
+          "path_nodes": 5000,
+          "path_sha256": "f2264da62b0418d26931a16728aa066f2cd53144bd0199413df66f2f6dcffef0"
+        },
+        {
+          "graph": "star",
+          "source": 0,
+          "target": 4999,
+          "ms": 0.428792,
+          "path_nodes": 2,
+          "path_sha256": "b4b314fbbe120043600a4a088596014f9afaeb99f88e60810674ebf395032e16"
+        },
+        {
+          "graph": "star",
+          "source": 4999,
+          "target": 0,
+          "ms": 0.366,
+          "path_nodes": 0,
+          "path_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "graph": "random",
+          "source": 0,
+          "target": 999,
+          "ms": 0.366584,
+          "path_nodes": 9,
+          "path_sha256": "4ac8ad95374f2fa27d11074cc14ee5291a17caecc1b834e1c279887c1cb771bf"
+        },
+        {
+          "graph": "random",
+          "source": 100,
+          "target": 500,
+          "ms": 0.367791,
+          "path_nodes": 6,
+          "path_sha256": "5f68f94c7ad526044a01ea12e213e706c1513a0d64e1462c2588336ddeada396"
+        },
+        {
+          "graph": "random",
+          "source": 500,
+          "target": 100,
+          "ms": 0.365833,
+          "path_nodes": 7,
+          "path_sha256": "f6527bd99491e2a7bfaef9e0e9c9e0f48b3fecae48497bebe6a2c91e78919350"
+        },
+        {
+          "graph": "random",
+          "source": 999,
+          "target": 0,
+          "ms": 0.354208,
+          "path_nodes": 6,
+          "path_sha256": "b0e32e923f7e4d0da0c7375c657adfd58a560704b38ef248080ea4eb9a933826"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 2,
+          "ms": 1.855167,
+          "path_nodes": 2,
+          "path_sha256": "23b83fc378c8e3d7639383725e866861ba3357adbb88d28eb74da188a6bcc0fd"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 1,
+          "ms": 1.480667,
+          "path_nodes": 1,
+          "path_sha256": "c3a7f418188d35915d14f8d06db06bc98703266618252cd00e94561223447cec"
+        }
+      ],
+      "work_100000": "passed",
+      "round": 1
+    },
+    {
+      "variant": "before",
+      "points": [
+        {
+          "graph": "chain",
+          "source": 4970,
+          "target": 4999,
+          "ms": 9.988,
+          "path_nodes": 30,
+          "path_sha256": "087a370f72210ff5e1745da7f99b312a6add48872aa0ff969d06e16289b39712"
+        },
+        {
+          "graph": "chain",
+          "source": 4980,
+          "target": 4999,
+          "ms": 9.400042,
+          "path_nodes": 20,
+          "path_sha256": "9483d2746428157d736b776caf308b30d95fb3496340f1751b5c25226b6745bb"
+        },
+        {
+          "graph": "chain",
+          "source": 4990,
+          "target": 4999,
+          "ms": 9.375083,
+          "path_nodes": 10,
+          "path_sha256": "06cf52ddc4d01b8c049ab6ca0e63c869c6ccd25cbb97854f51dd66db94e5b63a"
+        },
+        {
+          "graph": "chain",
+          "source": 0,
+          "target": 4999,
+          "ms": 68.388083,
+          "path_nodes": 5000,
+          "path_sha256": "f2264da62b0418d26931a16728aa066f2cd53144bd0199413df66f2f6dcffef0"
+        },
+        {
+          "graph": "star",
+          "source": 0,
+          "target": 4999,
+          "ms": 19.135417,
+          "path_nodes": 2,
+          "path_sha256": "b4b314fbbe120043600a4a088596014f9afaeb99f88e60810674ebf395032e16"
+        },
+        {
+          "graph": "star",
+          "source": 4999,
+          "target": 0,
+          "ms": 9.314333,
+          "path_nodes": 0,
+          "path_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "graph": "random",
+          "source": 0,
+          "target": 999,
+          "ms": 10.767417,
+          "path_nodes": 9,
+          "path_sha256": "4ac8ad95374f2fa27d11074cc14ee5291a17caecc1b834e1c279887c1cb771bf"
+        },
+        {
+          "graph": "random",
+          "source": 100,
+          "target": 500,
+          "ms": 7.548959,
+          "path_nodes": 6,
+          "path_sha256": "5f68f94c7ad526044a01ea12e213e706c1513a0d64e1462c2588336ddeada396"
+        },
+        {
+          "graph": "random",
+          "source": 500,
+          "target": 100,
+          "ms": 7.9325,
+          "path_nodes": 7,
+          "path_sha256": "f6527bd99491e2a7bfaef9e0e9c9e0f48b3fecae48497bebe6a2c91e78919350"
+        },
+        {
+          "graph": "random",
+          "source": 999,
+          "target": 0,
+          "ms": 6.629709,
+          "path_nodes": 6,
+          "path_sha256": "b0e32e923f7e4d0da0c7375c657adfd58a560704b38ef248080ea4eb9a933826"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 2,
+          "ms": 144.018041,
+          "path_nodes": 2,
+          "path_sha256": "23b83fc378c8e3d7639383725e866861ba3357adbb88d28eb74da188a6bcc0fd"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 1,
+          "ms": 143.695458,
+          "path_nodes": 1,
+          "path_sha256": "c3a7f418188d35915d14f8d06db06bc98703266618252cd00e94561223447cec"
+        }
+      ],
+      "work_100000": "graph_witness: work limit exceeded",
+      "round": 1
+    },
+    {
+      "variant": "before",
+      "points": [
+        {
+          "graph": "chain",
+          "source": 4970,
+          "target": 4999,
+          "ms": 9.6715,
+          "path_nodes": 30,
+          "path_sha256": "087a370f72210ff5e1745da7f99b312a6add48872aa0ff969d06e16289b39712"
+        },
+        {
+          "graph": "chain",
+          "source": 4980,
+          "target": 4999,
+          "ms": 9.987125,
+          "path_nodes": 20,
+          "path_sha256": "9483d2746428157d736b776caf308b30d95fb3496340f1751b5c25226b6745bb"
+        },
+        {
+          "graph": "chain",
+          "source": 4990,
+          "target": 4999,
+          "ms": 10.155875,
+          "path_nodes": 10,
+          "path_sha256": "06cf52ddc4d01b8c049ab6ca0e63c869c6ccd25cbb97854f51dd66db94e5b63a"
+        },
+        {
+          "graph": "chain",
+          "source": 0,
+          "target": 4999,
+          "ms": 69.338834,
+          "path_nodes": 5000,
+          "path_sha256": "f2264da62b0418d26931a16728aa066f2cd53144bd0199413df66f2f6dcffef0"
+        },
+        {
+          "graph": "star",
+          "source": 0,
+          "target": 4999,
+          "ms": 18.700166,
+          "path_nodes": 2,
+          "path_sha256": "b4b314fbbe120043600a4a088596014f9afaeb99f88e60810674ebf395032e16"
+        },
+        {
+          "graph": "star",
+          "source": 4999,
+          "target": 0,
+          "ms": 9.830208,
+          "path_nodes": 0,
+          "path_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "graph": "random",
+          "source": 0,
+          "target": 999,
+          "ms": 10.180458,
+          "path_nodes": 9,
+          "path_sha256": "4ac8ad95374f2fa27d11074cc14ee5291a17caecc1b834e1c279887c1cb771bf"
+        },
+        {
+          "graph": "random",
+          "source": 100,
+          "target": 500,
+          "ms": 7.036916,
+          "path_nodes": 6,
+          "path_sha256": "5f68f94c7ad526044a01ea12e213e706c1513a0d64e1462c2588336ddeada396"
+        },
+        {
+          "graph": "random",
+          "source": 500,
+          "target": 100,
+          "ms": 8.259792,
+          "path_nodes": 7,
+          "path_sha256": "f6527bd99491e2a7bfaef9e0e9c9e0f48b3fecae48497bebe6a2c91e78919350"
+        },
+        {
+          "graph": "random",
+          "source": 999,
+          "target": 0,
+          "ms": 8.783417,
+          "path_nodes": 6,
+          "path_sha256": "b0e32e923f7e4d0da0c7375c657adfd58a560704b38ef248080ea4eb9a933826"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 2,
+          "ms": 173.44,
+          "path_nodes": 2,
+          "path_sha256": "23b83fc378c8e3d7639383725e866861ba3357adbb88d28eb74da188a6bcc0fd"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 1,
+          "ms": 155.942,
+          "path_nodes": 1,
+          "path_sha256": "c3a7f418188d35915d14f8d06db06bc98703266618252cd00e94561223447cec"
+        }
+      ],
+      "work_100000": "graph_witness: work limit exceeded",
+      "round": 2
+    },
+    {
+      "variant": "after",
+      "points": [
+        {
+          "graph": "chain",
+          "source": 4970,
+          "target": 4999,
+          "ms": 0.588875,
+          "path_nodes": 30,
+          "path_sha256": "087a370f72210ff5e1745da7f99b312a6add48872aa0ff969d06e16289b39712"
+        },
+        {
+          "graph": "chain",
+          "source": 4980,
+          "target": 4999,
+          "ms": 0.414375,
+          "path_nodes": 20,
+          "path_sha256": "9483d2746428157d736b776caf308b30d95fb3496340f1751b5c25226b6745bb"
+        },
+        {
+          "graph": "chain",
+          "source": 4990,
+          "target": 4999,
+          "ms": 0.416667,
+          "path_nodes": 10,
+          "path_sha256": "06cf52ddc4d01b8c049ab6ca0e63c869c6ccd25cbb97854f51dd66db94e5b63a"
+        },
+        {
+          "graph": "chain",
+          "source": 0,
+          "target": 4999,
+          "ms": 0.683042,
+          "path_nodes": 5000,
+          "path_sha256": "f2264da62b0418d26931a16728aa066f2cd53144bd0199413df66f2f6dcffef0"
+        },
+        {
+          "graph": "star",
+          "source": 0,
+          "target": 4999,
+          "ms": 0.493083,
+          "path_nodes": 2,
+          "path_sha256": "b4b314fbbe120043600a4a088596014f9afaeb99f88e60810674ebf395032e16"
+        },
+        {
+          "graph": "star",
+          "source": 4999,
+          "target": 0,
+          "ms": 0.411458,
+          "path_nodes": 0,
+          "path_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "graph": "random",
+          "source": 0,
+          "target": 999,
+          "ms": 0.492042,
+          "path_nodes": 9,
+          "path_sha256": "4ac8ad95374f2fa27d11074cc14ee5291a17caecc1b834e1c279887c1cb771bf"
+        },
+        {
+          "graph": "random",
+          "source": 100,
+          "target": 500,
+          "ms": 0.37325,
+          "path_nodes": 6,
+          "path_sha256": "5f68f94c7ad526044a01ea12e213e706c1513a0d64e1462c2588336ddeada396"
+        },
+        {
+          "graph": "random",
+          "source": 500,
+          "target": 100,
+          "ms": 0.384917,
+          "path_nodes": 7,
+          "path_sha256": "f6527bd99491e2a7bfaef9e0e9c9e0f48b3fecae48497bebe6a2c91e78919350"
+        },
+        {
+          "graph": "random",
+          "source": 999,
+          "target": 0,
+          "ms": 0.376708,
+          "path_nodes": 6,
+          "path_sha256": "b0e32e923f7e4d0da0c7375c657adfd58a560704b38ef248080ea4eb9a933826"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 2,
+          "ms": 1.670458,
+          "path_nodes": 2,
+          "path_sha256": "23b83fc378c8e3d7639383725e866861ba3357adbb88d28eb74da188a6bcc0fd"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 1,
+          "ms": 1.556917,
+          "path_nodes": 1,
+          "path_sha256": "c3a7f418188d35915d14f8d06db06bc98703266618252cd00e94561223447cec"
+        }
+      ],
+      "work_100000": "passed",
+      "round": 2
+    },
+    {
+      "variant": "after",
+      "points": [
+        {
+          "graph": "chain",
+          "source": 4970,
+          "target": 4999,
+          "ms": 0.974958,
+          "path_nodes": 30,
+          "path_sha256": "087a370f72210ff5e1745da7f99b312a6add48872aa0ff969d06e16289b39712"
+        },
+        {
+          "graph": "chain",
+          "source": 4980,
+          "target": 4999,
+          "ms": 0.596916,
+          "path_nodes": 20,
+          "path_sha256": "9483d2746428157d736b776caf308b30d95fb3496340f1751b5c25226b6745bb"
+        },
+        {
+          "graph": "chain",
+          "source": 4990,
+          "target": 4999,
+          "ms": 0.500208,
+          "path_nodes": 10,
+          "path_sha256": "06cf52ddc4d01b8c049ab6ca0e63c869c6ccd25cbb97854f51dd66db94e5b63a"
+        },
+        {
+          "graph": "chain",
+          "source": 0,
+          "target": 4999,
+          "ms": 0.990916,
+          "path_nodes": 5000,
+          "path_sha256": "f2264da62b0418d26931a16728aa066f2cd53144bd0199413df66f2f6dcffef0"
+        },
+        {
+          "graph": "star",
+          "source": 0,
+          "target": 4999,
+          "ms": 0.561042,
+          "path_nodes": 2,
+          "path_sha256": "b4b314fbbe120043600a4a088596014f9afaeb99f88e60810674ebf395032e16"
+        },
+        {
+          "graph": "star",
+          "source": 4999,
+          "target": 0,
+          "ms": 0.586708,
+          "path_nodes": 0,
+          "path_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "graph": "random",
+          "source": 0,
+          "target": 999,
+          "ms": 0.564417,
+          "path_nodes": 9,
+          "path_sha256": "4ac8ad95374f2fa27d11074cc14ee5291a17caecc1b834e1c279887c1cb771bf"
+        },
+        {
+          "graph": "random",
+          "source": 100,
+          "target": 500,
+          "ms": 0.513209,
+          "path_nodes": 6,
+          "path_sha256": "5f68f94c7ad526044a01ea12e213e706c1513a0d64e1462c2588336ddeada396"
+        },
+        {
+          "graph": "random",
+          "source": 500,
+          "target": 100,
+          "ms": 0.475875,
+          "path_nodes": 7,
+          "path_sha256": "f6527bd99491e2a7bfaef9e0e9c9e0f48b3fecae48497bebe6a2c91e78919350"
+        },
+        {
+          "graph": "random",
+          "source": 999,
+          "target": 0,
+          "ms": 0.522083,
+          "path_nodes": 6,
+          "path_sha256": "b0e32e923f7e4d0da0c7375c657adfd58a560704b38ef248080ea4eb9a933826"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 2,
+          "ms": 1.979333,
+          "path_nodes": 2,
+          "path_sha256": "23b83fc378c8e3d7639383725e866861ba3357adbb88d28eb74da188a6bcc0fd"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 1,
+          "ms": 1.672959,
+          "path_nodes": 1,
+          "path_sha256": "c3a7f418188d35915d14f8d06db06bc98703266618252cd00e94561223447cec"
+        }
+      ],
+      "work_100000": "passed",
+      "round": 3
+    },
+    {
+      "variant": "before",
+      "points": [
+        {
+          "graph": "chain",
+          "source": 4970,
+          "target": 4999,
+          "ms": 10.620625,
+          "path_nodes": 30,
+          "path_sha256": "087a370f72210ff5e1745da7f99b312a6add48872aa0ff969d06e16289b39712"
+        },
+        {
+          "graph": "chain",
+          "source": 4980,
+          "target": 4999,
+          "ms": 10.453167,
+          "path_nodes": 20,
+          "path_sha256": "9483d2746428157d736b776caf308b30d95fb3496340f1751b5c25226b6745bb"
+        },
+        {
+          "graph": "chain",
+          "source": 4990,
+          "target": 4999,
+          "ms": 9.937833,
+          "path_nodes": 10,
+          "path_sha256": "06cf52ddc4d01b8c049ab6ca0e63c869c6ccd25cbb97854f51dd66db94e5b63a"
+        },
+        {
+          "graph": "chain",
+          "source": 0,
+          "target": 4999,
+          "ms": 72.730833,
+          "path_nodes": 5000,
+          "path_sha256": "f2264da62b0418d26931a16728aa066f2cd53144bd0199413df66f2f6dcffef0"
+        },
+        {
+          "graph": "star",
+          "source": 0,
+          "target": 4999,
+          "ms": 20.553583,
+          "path_nodes": 2,
+          "path_sha256": "b4b314fbbe120043600a4a088596014f9afaeb99f88e60810674ebf395032e16"
+        },
+        {
+          "graph": "star",
+          "source": 4999,
+          "target": 0,
+          "ms": 9.891208,
+          "path_nodes": 0,
+          "path_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "graph": "random",
+          "source": 0,
+          "target": 999,
+          "ms": 10.959208,
+          "path_nodes": 9,
+          "path_sha256": "4ac8ad95374f2fa27d11074cc14ee5291a17caecc1b834e1c279887c1cb771bf"
+        },
+        {
+          "graph": "random",
+          "source": 100,
+          "target": 500,
+          "ms": 7.41025,
+          "path_nodes": 6,
+          "path_sha256": "5f68f94c7ad526044a01ea12e213e706c1513a0d64e1462c2588336ddeada396"
+        },
+        {
+          "graph": "random",
+          "source": 500,
+          "target": 100,
+          "ms": 8.8715,
+          "path_nodes": 7,
+          "path_sha256": "f6527bd99491e2a7bfaef9e0e9c9e0f48b3fecae48497bebe6a2c91e78919350"
+        },
+        {
+          "graph": "random",
+          "source": 999,
+          "target": 0,
+          "ms": 7.567625,
+          "path_nodes": 6,
+          "path_sha256": "b0e32e923f7e4d0da0c7375c657adfd58a560704b38ef248080ea4eb9a933826"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 2,
+          "ms": 156.344542,
+          "path_nodes": 2,
+          "path_sha256": "23b83fc378c8e3d7639383725e866861ba3357adbb88d28eb74da188a6bcc0fd"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 1,
+          "ms": 153.971042,
+          "path_nodes": 1,
+          "path_sha256": "c3a7f418188d35915d14f8d06db06bc98703266618252cd00e94561223447cec"
+        }
+      ],
+      "work_100000": "graph_witness: work limit exceeded",
+      "round": 3
+    },
+    {
+      "variant": "before",
+      "points": [
+        {
+          "graph": "chain",
+          "source": 4970,
+          "target": 4999,
+          "ms": 11.172625,
+          "path_nodes": 30,
+          "path_sha256": "087a370f72210ff5e1745da7f99b312a6add48872aa0ff969d06e16289b39712"
+        },
+        {
+          "graph": "chain",
+          "source": 4980,
+          "target": 4999,
+          "ms": 10.383542,
+          "path_nodes": 20,
+          "path_sha256": "9483d2746428157d736b776caf308b30d95fb3496340f1751b5c25226b6745bb"
+        },
+        {
+          "graph": "chain",
+          "source": 4990,
+          "target": 4999,
+          "ms": 11.449,
+          "path_nodes": 10,
+          "path_sha256": "06cf52ddc4d01b8c049ab6ca0e63c869c6ccd25cbb97854f51dd66db94e5b63a"
+        },
+        {
+          "graph": "chain",
+          "source": 0,
+          "target": 4999,
+          "ms": 73.344,
+          "path_nodes": 5000,
+          "path_sha256": "f2264da62b0418d26931a16728aa066f2cd53144bd0199413df66f2f6dcffef0"
+        },
+        {
+          "graph": "star",
+          "source": 0,
+          "target": 4999,
+          "ms": 19.058625,
+          "path_nodes": 2,
+          "path_sha256": "b4b314fbbe120043600a4a088596014f9afaeb99f88e60810674ebf395032e16"
+        },
+        {
+          "graph": "star",
+          "source": 4999,
+          "target": 0,
+          "ms": 9.507,
+          "path_nodes": 0,
+          "path_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "graph": "random",
+          "source": 0,
+          "target": 999,
+          "ms": 11.058,
+          "path_nodes": 9,
+          "path_sha256": "4ac8ad95374f2fa27d11074cc14ee5291a17caecc1b834e1c279887c1cb771bf"
+        },
+        {
+          "graph": "random",
+          "source": 100,
+          "target": 500,
+          "ms": 9.521542,
+          "path_nodes": 6,
+          "path_sha256": "5f68f94c7ad526044a01ea12e213e706c1513a0d64e1462c2588336ddeada396"
+        },
+        {
+          "graph": "random",
+          "source": 500,
+          "target": 100,
+          "ms": 8.519167,
+          "path_nodes": 7,
+          "path_sha256": "f6527bd99491e2a7bfaef9e0e9c9e0f48b3fecae48497bebe6a2c91e78919350"
+        },
+        {
+          "graph": "random",
+          "source": 999,
+          "target": 0,
+          "ms": 8.117833,
+          "path_nodes": 6,
+          "path_sha256": "b0e32e923f7e4d0da0c7375c657adfd58a560704b38ef248080ea4eb9a933826"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 2,
+          "ms": 152.059875,
+          "path_nodes": 2,
+          "path_sha256": "23b83fc378c8e3d7639383725e866861ba3357adbb88d28eb74da188a6bcc0fd"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 1,
+          "ms": 145.454125,
+          "path_nodes": 1,
+          "path_sha256": "c3a7f418188d35915d14f8d06db06bc98703266618252cd00e94561223447cec"
+        }
+      ],
+      "work_100000": "graph_witness: work limit exceeded",
+      "round": 4
+    },
+    {
+      "variant": "after",
+      "points": [
+        {
+          "graph": "chain",
+          "source": 4970,
+          "target": 4999,
+          "ms": 0.59475,
+          "path_nodes": 30,
+          "path_sha256": "087a370f72210ff5e1745da7f99b312a6add48872aa0ff969d06e16289b39712"
+        },
+        {
+          "graph": "chain",
+          "source": 4980,
+          "target": 4999,
+          "ms": 0.386959,
+          "path_nodes": 20,
+          "path_sha256": "9483d2746428157d736b776caf308b30d95fb3496340f1751b5c25226b6745bb"
+        },
+        {
+          "graph": "chain",
+          "source": 4990,
+          "target": 4999,
+          "ms": 0.367791,
+          "path_nodes": 10,
+          "path_sha256": "06cf52ddc4d01b8c049ab6ca0e63c869c6ccd25cbb97854f51dd66db94e5b63a"
+        },
+        {
+          "graph": "chain",
+          "source": 0,
+          "target": 4999,
+          "ms": 0.617417,
+          "path_nodes": 5000,
+          "path_sha256": "f2264da62b0418d26931a16728aa066f2cd53144bd0199413df66f2f6dcffef0"
+        },
+        {
+          "graph": "star",
+          "source": 0,
+          "target": 4999,
+          "ms": 0.435667,
+          "path_nodes": 2,
+          "path_sha256": "b4b314fbbe120043600a4a088596014f9afaeb99f88e60810674ebf395032e16"
+        },
+        {
+          "graph": "star",
+          "source": 4999,
+          "target": 0,
+          "ms": 0.358083,
+          "path_nodes": 0,
+          "path_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "graph": "random",
+          "source": 0,
+          "target": 999,
+          "ms": 0.371,
+          "path_nodes": 9,
+          "path_sha256": "4ac8ad95374f2fa27d11074cc14ee5291a17caecc1b834e1c279887c1cb771bf"
+        },
+        {
+          "graph": "random",
+          "source": 100,
+          "target": 500,
+          "ms": 0.32275,
+          "path_nodes": 6,
+          "path_sha256": "5f68f94c7ad526044a01ea12e213e706c1513a0d64e1462c2588336ddeada396"
+        },
+        {
+          "graph": "random",
+          "source": 500,
+          "target": 100,
+          "ms": 0.330542,
+          "path_nodes": 7,
+          "path_sha256": "f6527bd99491e2a7bfaef9e0e9c9e0f48b3fecae48497bebe6a2c91e78919350"
+        },
+        {
+          "graph": "random",
+          "source": 999,
+          "target": 0,
+          "ms": 0.340792,
+          "path_nodes": 6,
+          "path_sha256": "b0e32e923f7e4d0da0c7375c657adfd58a560704b38ef248080ea4eb9a933826"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 2,
+          "ms": 1.551,
+          "path_nodes": 2,
+          "path_sha256": "23b83fc378c8e3d7639383725e866861ba3357adbb88d28eb74da188a6bcc0fd"
+        },
+        {
+          "graph": "parallel",
+          "source": 1,
+          "target": 1,
+          "ms": 1.443667,
+          "path_nodes": 1,
+          "path_sha256": "c3a7f418188d35915d14f8d06db06bc98703266618252cd00e94561223447cec"
+        }
+      ],
+      "work_100000": "passed",
+      "round": 4
+    }
+  ],
+  "summary": [
+    {
+      "graph": "chain",
+      "source": 4970,
+      "target": 4999,
+      "before": 9.988,
+      "after": 0.588875,
+      "speedup": 16.961154744215662
+    },
+    {
+      "graph": "chain",
+      "source": 4980,
+      "target": 4999,
+      "before": 10.383542,
+      "after": 0.400458,
+      "speedup": 25.929166104809994
+    },
+    {
+      "graph": "chain",
+      "source": 4990,
+      "target": 4999,
+      "before": 10.00575,
+      "after": 0.416667,
+      "speedup": 24.01378078897537
+    },
+    {
+      "graph": "chain",
+      "source": 0,
+      "target": 4999,
+      "before": 69.877333,
+      "after": 0.683042,
+      "speedup": 102.3031277725235
+    },
+    {
+      "graph": "star",
+      "source": 0,
+      "target": 4999,
+      "before": 19.058625,
+      "after": 0.493083,
+      "speedup": 38.651961231679046
+    },
+    {
+      "graph": "star",
+      "source": 4999,
+      "target": 0,
+      "before": 9.762,
+      "after": 0.411458,
+      "speedup": 23.72538630917372
+    },
+    {
+      "graph": "random",
+      "source": 0,
+      "target": 999,
+      "before": 10.767417,
+      "after": 0.447584,
+      "speedup": 24.056751358404235
+    },
+    {
+      "graph": "random",
+      "source": 100,
+      "target": 500,
+      "before": 7.41025,
+      "after": 0.367791,
+      "speedup": 20.14799165830594
+    },
+    {
+      "graph": "random",
+      "source": 500,
+      "target": 100,
+      "before": 8.519167,
+      "after": 0.365833,
+      "speedup": 23.28703807474995
+    },
+    {
+      "graph": "random",
+      "source": 999,
+      "target": 0,
+      "before": 7.567625,
+      "after": 0.354208,
+      "speedup": 21.364918353058087
+    },
+    {
+      "graph": "parallel",
+      "source": 1,
+      "target": 2,
+      "before": 156.344542,
+      "after": 1.670458,
+      "speedup": 93.5938179828526
+    },
+    {
+      "graph": "parallel",
+      "source": 1,
+      "target": 1,
+      "before": 145.454125,
+      "after": 1.480667,
+      "speedup": 98.2355418200041
+    }
+  ],
+  "payload_budget_probes": {
+    "before": {
+      "chain": [
+        {
+          "bytes": 128,
+          "passed": false
+        },
+        {
+          "bytes": 256,
+          "passed": false
+        },
+        {
+          "bytes": 512,
+          "passed": false
+        },
+        {
+          "bytes": 1024,
+          "passed": false
+        },
+        {
+          "bytes": 2048,
+          "passed": false
+        },
+        {
+          "bytes": 4096,
+          "passed": false
+        },
+        {
+          "bytes": 8192,
+          "passed": false
+        },
+        {
+          "bytes": 16384,
+          "passed": false
+        },
+        {
+          "bytes": 32768,
+          "passed": false
+        },
+        {
+          "bytes": 65536,
+          "passed": false
+        },
+        {
+          "bytes": 131072,
+          "passed": false
+        },
+        {
+          "bytes": 262144,
+          "passed": false
+        },
+        {
+          "bytes": 524288,
+          "passed": true
+        },
+        {
+          "bytes": 1048576,
+          "passed": true
+        },
+        {
+          "bytes": 2097152,
+          "passed": true
+        },
+        {
+          "bytes": 4194304,
+          "passed": true
+        },
+        {
+          "bytes": 8388608,
+          "passed": true
+        },
+        {
+          "bytes": 16777216,
+          "passed": true
+        }
+      ],
+      "random": [
+        {
+          "bytes": 128,
+          "passed": false
+        },
+        {
+          "bytes": 256,
+          "passed": false
+        },
+        {
+          "bytes": 512,
+          "passed": false
+        },
+        {
+          "bytes": 1024,
+          "passed": false
+        },
+        {
+          "bytes": 2048,
+          "passed": false
+        },
+        {
+          "bytes": 4096,
+          "passed": false
+        },
+        {
+          "bytes": 8192,
+          "passed": false
+        },
+        {
+          "bytes": 16384,
+          "passed": false
+        },
+        {
+          "bytes": 32768,
+          "passed": false
+        },
+        {
+          "bytes": 65536,
+          "passed": false
+        },
+        {
+          "bytes": 131072,
+          "passed": true
+        },
+        {
+          "bytes": 262144,
+          "passed": true
+        },
+        {
+          "bytes": 524288,
+          "passed": true
+        },
+        {
+          "bytes": 1048576,
+          "passed": true
+        },
+        {
+          "bytes": 2097152,
+          "passed": true
+        },
+        {
+          "bytes": 4194304,
+          "passed": true
+        },
+        {
+          "bytes": 8388608,
+          "passed": true
+        },
+        {
+          "bytes": 16777216,
+          "passed": true
+        }
+      ],
+      "parallel": [
+        {
+          "bytes": 128,
+          "passed": false
+        },
+        {
+          "bytes": 256,
+          "passed": false
+        },
+        {
+          "bytes": 512,
+          "passed": false
+        },
+        {
+          "bytes": 1024,
+          "passed": false
+        },
+        {
+          "bytes": 2048,
+          "passed": false
+        },
+        {
+          "bytes": 4096,
+          "passed": false
+        },
+        {
+          "bytes": 8192,
+          "passed": false
+        },
+        {
+          "bytes": 16384,
+          "passed": false
+        },
+        {
+          "bytes": 32768,
+          "passed": false
+        },
+        {
+          "bytes": 65536,
+          "passed": false
+        },
+        {
+          "bytes": 131072,
+          "passed": false
+        },
+        {
+          "bytes": 262144,
+          "passed": false
+        },
+        {
+          "bytes": 524288,
+          "passed": true
+        },
+        {
+          "bytes": 1048576,
+          "passed": true
+        },
+        {
+          "bytes": 2097152,
+          "passed": true
+        },
+        {
+          "bytes": 4194304,
+          "passed": true
+        },
+        {
+          "bytes": 8388608,
+          "passed": true
+        },
+        {
+          "bytes": 16777216,
+          "passed": true
+        }
+      ]
+    },
+    "after": {
+      "chain": [
+        {
+          "bytes": 128,
+          "passed": false
+        },
+        {
+          "bytes": 256,
+          "passed": false
+        },
+        {
+          "bytes": 512,
+          "passed": false
+        },
+        {
+          "bytes": 1024,
+          "passed": false
+        },
+        {
+          "bytes": 2048,
+          "passed": false
+        },
+        {
+          "bytes": 4096,
+          "passed": false
+        },
+        {
+          "bytes": 8192,
+          "passed": false
+        },
+        {
+          "bytes": 16384,
+          "passed": false
+        },
+        {
+          "bytes": 32768,
+          "passed": false
+        },
+        {
+          "bytes": 65536,
+          "passed": false
+        },
+        {
+          "bytes": 131072,
+          "passed": false
+        },
+        {
+          "bytes": 262144,
+          "passed": false
+        },
+        {
+          "bytes": 524288,
+          "passed": false
+        },
+        {
+          "bytes": 1048576,
+          "passed": true
+        },
+        {
+          "bytes": 2097152,
+          "passed": true
+        },
+        {
+          "bytes": 4194304,
+          "passed": true
+        },
+        {
+          "bytes": 8388608,
+          "passed": true
+        },
+        {
+          "bytes": 16777216,
+          "passed": true
+        }
+      ],
+      "random": [
+        {
+          "bytes": 128,
+          "passed": false
+        },
+        {
+          "bytes": 256,
+          "passed": false
+        },
+        {
+          "bytes": 512,
+          "passed": false
+        },
+        {
+          "bytes": 1024,
+          "passed": false
+        },
+        {
+          "bytes": 2048,
+          "passed": false
+        },
+        {
+          "bytes": 4096,
+          "passed": false
+        },
+        {
+          "bytes": 8192,
+          "passed": false
+        },
+        {
+          "bytes": 16384,
+          "passed": false
+        },
+        {
+          "bytes": 32768,
+          "passed": false
+        },
+        {
+          "bytes": 65536,
+          "passed": false
+        },
+        {
+          "bytes": 131072,
+          "passed": false
+        },
+        {
+          "bytes": 262144,
+          "passed": true
+        },
+        {
+          "bytes": 524288,
+          "passed": true
+        },
+        {
+          "bytes": 1048576,
+          "passed": true
+        },
+        {
+          "bytes": 2097152,
+          "passed": true
+        },
+        {
+          "bytes": 4194304,
+          "passed": true
+        },
+        {
+          "bytes": 8388608,
+          "passed": true
+        },
+        {
+          "bytes": 16777216,
+          "passed": true
+        }
+      ],
+      "parallel": [
+        {
+          "bytes": 128,
+          "passed": false
+        },
+        {
+          "bytes": 256,
+          "passed": false
+        },
+        {
+          "bytes": 512,
+          "passed": false
+        },
+        {
+          "bytes": 1024,
+          "passed": false
+        },
+        {
+          "bytes": 2048,
+          "passed": false
+        },
+        {
+          "bytes": 4096,
+          "passed": false
+        },
+        {
+          "bytes": 8192,
+          "passed": false
+        },
+        {
+          "bytes": 16384,
+          "passed": false
+        },
+        {
+          "bytes": 32768,
+          "passed": false
+        },
+        {
+          "bytes": 65536,
+          "passed": false
+        },
+        {
+          "bytes": 131072,
+          "passed": false
+        },
+        {
+          "bytes": 262144,
+          "passed": false
+        },
+        {
+          "bytes": 524288,
+          "passed": false
+        },
+        {
+          "bytes": 1048576,
+          "passed": false
+        },
+        {
+          "bytes": 2097152,
+          "passed": true
+        },
+        {
+          "bytes": 4194304,
+          "passed": true
+        },
+        {
+          "bytes": 8388608,
+          "passed": true
+        },
+        {
+          "bytes": 16777216,
+          "passed": true
+        }
+      ]
+    }
+  }
+}

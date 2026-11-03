@@ -10,6 +10,7 @@ from mcp.client.stdio import stdio_client
 
 from rust_test_client import RustAdapter, command
 from fixture import create
+from graph_test_data import colliding_ids
 
 
 HERE = Path(__file__).resolve().parent
@@ -381,7 +382,8 @@ def test_witness_mcp_cancel_then_reuse(witness_config, cancel_queued):
     cfg = json.loads(witness_config.read_text())
     with sqlite3.connect(cfg['database']) as db:
         db.execute('delete from evidence_edges')
-        db.executemany('insert into evidence_edges values (?,?,?)', [(i,1,2) for i in range(19999)])
+        # Collision-heavy validation keeps native work pending for cancellation.
+        db.executemany('insert into evidence_edges values (?,?,?)', [(i,1,2) for i in colliding_ids(19999)])
     async def run():
         cmd = command(witness_config, 'mcp')
         async with stdio_client(StdioServerParameters(command=cmd[0],args=cmd[1:])) as (read,write):
