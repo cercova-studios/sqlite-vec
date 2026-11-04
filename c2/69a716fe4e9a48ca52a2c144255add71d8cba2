@@ -1,0 +1,62 @@
+ARCHITECTURE.md
+  s_70b027a60d4a55::t_3234932192ea02 266-284
+benchmarks-ann/experiments/2026-11-03-sparse-flat/verify.py
+  s_70b027a60d4a55::t_7314050b221894 1-2,4-70,72-77,80-91
+  s_70b027a60d4a55::t_3234932192ea02 3,78-79
+  s_70b027a60d4a55::t_e8e9853ac9dc14 71
+benchmarks-ann/experiments/2026-11-03-sparse-flat/recorded/validation.json
+  s_528e6b3f95df22::t_3986605d27f603 1-31
+benchmarks-ann/experiments/2026-11-03-sparse-flat/.gitignore
+  s_70b027a60d4a55::t_23dd7d7339b4f4 1-2
+sqlite-vec.c
+  s_70b027a60d4a55::t_823c08a02fba08 8667-8670,8683-8693,8928-8929
+  s_70b027a60d4a55::t_13e3b7d7ad64ef 8671-8682
+benchmarks-ann/experiments/2026-11-03-sparse-flat/recorded/environment.json
+  s_528e6b3f95df22::t_116f594a72b6e0 1-12
+HANDOFF.md
+  s_70b027a60d4a55::t_31af12838283f6 3-47
+tests/test-flat-read.py
+  s_70b027a60d4a55::t_479f148f977a4b 1-120
+  s_70b027a60d4a55::t_6e151251f8a41a 121-154
+benchmarks-ann/experiments/2026-11-03-sparse-flat/reads.py
+  s_70b027a60d4a55::t_e8e9853ac9dc14 3,64
+  s_70b027a60d4a55::t_7314050b221894 1-2,4-63,65-68
+benchmarks-ann/experiments/2026-11-03-sparse-flat/README.md
+  s_70b027a60d4a55::t_5aff816c1ef4f2 38-39,101-107
+  s_70b027a60d4a55::t_7742f4c080399b 1-37,40-100,108-134
+benchmarks-ann/experiments/2026-11-03-sparse-flat/bench.py
+  s_70b027a60d4a55::t_13e3b7d7ad64ef 13-25,89-91,132
+  s_70b027a60d4a55::t_ad152de9cd289c 3,51,56,72-75,78,122-125,130-131,136-140,144,149-154,156-160
+  s_70b027a60d4a55::t_23dd7d7339b4f4 1-2,4-12,26-50,52-55,57-71,76-77,79-88,92-121,126-129,133-135,141-143,145-148,155,161-165
+tests/test-unit.c
+  s_70b027a60d4a55::t_6e151251f8a41a 2258-2260
+  s_70b027a60d4a55::t_e2a4322c2b8bd1 2231-2257,2261-2270,2327
+benchmarks-ann/experiments/2026-11-03-sparse-flat/recorded/hashes.json
+  s_528e6b3f95df22::t_3986605d27f603 3,6,9
+  s_70b027a60d4a55::t_7c97377caa4430 5,7,10
+  s_528e6b3f95df22::t_f4440dbd5b12f2 1-2,4,8,11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c269a716fe4e9a48ca52a2c144255add71d8cba2",
+  "prompts": {},
+  "sessions": {
+    "s_528e6b3f95df22": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
