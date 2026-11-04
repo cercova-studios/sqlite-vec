@@ -2228,6 +2228,46 @@ static void test_graph_witness_arena_boundaries(void) {
   assert(sqlite3_close(db) == SQLITE_OK);
 }
 
+static void test_flat_selective_blob_reads(void) {
+  sqlite3 *db = NULL;
+  sqlite3_blob *blob = NULL;
+  const int count = 1024, stride = 512, bytes = count * stride;
+  u8 selected[128] = {0};
+  u8 *data = sqlite3_malloc(bytes);
+  assert(data);
+  assert(sqlite3_open(":memory:", &db) == SQLITE_OK);
+  assert(sqlite3_exec(db, "CREATE TABLE blobs(data);"
+                         "INSERT INTO blobs VALUES(zeroblob(524288));",
+                      NULL, NULL, NULL) == SQLITE_OK);
+  assert(sqlite3_blob_open(db, "main", "blobs", "data", 1, 0, &blob) == SQLITE_OK);
+  bitmap_set(selected, 0, 1);
+  bitmap_set(selected, 3, 1);
+  bitmap_set(selected, 4, 1);
+  bitmap_set(selected, 1023, 1);
+  memset(data, 0xa5, bytes);
+  assert(vec0_read_vector_chunk(blob, data, selected, count, stride) == SQLITE_OK);
+  for (int i = 0; i < bytes; i++)
+    assert(data[i] == (bitmap_get(selected, i / stride) ? 0 : 0xa5));
+  bitmap_fill(selected, count);
+  assert(vec0_read_vector_chunk(blob, data, selected, count, stride) == SQLITE_OK);
+  for (int i = 0; i < bytes; i++) assert(data[i] == 0);
+  // An expired SQLite BLOB must fail the read, then allow a fresh-handle retry.
+  assert(sqlite3_exec(db, "UPDATE blobs SET data=zeroblob(524288)",
+                      NULL, NULL, NULL) == SQLITE_OK);
+  assert(vec0_read_vector_chunk(blob, data, selected, count, stride) == SQLITE_ABORT);
+  bitmap_clear(selected, count);
+  bitmap_set(selected, 3, 1);
+  assert(vec0_read_vector_chunk(blob, data, selected, count, stride) == SQLITE_ABORT);
+  sqlite3_blob_close(blob);
+  assert(sqlite3_blob_open(db, "main", "blobs", "data", 1, 0, &blob) == SQLITE_OK);
+  bitmap_clear(selected, count);
+  bitmap_set(selected, 1023, 1);
+  assert(vec0_read_vector_chunk(blob, data, selected, count, stride) == SQLITE_OK);
+  sqlite3_blob_close(blob);
+  sqlite3_free(data);
+  assert(sqlite3_close(db) == SQLITE_OK);
+}
+
 int main() {
   printf("Starting unit tests...\n");
 #ifdef SQLITE_VEC_ENABLE_AVX
@@ -2284,5 +2324,6 @@ int main() {
   test_vec0_fullscan_schema_rollback();
   test_graph_cache_module_lifetime();
   test_graph_witness_arena_boundaries();
+  test_flat_selective_blob_reads();
   printf("All unit tests passed.\n");
 }

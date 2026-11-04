@@ -8664,6 +8664,33 @@ static int vec0_zonemap_excludes(vec0_vtab *p, i64 chunk, const char *idxStr,
   return SQLITE_OK;
 }
 
+/* Keep each vector at its normal chunk offset so distance/ranking uses the
+ * same filtered bitmap for whole-chunk and selective reads. */
+static int vec0_read_vector_chunk(sqlite3_blob *blob, u8 *data, u8 *selected,
+                                 int count, int stride) {
+  // Many small BLOB calls can cost more than copying the whole chunk. Keep
+  // dense chunks contiguous, and charge 64 KiB of saved copying per read run.
+  int kept = 0, runs = 0, previous = 0;
+  for (int i = 0; i < count; i++) {
+    int current = bitmap_get(selected, i);
+    kept += current;
+    runs += current && !previous;
+    if (kept > count / 8 ||
+        (i64)kept * stride + (i64)runs * 65536 >= (i64)count * stride)
+      return sqlite3_blob_read(blob, data, count * stride, 0);
+    previous = current;
+  }
+  for (int i = 0; i < count;) {
+    if (!bitmap_get(selected, i)) { i++; continue; }
+    int start = i++;
+    while (i < count && bitmap_get(selected, i)) i++;
+    int rc = sqlite3_blob_read(blob, data + start * stride,
+                               (i - start) * stride, start * stride);
+    if (rc != SQLITE_OK) return rc;
+  }
+  return SQLITE_OK;
+}
+
 int vec0Filter_knn_chunks_iter(vec0_vtab *p, sqlite3_stmt *stmtChunks,
                                struct VectorColumnDefinition *vector_column,
                                int vectorColumnIdx, struct Array *arrayRowidsIn,
@@ -8898,7 +8925,8 @@ int vec0Filter_knn_chunks_iter(vec0_vtab *p, sqlite3_stmt *stmtChunks,
       rc = SQLITE_ERROR;
       goto cleanup;
     }
-    rc = sqlite3_blob_read(blobVectors, baseVectors, currentBaseVectorsSize, 0);
+    rc = vec0_read_vector_chunk(blobVectors, baseVectors, b, p->chunk_size,
+                                vector_column_byte_size(*vector_column));
 
     if (rc != SQLITE_OK) {
       vtab_set_error(&p->base, "vectors blob read error for %lld", chunk_id);

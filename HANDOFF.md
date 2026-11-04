@@ -1,5 +1,50 @@
 # Handoff — read this first
 
+## Adaptive sparse flat-vector reads — completed 2026-11-03
+
+[Benchmark, replay and receipts](benchmarks-ann/experiments/2026-11-03-sparse-flat/README.md).
+Flat KNN now uses the existing post-filter bitmap to read contiguous surviving
+vector runs through SQLite BLOB APIs. Whole-chunk reads remain when more than
+one-eighth of slots survive or surviving bytes plus 64 KiB per read run reach the
+chunk's byte count. This private heuristic was selected from the exploratory
+sample; unconditional selective reads regress dense/small-vector workloads.
+
+The change adds one reader and call site in `sqlite-vec.c`. Existing rowid-IN,
+text-ID resolution, partition/metadata/distance filtering, distance/top-k code,
+full-chunk scratch buffer, flush-before-read and rollback paths are unchanged.
+No new rowid map, cache, persisted format, public knob or dependency is added.
+
+Against committed `dc20c85`, identical isolated builds compare whole, selective
+and adaptive reads on SciFact, SIFT50k and a SIFT two-dimensional control. Five
+alternating rounds, eight cases and 100 queries give 36,000 validated timed
+calls. All ordered IDs/distances match exactly; direct float64 L2 and tie-aware
+brute-force checks pass. On the 70-query held-out suffix, random 0.1% medians
+improve SIFT 2.478 -> 1.700 ms and SciFact 0.514 -> 0.390 ms. Dense cases stay
+near baseline or improve. SIFT random 1% is ~1.5% slower, and small-vector case
+differences range from -3.7% to +2.3%; do not claim a universal speedup.
+
+Separate first-query diagnostics show SIFT random 0.1% vector API bytes falling
+17,301,504 -> 25,600 and SciFact 4,718,592 -> 9,216. SIFT random 1% still reads
+21,519,872 bytes versus 25,690,112 before; the conservative fallback retains much
+of that amplification. These are copied bytes, not physical I/O. Chunk rowid
+membership scans and SQL IN construction remain. A direct mapping fast path would
+need separate evidence/design rather than weakening predicates for speed.
+
+Verified on isolated candidate libraries excluding the unrelated HNSW edit:
+517 default tests passed / 141 skipped, 654 IVF tests passed / 4 skipped, each
+with 219 snapshots; 76 adapter/CLI/MCP/G0 tests; C unit harness and ASan/UBSan unit
+execution. New tests cover vector types/metrics, both ID kinds, combined filters,
+distance limits, own writes, two columns, savepoint/full/statement rollback,
+commit/reopen, flush failure/retry, malformed BLOBs, expired handles and touched
+versus untouched read ranges. Frozen oracle/input/source hashes, archive summary
+regeneration, corruption rejection and syntax checks pass. Default dist library
+is restored after IVF. Existing DiskANN/NumPy warnings remain. Full hybrid/Lance,
+cold/concurrent, larger-data and other-platform checks were not run. No push/CI.
+
+Next comparison gap: assess HNSW metadata integration through the existing shared
+eligibility boundary, because SQL IN construction dominates the measured 10%
+case. Keep alpha=1.0; preserve unrelated HNSW/.claude edits and the one filter path.
+
 ## Bounded witness indexing — completed 2026-11-03
 
 [Benchmark, replay and receipts](benchmarks-ann/experiments/2026-11-03-bounded-witness/README.md).

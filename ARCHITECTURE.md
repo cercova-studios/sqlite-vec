@@ -263,6 +263,25 @@ successful flushes and do not cache other connections' committed data.
 Storage providers, rescore, IVF and graph indexes keep their own write paths.
 The persisted vector/chunk format and public SQL options are unchanged.
 
+### Flat-vector KNN reads
+
+The flat chunk scan applies validity, rowid and metadata filters before reading
+vector payloads. Empty candidate chunks are skipped. `vec0_read_vector_chunk`
+uses the resulting bitmap to read contiguous runs of surviving vectors through
+SQLite's incremental BLOB API, keeping each vector at its normal buffer offset.
+Distance calculation, distance predicates and top-k merging use the same bitmap
+and ranking code as whole-chunk reads. Partition predicates still select chunks
+in SQL, and text IDs still resolve through the shared rowid-IN collection.
+
+The reader keeps whole-chunk reads when more than one-eighth of slots survive,
+or when surviving bytes plus 64 KiB per read run reach the full chunk size.
+This private cost heuristic avoids many small BLOB calls; it is not a SQLite
+page-size assumption or a runtime option. The existing full-chunk scratch buffer
+is retained. No new cache, rowid mapping or persisted state is introduced.
+`xFilter` flushes pending flat writes before either read strategy, so own writes,
+savepoints and rollback continue through the existing SQLite transaction path.
+BLOB length checks and read failures retain the whole-chunk error path.
+
 ### IVF cell write batching
 
 The experimental IVF build stores up to 64 vectors per packed cell in
