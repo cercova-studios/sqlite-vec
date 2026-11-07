@@ -1,0 +1,65 @@
+TODO.md
+  s_70b027a60d4a55::t_714ef40a7c0faf 23,25,27
+  s_70b027a60d4a55::t_25056343da9789 1-22,24,26,30-173
+  s_70b027a60d4a55::t_a5a5fe0ad164de 28-29
+ARCHITECTURE.md
+  s_70b027a60d4a55::t_97f358434eabfb 25-33
+HANDOFF.md
+  s_70b027a60d4a55::t_97f358434eabfb 3-11,19-21,1141,1166-1168
+  s_70b027a60d4a55::t_714ef40a7c0faf 12-14,16-18
+  s_70b027a60d4a55::t_a5a5fe0ad164de 15
+benchmarks-ann/experiments/2026-11-07-local-datastore/README.md
+  s_70b027a60d4a55::t_a5a5fe0ad164de 30-33,35-36,68-69
+  s_70b027a60d4a55::t_714ef40a7c0faf 1-29,34,37-67,70-84
+bindings/rust/Makefile
+  s_70b027a60d4a55::t_5d55e570043966 2,9-10
+tests/packaging.py
+  s_70b027a60d4a55::t_16484e61fe7402 98-105
+  s_70b027a60d4a55::t_125e5612bf4045 1-48,50-97,106-119
+  s_70b027a60d4a55::t_75003fc7e93408 49
+bindings/rust/build.rs
+  s_70b027a60d4a55::t_5d55e570043966 2-4
+  s_70b027a60d4a55::t_7e30e63b14f29d 5-8
+bindings/rust/src/lib.rs
+  s_70b027a60d4a55::t_75003fc7e93408 15-18,28-35,41-43,49-50
+  s_70b027a60d4a55::t_7e30e63b14f29d 36-40,44-48
+benchmarks-ann/experiments/2026-11-07-local-datastore/legacy-core-todo.md
+  s_528e6b3f95df22::t_6d7cda7e567574 1-7
+Makefile
+  s_70b027a60d4a55::t_5d55e570043966 108,117,120,123,127-129,138,143,167,204,247-249
+  s_beca4199dff5ee::t_40bd1e84d748d7 250
+benchmarks-ann/experiments/2026-11-07-local-datastore/legacy-ann-todo.md
+  s_528e6b3f95df22::t_6d7cda7e567574 1-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f2a4af8d50f6fb3e8144f627b45f0a327f313d9d",
+  "prompts": {},
+  "sessions": {
+    "s_528e6b3f95df22": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_beca4199dff5ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a1b6ec-d751-7942-9e25-baa7464fe285",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
