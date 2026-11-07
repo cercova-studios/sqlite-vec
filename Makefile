@@ -105,7 +105,7 @@ loadable: $(TARGET_LOADABLE)
 hybrid: $(prefix)
 	cargo build --release --manifest-path lance/Cargo.toml
 	cp $(HYBRID_BUILT) $(TARGET_HYBRID)
-static: $(TARGET_STATIC)
+static: $(TARGET_STATIC) $(TARGET_STATIC_H)
 cli: $(TARGET_CLI)
 
 all: loadable static cli
@@ -114,17 +114,19 @@ OBJS_DIR=$(prefix)/.objs
 LIBS_DIR=$(prefix)/.libs
 BUILD_DIR=$(prefix)/.build
 
-$(OBJS_DIR): $(prefix)
+$(OBJS_DIR): | $(prefix)
 	mkdir -p $@
 
-$(LIBS_DIR): $(prefix)
+$(LIBS_DIR): | $(prefix)
 	mkdir -p $@
 
-$(BUILD_DIR): $(prefix)
+$(BUILD_DIR): | $(prefix)
 	mkdir -p $@
 
 
-$(TARGET_LOADABLE): sqlite-vec.c sqlite-vec.h $(wildcard sqlite-vec-*.c) $(prefix)
+VEC_SOURCES=sqlite-vec.c $(wildcard sqlite-vec-*.c)
+
+$(TARGET_LOADABLE): $(VEC_SOURCES) sqlite-vec.h | $(prefix)
 	$(CC) \
 		-fPIC -shared \
 		-Wall -Wextra \
@@ -133,12 +135,12 @@ $(TARGET_LOADABLE): sqlite-vec.c sqlite-vec.h $(wildcard sqlite-vec-*.c) $(prefi
 		$(CFLAGS) \
 		$< $(LOADABLE_LIBS) -o $@
 
-$(TARGET_STATIC): sqlite-vec.c sqlite-vec.h $(prefix) $(OBJS_DIR)
+$(TARGET_STATIC): $(VEC_SOURCES) sqlite-vec.h | $(prefix) $(OBJS_DIR)
 	$(CC) -Ivendor/ -O3 $(CFLAGS) -DSQLITE_CORE -DSQLITE_VEC_STATIC \
 	-c  $< -o $(OBJS_DIR)/vec.o
 	$(AR) rcs $@ $(OBJS_DIR)/vec.o
 
-$(TARGET_STATIC_H): sqlite-vec.h $(prefix)
+$(TARGET_STATIC_H): sqlite-vec.h | $(prefix)
 	cp $< $@
 
 
@@ -162,7 +164,7 @@ $(OBJS_DIR)/shell.o: $(BUILD_DIR)/shell-new.c $(OBJS_DIR)
 $(LIBS_DIR)/shell.a: $(OBJS_DIR)/shell.o $(LIBS_DIR)
 	$(AR) rcs $@ $<
 
-$(OBJS_DIR)/sqlite-vec.o: sqlite-vec.c $(OBJS_DIR)
+$(OBJS_DIR)/sqlite-vec.o: $(VEC_SOURCES) sqlite-vec.h | $(OBJS_DIR)
 	$(CC) -c -g3 -O3 -Ivendor/ -I./ $(CFLAGS) $< -o $@
 
 $(LIBS_DIR)/sqlite-vec.a: $(OBJS_DIR)/sqlite-vec.o $(LIBS_DIR)
@@ -199,7 +201,7 @@ TARGET_AMALGAMATION=$(prefix)/sqlite-vec.c
 
 amalgamation: $(TARGET_AMALGAMATION)
 
-$(TARGET_AMALGAMATION): sqlite-vec.c $(wildcard sqlite-vec-*.c) scripts/amalgamate.py $(prefix)
+$(TARGET_AMALGAMATION): $(VEC_SOURCES) scripts/amalgamate.py | $(prefix)
 	python3 scripts/amalgamate.py sqlite-vec.c > $@
 
 FORMAT_FILES=sqlite-vec.h sqlite-vec.c
@@ -241,6 +243,10 @@ test-loadable-watch:
 
 test-unit: sqlite-vec.h $(prefix)
 	$(CC) -DSQLITE_CORE -DSQLITE_VEC_TEST -DSQLITE_VEC_EXPERIMENTAL_IVF_ENABLE=1 tests/test-unit.c vendor/sqlite3.c -I./ -Ivendor $(CFLAGS) $(LINK_LIBS) -o $(prefix)/test-unit && $(prefix)/test-unit
+
+.PHONY: test-packaging
+test-packaging: sqlite-vec.h
+	python3 tests/packaging.py
 
 # Standalone sqlite3 CLI with vec0 compiled in. Useful for benchmarking,
 # profiling (has debug symbols), and scripting without .load_extension.

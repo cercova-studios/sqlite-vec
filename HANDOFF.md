@@ -1,5 +1,24 @@
 # Handoff — read this first
 
+## Current work queue — 2026-11-07
+
+[TODO.md](TODO.md) is the authoritative queue. The user broadened the goal to an
+all-purpose local SQLite datastore for personal projects and agents, including
+retrieval experiments and Beads-like versioned application state. The five
+priorities and Dolt-inspired history/undo/branch/merge/sync track are consolidated
+there, with explicit acceptance gates. The old ANN plan and extensionless TODO
+are archived and are not publication or implementation instructions.
+
+Completed P1 slice: Rust standalone-source staging and native incremental
+dependencies, verified with isolated C consumers, the Rust test and local Cargo
+package verification. [Receipt and replay](benchmarks-ann/experiments/2026-11-07-local-datastore/README.md).
+The Rust test passes with `--features rusqlite/bundled`; the default host-linked test
+compiled but failed with `no such function: vec_version`. External host SQLite
+compatibility remains a separate check. A project-local bundle/manifest is next
+in P1. Agent writes, Session/history, branches,
+merges and synchronization remain planned capabilities. Existing read-only
+JSON/JSONL/MCP contracts stay intact. No push, publishing or CI changes.
+
 ## Adaptive sparse flat-vector reads — completed 2026-11-03
 
 [Benchmark, replay and receipts](benchmarks-ann/experiments/2026-11-03-sparse-flat/README.md).
@@ -1119,7 +1138,7 @@ Merge commits: `f51d608`, `8d22b16`, `c82debd`, `53627db`.
 
 One SQLite extension, two layers. The C core (`sqlite-vec.c`, `sqlite-vec-*.c`) is SQLite-only: `vec0` with flat/rescore/IVF/DiskANN/HNSW indexes, sparse vectors, `vec_rrf` hybrid fusion, and MMR rerank. `lance/` is a Rust crate whose `build.rs` compiles the C core in, producing a single `dist/vec0_lance` that registers everything plus `lance0` (a Lance-backed virtual table) and the Lance storage provider that `vec0` selects with `storage=lance[, storage_uri='...']`. Rust may depend on C, never the reverse. `make hybrid` needs `protoc` (see "How to build & test" for the invocation that actually works here).
 
-Also read: `ARCHITECTURE.md` (the most load-bearing internal doc), `reference.yaml` (the source of truth for what each function does), and `lance/README.md`. Ignore `TODO.md` for pickup purposes — it is the old `ann` branch plan, not the current queue; the queue is below.
+Also read: `ARCHITECTURE.md` (the most load-bearing internal doc), `reference.yaml` (the source of truth for what each function does), and `lance/README.md`. The current queue is in `TODO.md`; the older queue below records the earlier ANN/Lance work.
 
 ## The hard-won invariants (do not break these)
 
@@ -1144,7 +1163,9 @@ Also read: `ARCHITECTURE.md` (the most load-bearing internal doc), `reference.ya
 
 ## Remaining work (promised vs. left-open — be careful which)
 
-Open items fall into two buckets: things the original briefs ordered and haven't been touched, and findings from the recent work that need a decision before code. Do **not** invent new features; the ordered list below is the queue.
+This historical queue records the original briefs and later findings. Use the
+current `TODO.md` for execution order and newly authorized work; do not infer
+implementation approval from an old research finding.
 
 Current status (reconciled 2026-10-26):
 

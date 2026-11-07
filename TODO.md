@@ -1,73 +1,173 @@
-# TODO: `ann` base branch + consolidated benchmarks
+# Local SQLite datastore roadmap
 
-## 1. Create `ann` branch with shared code
+Current work queue, updated 2026-11-07. This supersedes the old ANN branch plan
+and the separate extensionless TODO. [HANDOFF](HANDOFF.md) records completed
+slices and verification; [ARCHITECTURE](ARCHITECTURE.md) describes shipped behavior.
 
-### 1.1 Branch setup
-- [x] `git checkout -B ann origin/main`
-- [x] Cherry-pick `624f998` (vec0_distance_full shared distance dispatch)
-- [x] Cherry-pick stdint.h fix for test header
-- [ ] Pull NEON cosine optimization from ivf-yolo3 into shared code
-  - Currently only in ivf branch but is general-purpose (benefits all distance calcs)
-  - Lives in `distance_cosine_float()` — ~57 lines of ARM NEON vectorized cosine
+Build one reusable SQLite platform for personal projects in `~/sandbox` and
+`~/code`: ordinary application data, agent coordination, search/retrieval and
+optional versioned state. New strategies belong here when they preserve SQLite's
+transaction model and earn their runtime/maintenance cost through measurements.
+A Beads-like application is a proving workload, not the datastore's domain model.
 
-### 1.2 Benchmark infrastructure (`benchmarks-ann/`)
-- [x] Seed data pipeline (`seed/Makefile`, `seed/build_base_db.py`)
-- [x] Ground truth generator (`ground_truth.py`)
-- [x] Results schema (`schema.sql`)
-- [x] Benchmark runner with `INDEX_REGISTRY` extension point (`bench.py`)
-  - Baseline configs (float, int8-rescore, bit-rescore) implemented
-  - Index branches register their types via `INDEX_REGISTRY` dict
-- [x] Makefile with baseline targets
-- [x] README
+## Execution order
 
-### 1.3 Rebase feature branches onto `ann`
-- [x] Rebase `diskann-yolo2` onto `ann` (1 commit: DiskANN implementation)
-- [x] Rebase `ivf-yolo3` onto `ann` (1 commit: IVF implementation)
-- [x] Rebase `annoy-yolo2` onto `ann` (2 commits: Annoy implementation + schema fix)
-- [x] Verify each branch has only its index-specific commits remaining
-- [ ] Force-push all 4 branches to origin
+Start P1, then the P4 write foundation and V1 history. Develop P2/P3 retrieval
+interfaces on that foundation. Exercise P5 throughout. V2/V3 branch/merge work
+follows a reviewed history/identity design; V4 remote sync is a later gate.
+Existing read-only CLI/MCP behavior remains available while opt-in write tools
+are designed and verified. No push, publishing or CI changes are authorized.
 
----
+## P1 — Reliable local consumption (in progress)
 
-## 2. Per-branch: register index type in benchmarks
+- [x] Stage a standalone amalgamation for the Rust binding and regenerate it
+  when an included C feature changes. Verify a consumer outside this checkout.
+- [x] Repair native static/CLI feature dependencies and ship the static header.
+  Reproduce stale-build failures, then verify clean and incremental consumers.
+  [Verification receipt](benchmarks-ann/experiments/2026-11-07-local-datastore/README.md).
+- [ ] Resolve the host-linked Rust registration failure recorded in that receipt;
+  bundled-SQLite tests pass, but external host compatibility is not established.
+- [ ] Provide one project-local bundle/install path for the Rust CLI/MCP binary,
+  matching native library, C amalgamation/header and a build manifest. Record
+  source revision/hashes, SQLite version, platform and feature flags. Keep build
+  profiles separate so an IVF/default switch cannot silently reuse an old binary.
+- [ ] Verify a clean project can install, inspect capabilities, write/read its
+  SQLite data, back up, restore and reopen without requiring this source tree.
+  Pin this fork explicitly; upstream registry packages do not contain local work.
 
-Each index branch should add to `benchmarks-ann/` when rebased onto `ann`:
+## P2 — Plain-text semantic and hybrid search
 
-### 2.1 Register in `bench.py`
+- [ ] Accept natural-language queries through a host-configured embedding path;
+  agents should not have to construct float arrays. Preserve explicit-vector
+  and embedding-reference calls, JSON/JSONL envelopes and read-only controls.
+- [ ] Record model/revision, dimensions, metric, normalization and chunking
+  identity for ingestion and queries. Reject incompatible embedding spaces;
+  changing models must not silently mix indexes.
+- [ ] Keep model execution outside the SQLite-only C core. Start with one
+  supported local path and verify missing-model, cancellation and retry behavior.
+- [ ] Measure end-to-end relevance and latency against current lexical/dense/RRF
+  baselines, including empty results, scope and provenance.
 
-Add an `INDEX_REGISTRY` entry. Each entry provides:
-- `defaults` — default param values
-- `create_table_sql(params)` — CREATE VIRTUAL TABLE with INDEXED BY clause
-- `insert_sql(params)` — custom insert SQL, or None for default
-- `post_insert_hook(conn, params)` — training/building step, returns time
-- `run_query(conn, params, query, k)` — custom query, or None for default MATCH
-- `describe(params)` — one-line description for report output
+## P3 — Expose existing search strategies
 
-### 2.2 Add configs to `Makefile`
+- [ ] Support trusted exact/HNSW/IVF/rescore configurations through the adapter;
+  it currently admits only canonical flat/L2 tables and performs exact scans.
+- [ ] Replace fixture-scale admission limits only after target-workload tests
+  establish suitable work, memory and latency limits. Do not simply remove caps.
+- [ ] Preserve eligibility before candidate limits, score units, missing values,
+  approximation/completeness declarations, bounded output and stable failures.
+- [ ] Profile shared HNSW metadata eligibility before changing graph traversal;
+  preserve the single rowid-IN boundary and rollback-aware caches.
+- [ ] Benchmark candidate budgets, exact reranking and selectivity-aware search
+  against held-out queries and multiple insertion orders before adopting defaults.
 
-Append index-specific config variables and targets. Example pattern:
+## P4 — Ingestion and safe agent writes
 
-```makefile
-DISKANN_CONFIGS = \
-    "diskann-R48-binary:type=diskann,R=48,L=128,quantizer=binary" \
-    ...
+- [ ] Design a reusable write boundary over ordinary relational tables, with
+  validation, stable IDs, revision checks, idempotency keys and atomic batches.
+  Keep schema-specific workflows in applications, not a mandatory generic JSON store.
+- [ ] Add explicit opt-in write access beside the existing read-only adapter;
+  preserve read-only callers, JSON contracts and host-controlled project scope.
+- [ ] Keep source records, embeddings, FTS and vector indexes synchronized in
+  transactions. Compute expensive embeddings outside write-lock critical sections.
+- [ ] Prove atomic claim/update and stale-revision rejection with concurrent
+  agents; test failed statements, savepoints, full rollback, cancellation and
+  retried requests. SQLite's per-database single-writer constraint still applies.
+- [ ] Define schema versions and test backup/restore and crash recovery before
+  using these writes on important project data. Existing-data migrations require
+  a concrete migration/rollback review; initial implementations use fresh fixtures.
 
-ALL_CONFIGS += $(DISKANN_CONFIGS)
+## P5 — Reusable proving workloads
 
-bench-diskann: seed
-    $(BENCH) --subset-size 10000 -k 10 -o runs/diskann $(BASELINES) $(DISKANN_CONFIGS)
-    ...
-```
+- [ ] Integrate one real project and a small Beads-like task/dependency workflow:
+  create records, find ready work, race two claims, update, search and fetch evidence.
+- [ ] Freeze corpus/query revisions and compare relevance, ANN recall, p50/p95
+  latency, memory, build/update cost and agent task success. Distinguish exact
+  reported distances from candidate recall and semantic relevance.
+- [ ] Exercise warm/cold reads, skewed/correlated filters, insert/delete churn,
+  concurrent readers/writers, interruption and rollback; preserve counterexamples.
+- [ ] Compare strategies against one SQLite exact oracle. Other engines remain
+  optional isolated benchmark references, not application runtime requirements.
+- [ ] Retain executable experiments, outcomes and negative results in the
+  development archive; keep user-facing docs about current supported behavior.
 
-### 2.3 Migrate existing benchmark results/docs
+## Dolt-inspired versioning track
 
-- Move useful results docs (RESULTS.md, etc.) into `benchmarks-ann/results/`
-- Delete redundant per-branch benchmark directories once consolidated infra is proven
+### V1 — History, attribution and selective undo
 
----
+- [ ] Write the versioned-table contract: opt-in ordinary tables with stable
+  primary keys, revision identity, actor/request metadata and transaction boundaries.
+- [ ] Evaluate SQLite Session/changesets against an explicit change log using
+  measured capture, undo and recovery cases. Session needs host-build support;
+  it does not capture virtual tables and is not a complete version-control engine.
+- [ ] Keep canonical versioned data in ordinary tables. Treat FTS/ANN structures
+  as derived, tied to a data/model revision; never merge index shadow-table blobs.
+- [ ] Implement selective undo as a new validated change. Reject conflicts with
+  intervening writes rather than overwriting another agent's work.
+- [ ] Verify attribution and history are atomic with application writes, including
+  crash/retry boundaries and all managed writer connections.
 
-## 3. Future improvements
+### V2 — Isolated workspaces and historical reads
 
-- [ ] Reporting script (`report.py`) — query results.db, produce markdown comparison tables
-- [ ] Profiling targets in Makefile (lift from ivf-yolo3's Instruments/perf wrappers)
-- [ ] Pre-computed ground truth integration (use GT DB files instead of on-the-fly brute-force)
+- [ ] Design commit ancestry, branch heads, schema-version identity and isolated
+  working states while retaining SQLite as the storage engine.
+- [ ] Start with correct snapshots/changesets and measure copying, replay and
+  storage costs. Efficient structural sharing is a distinct optimization target,
+  not something file copies provide for free.
+- [ ] Ensure checkout/historical queries use matching derived indexes or an
+  explicitly correct fallback. Stale indexes must never silently serve another revision.
+
+### V3 — Three-way merge and explicit conflicts
+
+- [ ] Compare base/ours/theirs by stable row/field identity. Specify updates,
+  deletes, unique/FK constraints, schema changes and missing common ancestors.
+- [ ] Return structured conflicts and apply resolutions transactionally. Validate
+  application invariants such as exclusive task claims and acyclic dependencies;
+  merging disjoint cells alone does not establish semantic correctness.
+- [ ] Use independent merge oracles, convergence/idempotency cases, adversarial
+  branch histories, interrupted merges and rollback/recovery checks.
+
+### V4 — Optional cross-machine synchronization
+
+- [ ] Define revision/changeset exchange, deduplication, compatibility and conflict
+  rules only after local versioning works. Changeset capture alone is not sync.
+- [ ] Review transport/authentication separately before enabling networking.
+  No hidden daemon, remote service or new engine is required for local workflows.
+
+## Research candidates — evaluate before implementation
+
+- [ ] ACORN-style filtered traversal after shared metadata profiling identifies
+  residual graph-search cost; evaluate correlated predicates at matched recall.
+- [ ] Audit the existing experimental RaBitQ/int4/FP16/BF16 implementations;
+  compare extended/multi-bit RaBitQ with reference implementations and exact reranking.
+- [ ] Study packed SIMD scoring/Faiss FastScan where IVF scans dominate. PQ4 and
+  scalar int4 are different formats; do not assume interchangeable kernels.
+- [ ] Evaluate chunking, hybrid weighting/budgets, graph expansion and optional
+  host-side query–passage reranking on real project tasks. TurboQuant remains a
+  research comparison, not a promised speedup or a requirement for local use.
+- [ ] Study incremental graph repair under insert/delete churn if quality decays;
+  keep alpha=1.0 unless a separate recall/QPS decision changes it.
+
+Primary references: [SQLite Session](https://www.sqlite.org/sessionintro.html),
+[SQLite isolation](https://www.sqlite.org/isolation.html),
+[Dolt commit graph](https://www.dolthub.com/docs/architecture/storage-engine/commit-graph/),
+[Dolt Prolly Trees](https://www.dolthub.com/docs/architecture/storage-engine/prolly-tree/),
+[Beads' Dolt rationale](https://github.com/gastownhall/beads/blob/main/docs/architecture/dolt.md),
+[ACORN](https://arxiv.org/abs/2403.04871),
+[extended RaBitQ](https://arxiv.org/abs/2409.09913),
+[Faiss FastScan](https://github.com/facebookresearch/faiss/wiki/Fast-accumulation-of-PQ-and-AQ-codes-%28FastScan%29).
+These are design leads; they do not establish capabilities of this fork.
+
+## Untriaged low-level backlog
+
+Preserve these candidates from the old `TODO` until current-code inspection
+confirms whether each is still needed: partition updates/IN filters; NULL metadata;
+BLOB/date/datetime support; UUID/ULID performance; NOT NULL constraints for
+auxiliary/metadata/partition columns; dictionary encoding; vtab no-change handling;
+auxiliary INSERT caching and batched auxiliary reads. They are not approved work
+or production defects merely because the historical list mentioned them.
+
+The [old ANN plan](benchmarks-ann/experiments/2026-11-07-local-datastore/legacy-ann-todo.md)
+and [old core notes](benchmarks-ann/experiments/2026-11-07-local-datastore/legacy-core-todo.md)
+are preserved as history, including unresolved historical checkboxes. They are
+not instructions to publish, force-push, revive Annoy or change current defaults.

@@ -1,3 +1,10 @@
+# Historical backlog — superseded 2026-11-07
+
+Preserved verbatim below for provenance. This is not the active work queue;
+use the repository-root TODO.md. Historical publication/force-push tasks are not authorized.
+
+---
+
 - [ ] add `xyz_info` shadow table with version etc.
 
 - later

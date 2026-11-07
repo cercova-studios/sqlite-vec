@@ -22,6 +22,15 @@ amalgamation and experimental IVF enabled. `tests/test-unit.c` includes the C
 core directly, so tests use the production internal types and definitions.
 The harness rejects `NDEBUG` builds to prevent silently disabling assertions.
 
+Native loadable/static/amalgamation builds track every included `sqlite-vec-*.c`
+feature file. `make static` stages `dist/sqlite-vec.h` beside the archive. Build
+directories are order-only prerequisites, so directory timestamps do not force
+recompilation. The Rust binding's `make -C bindings/rust deps` generates a
+standalone amalgamation instead of copying the modular development source;
+Cargo watches that generated C file and its staged headers.
+`make test-packaging` exercises isolated static and Rust-staged C consumers and
+included-feature invalidation, without modifying the checkout's generated files.
+
 `lance0` follows the same transaction rules as the vec0 index caches: rollback
 and `xRollbackTo` undo pending state, and SQLite's shadow table
 `<name>_lance` records which Lance version is committed (see `lance/README.md`).
