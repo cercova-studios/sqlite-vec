@@ -27,7 +27,7 @@ The Rust binding was staged in the same isolated tree with its `build.rs`,
 `src/lib.rs` and existing `Cargo.lock`. Public dependencies were fetched without
 changing version requirements. The host-linked test compiled but failed with
 `no such function: vec_version`; the reason for that host's registration behavior
-was not established and remains an open P1 compatibility check. The test now
+was not established in that slice (resolved below). The test then
 checks the registration result, version, HNSW result and bounded graph witness.
 The original host-linked default and dependency requirements remain unchanged;
 the separate packaging check selects `--features rusqlite/bundled` explicitly.
@@ -82,3 +82,33 @@ suites and build-flag switching were not verified in this slice. No push,
 publication or CI change. P1's project-local bundle, build manifest and clean-project
 backup/restore journey remain open. History, undo, branches, merge and sync are
 planned work, not capabilities established by this packaging check.
+
+## Host-linked registration resolved
+
+The original failure reproduced with the strengthened assertion: registration
+returned 21 (`SQLITE_MISUSE`), not 0. A standalone C callback probe confirmed the
+same behavior without Rust or sqlite-vec. Apple's system SQLite 3.54.0 reports
+`OMIT_LOAD_EXTENSION`, rejects `sqlite3_auto_extension`, and never calls the callback.
+The installed SDK's `sqlite3.h:7626` explicitly marks process-global auto extensions
+unsupported on Apple platforms. Homebrew SQLite 3.54.1 returns 0 and calls it.
+`otool -L` confirms that the original Rust test links `/usr/lib/libsqlite3.dylib`.
+
+The binding now declares the C initializer's actual signature. Registration on an
+open connection works with the Apple host without enabling dynamic loading. Tests
+exercise version, HNSW and graph evidence after direct registration, then check
+global registration separately: expected Apple rejection or successful automatic
+registration on supporting hosts. The example uses direct registration and a path
+dependency on this fork.
+
+Two tests pass in each configuration in an isolated source tree:
+
+```sh
+cargo test --offline --manifest-path bindings/rust/Cargo.toml
+cargo test --offline --features rusqlite/bundled --manifest-path bindings/rust/Cargo.toml
+SQLITE3_LIB_DIR=/opt/zerobrew/opt/sqlite/lib \
+SQLITE3_INCLUDE_DIR=/opt/zerobrew/opt/sqlite/include \
+  cargo test --offline --manifest-path bindings/rust/Cargo.toml
+```
+
+These Homebrew paths describe this workstation, not portable defaults. The C probe
+and SDK evidence explain the host failure; bundling SQLite is not used to hide it.

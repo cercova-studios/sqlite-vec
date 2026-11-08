@@ -25,8 +25,8 @@ are designed and verified. No push, publishing or CI changes are authorized.
 - [x] Repair native static/CLI feature dependencies and ship the static header.
   Reproduce stale-build failures, then verify clean and incremental consumers.
   [Verification receipt](benchmarks-ann/experiments/2026-11-07-local-datastore/README.md).
-- [ ] Resolve the host-linked Rust registration failure recorded in that receipt;
-  bundled-SQLite tests pass, but external host compatibility is not established.
+- [x] Resolve the host-linked Rust registration failure with per-connection
+  registration; verify Apple, Homebrew and bundled SQLite independently.
 - [ ] Provide one project-local bundle/install path for the Rust CLI/MCP binary,
   matching native library, C amalgamation/header and a build manifest. Record
   source revision/hashes, SQLite version, platform and feature flags. Keep build

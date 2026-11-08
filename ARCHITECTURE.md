@@ -31,6 +31,13 @@ Cargo watches that generated C file and its staged headers.
 `make test-packaging` exercises isolated static and Rust-staged C consumers and
 included-feature invalidation, without modifying the checkout's generated files.
 
+The Rust binding exposes the C initializer with its three pointer arguments and
+SQLite result code. Callers can register on each live connection from their linked
+SQLite runtime. Apple system SQLite rejects process-global `sqlite3_auto_extension`;
+per-connection registration works without dynamic extension loading. Tests retain
+auto-extension registration on hosts that support it. See
+[Rust registration](bindings/rust/README.md).
+
 `lance0` follows the same transaction rules as the vec0 index caches: rollback
 and `xRollbackTo` undo pending state, and SQLite's shadow table
 `<name>_lance` records which Lance version is committed (see `lance/README.md`).

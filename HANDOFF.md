@@ -12,9 +12,10 @@ are archived and are not publication or implementation instructions.
 Completed P1 slice: Rust standalone-source staging and native incremental
 dependencies, verified with isolated C consumers, the Rust test and local Cargo
 package verification. [Receipt and replay](benchmarks-ann/experiments/2026-11-07-local-datastore/README.md).
-The Rust test passes with `--features rusqlite/bundled`; the default host-linked test
-compiled but failed with `no such function: vec_version`. External host SQLite
-compatibility remains a separate check. A project-local bundle/manifest is next
+The host-linked Rust failure is resolved: Apple's SQLite rejects global
+auto-extension registration (`SQLITE_MISUSE`), so the binding/example now expose
+per-connection registration. Two tests pass on Apple, Homebrew and bundled SQLite;
+global registration remains tested on supporting hosts. A project-local bundle/manifest is next
 in P1. Agent writes, Session/history, branches,
 merges and synchronization remain planned capabilities. Existing read-only
 JSON/JSONL/MCP contracts stay intact. No push, publishing or CI changes.

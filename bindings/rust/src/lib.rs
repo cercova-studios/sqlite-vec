@@ -1,6 +1,14 @@
+use std::ffi::{c_char, c_int, c_void};
+
 #[link(name = "sqlite_vec0")]
 extern "C" {
-    pub fn sqlite3_vec_init();
+    /// Register on a live connection from the same SQLite library linked to this crate.
+    /// Pass null for `pz_err_msg` and `p_api` when registering statically.
+    pub fn sqlite3_vec_init(
+        db: *mut c_void,
+        pz_err_msg: *mut *mut c_char,
+        p_api: *const c_void,
+    ) -> c_int;
 }
 
 #[cfg(test)]
@@ -10,15 +18,14 @@ mod tests {
     use rusqlite::{ffi::sqlite3_auto_extension, Connection};
 
     #[test]
-    fn test_rusqlite_auto_extension() {
+    fn test_rusqlite_registration() {
+        let conn = Connection::open_in_memory().unwrap();
         unsafe {
             assert_eq!(
-                sqlite3_auto_extension(Some(std::mem::transmute(sqlite3_vec_init as *const ()))),
+                sqlite3_vec_init(conn.handle().cast(), std::ptr::null_mut(), std::ptr::null()),
                 rusqlite::ffi::SQLITE_OK
             );
         }
-
-        let conn = Connection::open_in_memory().unwrap();
 
         let result: String = conn
             .query_row("select vec_version()", [], |x| x.get(0))
@@ -48,5 +55,31 @@ mod tests {
             )
             .unwrap();
         assert_eq!(witness, "[[1,null],[2,7]]");
+    }
+
+    #[test]
+    fn test_rusqlite_auto_extension() {
+        let rc = unsafe {
+            sqlite3_auto_extension(Some(std::mem::transmute(sqlite3_vec_init as *const ())))
+        };
+        // Apple's SQLite rejects process-global registration; per-connection works above.
+        if rc == rusqlite::ffi::SQLITE_MISUSE {
+            assert!(cfg!(target_vendor = "apple"));
+            assert_ne!(
+                unsafe {
+                    rusqlite::ffi::sqlite3_compileoption_used(
+                        b"OMIT_LOAD_EXTENSION\0".as_ptr().cast(),
+                    )
+                },
+                0
+            );
+        } else {
+            assert_eq!(rc, rusqlite::ffi::SQLITE_OK);
+            let conn = Connection::open_in_memory().unwrap();
+            let version: String = conn
+                .query_row("SELECT vec_version()", [], |row| row.get(0))
+                .unwrap();
+            assert!(version.starts_with('v'));
+        }
     }
 }

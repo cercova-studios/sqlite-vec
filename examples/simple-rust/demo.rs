@@ -1,13 +1,17 @@
-use rusqlite::{ffi::sqlite3_auto_extension, Connection, Result};
+use rusqlite::{Connection, Result};
 use sqlite_vec::sqlite3_vec_init;
 use zerocopy::AsBytes;
 
 fn main() -> Result<()> {
-    unsafe {
-        sqlite3_auto_extension(Some(std::mem::transmute(sqlite3_vec_init as *const ())));
-    }
-
     let db = Connection::open_in_memory()?;
+    let rc =
+        unsafe { sqlite3_vec_init(db.handle().cast(), std::ptr::null_mut(), std::ptr::null()) };
+    if rc != rusqlite::ffi::SQLITE_OK {
+        return Err(rusqlite::Error::SqliteFailure(
+            rusqlite::ffi::Error::new(rc),
+            None,
+        ));
+    }
     let v: Vec<f32> = vec![0.1, 0.2, 0.3];
 
     let (sqlite_version, vec_version, x): (String, String, String) = db.query_row(
