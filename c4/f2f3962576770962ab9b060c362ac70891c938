@@ -1,0 +1,37 @@
+benchmarks-ann/experiments/2026-11-07-write-history/rust-review.md
+  s_70b027a60d4a55::t_5d2d263e21933b 1-157
+benchmarks-ann/experiments/2026-11-07-write-history/lance-review.json
+  s_528e6b3f95df22::t_ac2c6700368244 1-65
+benchmarks-ann/experiments/2026-11-07-write-history/rust-review-scope.json
+  s_528e6b3f95df22::t_ac2c6700368244 1-142
+benchmarks-ann/experiments/2026-11-07-write-history/review_lance.py
+  s_70b027a60d4a55::t_12fabf9eae4826 1-136
+HANDOFF.md
+  s_70b027a60d4a55::t_57527f209923fe 47-58
+TODO.md
+  s_70b027a60d4a55::t_57527f209923fe 24-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c4f2f3962576770962ab9b060c362ac70891c938",
+  "prompts": {},
+  "sessions": {
+    "s_528e6b3f95df22": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
