@@ -1,0 +1,43 @@
+benchmarks-ann/experiments/2026-11-07-write-history/run.py
+  s_70b027a60d4a55::t_6d06bb2620cace 1-88,90-99
+  s_70b027a60d4a55::t_79811a30d5d203 89
+HANDOFF.md
+  s_70b027a60d4a55::t_38d26d65743f6b 30-39
+benchmarks-ann/experiments/2026-11-07-write-history/history.c
+  s_70b027a60d4a55::t_205a820e7c02ea 1-80,82-88,90-139
+  s_70b027a60d4a55::t_79811a30d5d203 81,89
+TODO.md
+  s_70b027a60d4a55::t_38d26d65743f6b 15-16,69,72-75,105,107,110-112
+benchmarks-ann/experiments/2026-11-07-write-history/results.json
+  s_528e6b3f95df22::t_da859e7cee2161 1,3-23,26-59,61-71,73-83,85-95,97-107,109-119,121-131,133-143,145-155,157-167,169-179,181-191,193-203,205-215,217-227,229-239,241-251,253-263,265-274,276-283,285-292,294-301,303-310,312-319,321-327
+  s_70b027a60d4a55::t_6cd9325dceb652 2,24-25,60,72,84,96,108,120,132,144,156,168,180,192,204,216,228,240,252,264,275,284,293,302,311,320
+benchmarks-ann/experiments/2026-11-07-write-history/README.md
+  s_70b027a60d4a55::t_d969181ec93d2d 1-33,36-37,41-88
+  s_70b027a60d4a55::t_9390f7a0869ade 34-35,38-40
+benchmarks-ann/experiments/2026-11-07-write-history/write-contract.md
+  s_70b027a60d4a55::t_d969181ec93d2d 1-174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b68d66f17cbbc52cc9168c03ff4ecfeea917bde1",
+  "prompts": {},
+  "sessions": {
+    "s_528e6b3f95df22": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
