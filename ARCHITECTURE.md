@@ -132,11 +132,23 @@ provide hard native memory or work budgets for BFS. The typed `witness` operatio
 task fixtures. `Writer` owns one write connection; it does not share or weaken the
 read-only adapter connection. `BEGIN IMMEDIATE` serializes revision checks, task
 mutations, monotonic sidecar versions/tombstones, Session capture, changed-row
-indexes and immutable retry receipts. Undo inverts canonical task values only and
+indexes and immutable retry receipts. Undo inverts canonical ordinary values only and
 allocates a new revision. Uncertain commit/rollback outcomes discard the connection.
 Its schema marker/version checks reject unsupported fixtures; they are not an audit
 security boundary. Byte/row limits bound admitted data and capture output, not SQLite
-RSS. The library has no transport routes or derived retrieval-index writes.
+RSS. The library has no transport routes.
+
+Fresh schema-version-2 indexed fixtures opt into host-selected model identity and
+dimensions through unsafe constructors that load a trusted ABI-compatible vec0
+library. Prepared embeddings are computed outside the transaction. Canonical
+`source_vectors` records little-endian float32 values/model IDs beside task text;
+Session captures these two ordinary tables only. FTS5 `lexical`, exact L2 vec0
+`vectors` and `index_state` are rebuilt per source change in the same transaction,
+including selective undo. Logical derived rows are validated before managed writes
+and source reads. Source epochs advance on content/vector/liveness changes, while
+claim/undo-claim changes only task revision and never rewrites indexes. Derived
+state has no foreign key into transient Session application; canonical foreign keys
+remain checked. There is no existing-data migration or model runner.
 
 The prototype pins rusqlite 0.40.2 because the adapter's 0.41 Session feature currently
 cannot resolve bindgen 0.73. The adapter's dependencies and default tools remain

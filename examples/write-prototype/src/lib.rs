@@ -15,6 +15,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod retrieval;
+pub use retrieval::{Model, PreparedEmbedding, Source};
+
 const ROW_BYTES: usize = 8192;
 const ROW_TOTAL: usize = 131072;
 const CAPTURE_BYTES: usize = 262144;
@@ -22,10 +25,11 @@ const INPUT_BYTES: usize = 65536;
 const OUTPUT_BYTES: usize = 262144;
 const SCHEMA: &str = "
 PRAGMA application_id=1448563249;
-PRAGMA user_version=1;
-CREATE TABLE meta(id INTEGER PRIMARY KEY CHECK(id=1),project TEXT NOT NULL,sequence INTEGER NOT NULL,schema_version INTEGER NOT NULL);
+PRAGMA user_version=2;
+CREATE TABLE meta(id INTEGER PRIMARY KEY CHECK(id=1),project TEXT NOT NULL,sequence INTEGER NOT NULL,schema_version INTEGER NOT NULL,model TEXT,dimensions INTEGER);
 CREATE TABLE tasks(id INTEGER PRIMARY KEY,title TEXT NOT NULL,owner TEXT,payload BLOB);
-CREATE TABLE versions(id INTEGER PRIMARY KEY,revision INTEGER NOT NULL CHECK(revision>0) REFERENCES requests(revision) DEFERRABLE INITIALLY DEFERRED,live INTEGER NOT NULL CHECK(live IN (0,1)));
+CREATE TABLE source_vectors(id INTEGER PRIMARY KEY REFERENCES tasks(id) DEFERRABLE INITIALLY DEFERRED,model TEXT NOT NULL,vector BLOB NOT NULL);
+CREATE TABLE versions(id INTEGER PRIMARY KEY,revision INTEGER NOT NULL CHECK(revision>0) REFERENCES requests(revision) DEFERRABLE INITIALLY DEFERRED,live INTEGER NOT NULL CHECK(live IN (0,1)),source_revision INTEGER NOT NULL CHECK(source_revision>0));
 CREATE TABLE requests(id TEXT PRIMARY KEY NOT NULL,actor TEXT NOT NULL,command BLOB NOT NULL,
  revision INTEGER NOT NULL UNIQUE,receipt TEXT NOT NULL,capture BLOB NOT NULL,undo_of TEXT REFERENCES requests(id));
 CREATE TABLE changes(request TEXT NOT NULL REFERENCES requests(id),id INTEGER NOT NULL,
@@ -71,6 +75,19 @@ pub enum Mutation {
         title: String,
         payload: Option<Vec<u8>>,
     },
+    CreateSource {
+        id: i64,
+        title: String,
+        payload: Option<Vec<u8>>,
+        embedding: PreparedEmbedding,
+    },
+    UpdateSource {
+        id: i64,
+        expected: i64,
+        expected_source: i64,
+        title: String,
+        embedding: PreparedEmbedding,
+    },
     Claim {
         id: i64,
         expected: i64,
@@ -83,7 +100,11 @@ pub enum Mutation {
 impl Mutation {
     fn id(&self) -> i64 {
         match self {
-            Self::Create { id, .. } | Self::Claim { id, .. } | Self::Delete { id, .. } => *id,
+            Self::Create { id, .. }
+            | Self::CreateSource { id, .. }
+            | Self::UpdateSource { id, .. }
+            | Self::Claim { id, .. }
+            | Self::Delete { id, .. } => *id,
         }
     }
 }
@@ -159,6 +180,8 @@ impl Write for Limited {
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Stage {
     Mutated,
+    Fts,
+    Vector,
     Captured,
     Ledger,
     BeforeCommit,
@@ -172,6 +195,7 @@ pub struct Writer {
     db: Option<Connection>,
     project: String,
     actor: String,
+    model: Option<Model>,
     #[cfg(test)]
     hook: Option<Hook>,
     #[cfg(test)]
@@ -193,34 +217,106 @@ fn cancelled(flag: &AtomicBool) -> Result<()> {
 impl Writer {
     /// Creates a new file exclusively. A failed setup is never treated as a ready fixture.
     pub fn create(path: &Path, project: &str, actor: &str) -> Result<Self> {
+        // SAFETY: no native extension is loaded by the task-only constructor.
+        unsafe { Self::create_configured(path, project, actor, None) }
+    }
+    /// Creates an indexed fresh fixture with a fixed model/preprocessing revision identity.
+    /// # Safety
+    /// `extension` must contain trusted native code compatible with this SQLite host's ABI.
+    pub unsafe fn create_indexed(
+        path: &Path,
+        project: &str,
+        actor: &str,
+        extension: &Path,
+        model: &Model,
+    ) -> Result<Self> {
+        // SAFETY: the caller supplies the trusted ABI-compatible extension required above.
+        unsafe { Self::create_configured(path, project, actor, Some((extension, model))) }
+    }
+    unsafe fn create_configured(
+        path: &Path,
+        project: &str,
+        actor: &str,
+        indexed: Option<(&Path, &Model)>,
+    ) -> Result<Self> {
         identity(project)?;
         identity(actor)?;
+        if let Some((_, model)) = indexed {
+            model.validate()?;
+        }
         drop(OpenOptions::new().write(true).create_new(true).open(path)?);
         let mut db = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
         db.execute_batch(
             "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;",
         )?;
+        if let Some((extension, _)) = indexed {
+            // SAFETY: this private constructor inherits the indexed caller's extension contract.
+            unsafe {
+                retrieval::load(&db, extension)?;
+            }
+        }
         let tx = db.transaction_with_behavior(TransactionBehavior::Immediate)?;
         tx.execute_batch(SCHEMA)?;
+        if let Some((_, model)) = indexed {
+            retrieval::initialize(&tx, model)?;
+        }
         let version: i64 = tx.query_row("PRAGMA schema_version", [], |r| r.get(0))?;
         tx.execute(
-            "INSERT INTO meta VALUES(1,?,0,?)",
-            params![project, version],
+            "INSERT INTO meta VALUES(1,?,0,?,?,?)",
+            params![
+                project,
+                version,
+                indexed.map(|(_, m)| &m.id),
+                indexed.map(|(_, m)| m.dimensions as i64)
+            ],
         )?;
         tx.commit()?;
         drop(db);
-        Self::open(path, project, actor)
+        // SAFETY: the same trusted extension contract applies when reopening the new fixture.
+        unsafe { Self::open_configured(path, project, actor, indexed) }
     }
     pub fn open(path: &Path, project: &str, actor: &str) -> Result<Self> {
+        // SAFETY: task-only opening does not load an extension.
+        unsafe { Self::open_configured(path, project, actor, None) }
+    }
+    /// Opens only a matching indexed fixture; it never adopts or migrates a database.
+    /// # Safety
+    /// `extension` must contain trusted native code compatible with this SQLite host's ABI.
+    pub unsafe fn open_indexed(
+        path: &Path,
+        project: &str,
+        actor: &str,
+        extension: &Path,
+        model: &Model,
+    ) -> Result<Self> {
+        // SAFETY: inherited from this method's caller contract.
+        unsafe { Self::open_configured(path, project, actor, Some((extension, model))) }
+    }
+    unsafe fn open_configured(
+        path: &Path,
+        project: &str,
+        actor: &str,
+        indexed: Option<(&Path, &Model)>,
+    ) -> Result<Self> {
         identity(project)?;
         identity(actor)?;
+        if let Some((_, model)) = indexed {
+            model.validate()?;
+        }
         let db = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
         db.busy_timeout(Duration::ZERO)?;
         db.execute_batch("PRAGMA foreign_keys=ON; PRAGMA synchronous=FULL;")?;
+        if let Some((extension, _)) = indexed {
+            // SAFETY: inherited from this private function's indexed caller contract.
+            unsafe {
+                retrieval::load(&db, extension)?;
+            }
+        }
         let writer = Self {
             db: Some(db),
             project: project.into(),
             actor: actor.into(),
+            model: indexed.map(|(_, model)| model.clone()),
             #[cfg(test)]
             hook: None,
             #[cfg(test)]
@@ -236,7 +332,7 @@ impl Writer {
         let application: i64 = db.query_row("PRAGMA application_id", [], |r| r.get(0))?;
         let version: i64 = db.query_row("PRAGMA schema_version", [], |r| r.get(0))?;
         let user: i64 = db.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-        if application != 1448563249 || user != 1 {
+        if application != 1448563249 || user != 2 {
             return Err(Error::Schema);
         }
         let valid: bool = db.query_row(
@@ -245,6 +341,18 @@ impl Writer {
             |r| r.get(0),
         )?;
         if !valid {
+            return Err(Error::Schema);
+        }
+        let model: (Option<String>, Option<i64>) =
+            db.query_row("SELECT model,dimensions FROM meta WHERE id=1", [], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })?;
+        if model
+            != (
+                self.model.as_ref().map(|m| m.id.clone()),
+                self.model.as_ref().map(|m| m.dimensions as i64),
+            )
+        {
             return Err(Error::Schema);
         }
         Ok(())
@@ -279,12 +387,29 @@ impl Writer {
     }
     fn row_bytes(db: &Connection, ids: &[i64]) -> Result<()> {
         let mut total = 0usize;
+        let dimensions: Option<i64> =
+            db.query_row("SELECT dimensions FROM meta WHERE id=1", [], |r| r.get(0))?;
         for id in ids {
             let bytes: i64=db.query_row("SELECT coalesce((SELECT length(CAST(title AS BLOB))+coalesce(length(CAST(owner AS BLOB)),0)+coalesce(length(payload),0) FROM tasks WHERE id=?),0)",[id],|r|r.get(0))?;
             let size = usize::try_from(bytes).map_err(|_| Error::Limit)?;
             total = total.checked_add(size).ok_or(Error::Limit)?;
             if size > ROW_BYTES || total > ROW_TOTAL {
                 return Err(Error::Limit);
+            }
+            let extra: Option<(i64,i64)>=db.query_row("SELECT length(CAST(model AS BLOB)),length(vector) FROM source_vectors WHERE id=?",[id],|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
+            if let Some((model, vector)) = extra {
+                if !(1..=128).contains(&model) || !(4..=16384).contains(&vector) {
+                    return Err(Error::Limit);
+                }
+                if dimensions.and_then(|d| d.checked_mul(4)) != Some(vector) {
+                    return Err(Error::Schema);
+                }
+                total = total
+                    .checked_add((model + vector) as usize)
+                    .ok_or(Error::Limit)?;
+                if total > ROW_TOTAL {
+                    return Err(Error::Limit);
+                }
             }
         }
         Ok(())
@@ -327,16 +452,37 @@ impl Writer {
                 }
                 match op {
                     Mutation::Create { title, payload, .. }
+                    | Mutation::CreateSource { title, payload, .. }
                         if title.len() + payload.as_ref().map_or(0, Vec::len) > ROW_BYTES =>
                     {
                         return Err(Error::Limit);
                     }
-                    Mutation::Claim { expected, .. } | Mutation::Delete { expected, .. }
+                    Mutation::Claim { expected, .. }
+                    | Mutation::Delete { expected, .. }
+                    | Mutation::UpdateSource { expected, .. }
                         if *expected <= 0 =>
                     {
                         return Err(Error::Invalid);
                     }
                     _ => {}
+                }
+                match op {
+                    Mutation::Create { .. } if self.model.is_some() => return Err(Error::Invalid),
+                    Mutation::CreateSource {
+                        title, embedding, ..
+                    }
+                    | Mutation::UpdateSource {
+                        title, embedding, ..
+                    } => {
+                        if title.len() > ROW_BYTES {
+                            return Err(Error::Limit);
+                        }
+                        embedding.validate(title, self.model.as_ref())?;
+                    }
+                    _ => {}
+                }
+                if matches!(op,Mutation::UpdateSource{expected_source,..} if *expected_source<=0) {
+                    return Err(Error::Invalid);
                 }
             }
         } else if let Command::Undo { request: target } = command {
@@ -407,12 +553,25 @@ impl Writer {
                 for op in ops {
                     let version = Self::revision(tx, op.id())?;
                     let valid = match op {
-                        Mutation::Create { .. } => version.is_none(),
-                        Mutation::Claim { expected, .. } | Mutation::Delete { expected, .. } => {
+                        Mutation::Create { .. } | Mutation::CreateSource { .. } => {
+                            version.is_none()
+                        }
+                        Mutation::Claim { expected, .. }
+                        | Mutation::Delete { expected, .. }
+                        | Mutation::UpdateSource { expected, .. } => {
                             version == Some((*expected, true))
                         }
                     };
                     if !valid {
+                        return Err(Error::Conflict);
+                    }
+                    if let Mutation::UpdateSource {
+                        id,
+                        expected_source,
+                        ..
+                    } = op
+                        && retrieval::source_revision(tx, *id)? != Some(*expected_source)
+                    {
                         return Err(Error::Conflict);
                     }
                     ids.push(op.id());
@@ -454,6 +613,15 @@ impl Writer {
             }
         }
         Self::row_bytes(tx, &ids)?;
+        let before = ids
+            .iter()
+            .map(|id| retrieval::snapshot(tx, *id))
+            .collect::<Result<Vec<_>>>()?;
+        if let Some(model) = &self.model {
+            for (id, value) in ids.iter().zip(&before) {
+                retrieval::validate_derived(tx, *id, value.as_ref(), model)?;
+            }
+        }
         let sequence: i64 =
             tx.query_row("SELECT sequence FROM meta WHERE id=1", [], |r| r.get(0))?;
         let revision = sequence
@@ -462,16 +630,32 @@ impl Writer {
             .ok_or(Error::Limit)?;
         let mut capture = Session::new(tx)?;
         capture.attach(Some("tasks"))?;
+        capture.attach(Some("source_vectors"))?;
         match command {
             Command::Batch(ops) => {
                 for op in ops {
                     cancelled(cancel)?;
                     match op {
-                        Mutation::Create { id, title, payload } => {
+                        Mutation::Create { id, title, payload }
+                        | Mutation::CreateSource {
+                            id, title, payload, ..
+                        } => {
                             tx.execute(
                                 "INSERT INTO tasks VALUES(?,?,NULL,?)",
                                 params![id, title, payload],
                             )?;
+                            if let Mutation::CreateSource { embedding, .. } = op {
+                                embedding.store(tx, *id)?;
+                            }
+                        }
+                        Mutation::UpdateSource {
+                            id,
+                            title,
+                            embedding,
+                            ..
+                        } => {
+                            tx.execute("UPDATE tasks SET title=? WHERE id=?", params![title, id])?;
+                            embedding.store(tx, *id)?;
                         }
                         Mutation::Claim { id, .. } => {
                             if tx.execute(
@@ -483,6 +667,7 @@ impl Writer {
                             }
                         }
                         Mutation::Delete { id, .. } => {
+                            tx.execute("DELETE FROM source_vectors WHERE id=?", [id])?;
                             if tx.execute("DELETE FROM tasks WHERE id=?", [id])? != 1 {
                                 return Err(Error::Conflict);
                             }
@@ -494,13 +679,30 @@ impl Writer {
                 let blob = inverse.as_ref().ok_or(Error::Schema)?;
                 tx.apply_strm(
                     &mut blob.as_slice(),
-                    Some(|name: &str| name == "tasks"),
+                    Some(|name: &str| name == "tasks" || name == "source_vectors"),
                     |_, _| ConflictAction::SQLITE_CHANGESET_ABORT,
                 )?;
             }
         }
         self.checkpoint(Stage::Mutated, tx, cancel)?;
         Self::row_bytes(tx, &ids)?;
+        let mut changed = Vec::new();
+        for (id, before) in ids.into_iter().zip(before) {
+            let after = retrieval::snapshot(tx, id)?;
+            let live = after.is_some();
+            let source_revision = if before != after {
+                revision
+            } else {
+                retrieval::source_revision(tx, id)?.ok_or(Error::Schema)?
+            };
+            tx.execute("INSERT INTO versions VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,live=excluded.live,source_revision=excluded.source_revision",params![id,revision,live,source_revision])?;
+            if before != after
+                && let Some(model) = &self.model
+            {
+                self.sync_derived(tx, id, after.as_ref(), source_revision, model, cancel)?;
+            }
+            changed.push(Changed { id, live });
+        }
         let limit = CAPTURE_BYTES;
         #[cfg(test)]
         let limit = limit.min(self.capture_limit);
@@ -511,15 +713,6 @@ impl Writer {
             return Err(Error::Conflict);
         }
         self.checkpoint(Stage::Captured, tx, cancel)?;
-        let mut changed = Vec::new();
-        for id in ids {
-            let live: bool =
-                tx.query_row("SELECT EXISTS(SELECT 1 FROM tasks WHERE id=?)", [id], |r| {
-                    r.get(0)
-                })?;
-            tx.execute("INSERT INTO versions VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,live=excluded.live",params![id,revision,live])?;
-            changed.push(Changed { id, live });
-        }
         changed.sort_by_key(|r| r.id);
         let receipt = Receipt {
             request: request.into(),
@@ -585,5 +778,7 @@ impl Writer {
     }
 }
 
+#[cfg(test)]
+mod retrieval_tests;
 #[cfg(test)]
 mod tests;

@@ -42,8 +42,15 @@ search adapter, bundle and C core are unchanged. rusqlite 0.41 Session resolutio
 fails on `bindgen ^0.73`; the prototype therefore pins 0.40.2 with its own lockfile.
 This is an explicit integration blocker, not an adapter downgrade or hidden shim.
 Debug/release writer tests, strict Clippy and read-only parity are recorded in the
-prototype receipt. Next: complete-path performance/resource measurements and
-source/FTS/vector synchronization before exposing public writes.
+prototype receipt. The follow-up indexed fixture now commits canonical text/model/
+vector bytes, FTS5 and exact flat-vec0 projections atomically, including delete/undo
+and same-text vector replacement. Claim/undo-claim preserves source epochs and
+performs no index writes. Fresh schema version 2 rejects older fixtures; unsafe
+indexed constructors require a trusted compatible native extension. See
+[synchronization checks](benchmarks-ann/experiments/2026-11-07-write-history/rust-sync.md).
+Public writes remain disabled. The coordinated complete-path baseline and independent
+consumer are recorded separately in the development archive; baseline task-only
+timings do not establish indexed-write performance.
 
 Post-prototype [all-Rust review](benchmarks-ann/experiments/2026-11-07-write-history/rust-review.md)
 covers 20 tracked Rust sources/seven manifests at `8f0af1b`. Five existing Lance

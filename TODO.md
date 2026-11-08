@@ -94,12 +94,14 @@ These are existing defects/gaps, not changes made by the task writer prototype.
   on rusqlite 0.40.2 because 0.41's Session build dependency cannot currently resolve.
 - [ ] Add explicit opt-in write access beside the existing read-only adapter;
   preserve read-only callers, JSON contracts and host-controlled project scope.
-- [ ] Keep source records, embeddings, FTS and vector indexes synchronized in
-  transactions. Compute expensive embeddings outside write-lock critical sections.
+- [x] Prototype atomic source/embedding/FTS5/flat-vec0 synchronization for fresh
+  indexed fixtures. Prepared vectors stay outside the write lock; Session captures
+  only canonical ordinary data. Undo rebuilds projections from saved vectors.
+  [Indexed contract](examples/write-prototype/README.md#indexed-source-fixtures).
 - [x] Prove atomic claim/update and stale-revision rejection with concurrent
   agents; test failed statements, savepoints, full rollback, cancellation and
   retried requests. SQLite's per-database single-writer constraint still applies.
-  Verified for fresh task-only fixtures; retrieval/provider writes remain unverified.
+  Verified for fresh task-only/indexed fixtures; Lance/provider writes remain unverified.
 - [ ] Define schema versions and test backup/restore and crash recovery before
   using these writes on important project data. Existing-data migrations require
   a concrete migration/rollback review; initial implementations use fresh fixtures.
