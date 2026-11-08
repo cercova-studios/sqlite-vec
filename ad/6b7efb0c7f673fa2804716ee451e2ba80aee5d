@@ -1,0 +1,19 @@
+HANDOFF.md
+  s_70b027a60d4a55::t_5db14d8c21fcee 62-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ad6b7efb0c7f673fa2804716ee451e2ba80aee5d",
+  "prompts": {},
+  "sessions": {
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
