@@ -1,0 +1,59 @@
+benchmarks-ann/experiments/2026-11-08-writer-sync/run.py
+  s_73d2cba7314b54::t_61e6cb5d5456e4 14-17
+  s_73d2cba7314b54::t_12ce617a309616 59
+  s_73d2cba7314b54::t_02f90f714d53db 1-8,10-13,18-53,57-58,60-63,76,78-81,84-97
+  s_73d2cba7314b54::t_029c536c554ffb 54-56,82-83
+  s_73d2cba7314b54::t_1feb94e7906b83 9,64-75,77
+benchmarks-ann/experiments/2026-11-08-writer-sync/adapter-regression.json
+  s_f0ca49e58e3cd3::t_fb3c9bc3649c5d 1-7
+benchmarks-ann/experiments/2026-11-08-writer-sync/main.rs
+  s_73d2cba7314b54::t_3a29f7ac6c1402 199-203
+  s_f0ca49e58e3cd3::t_fd5ee3269721ba 2,6-10,13-16,28-30,35-48,51-58,60-62,65-78,80-84,87-94,96-98,101-105,108-110,126-133,140-157,167-168,174-198,205-209,213-219,221-222
+  s_73d2cba7314b54::t_02f90f714d53db 1,3-5,11-12,17-27,31-34,49-50,59,63-64,79,85-86,95,99-100,106-107,111-125,134-139,158-166,169-173,204,210-212,220,223
+benchmarks-ann/experiments/2026-11-08-writer-sync/ACCEPTANCE.md
+  s_73d2cba7314b54::t_19221ff8c82384 1-87
+benchmarks-ann/experiments/2026-11-08-writer-sync/consumer-result.json
+  s_73d2cba7314b54::t_3aff7454dd269b 1-9
+benchmarks-ann/experiments/2026-11-08-writer-sync/summarize.py
+  s_73d2cba7314b54::t_54a4a59eea7e9f 3,7,34,37-43
+  s_73d2cba7314b54::t_19e82c0a815a49 1-2,4-6,8-12,14-33,35-36,44-57,59-73
+  s_73d2cba7314b54::t_12ce617a309616 13,58
+benchmarks-ann/experiments/2026-11-08-writer-sync/baseline.json
+  s_f0ca49e58e3cd3::t_8c8ea3cf2865ca 1-8620
+benchmarks-ann/experiments/2026-11-08-writer-sync/consumer.rs
+  s_73d2cba7314b54::t_226692d5a18ce0 216-217,219-222,224-231,237-241,262
+  s_73d2cba7314b54::t_8f8c851e6a0966 218,223,232-236,264
+  s_73d2cba7314b54::t_b1d7507b63dda8 1-14,23-35,40-41,44-49,74-75,77-78,92,94-96,98-99,110,133,143,148-149,162-163,191,198,255-256,260,266
+  s_f0ca49e58e3cd3::t_dd163f9a939d4f 15-22,36-39,42-43,50-73,76,79-91,93,97,100-109,111-132,134-142,144-147,150-161,164-190,192-197,199-215,242-254,257-259,261,263,265
+benchmarks-ann/experiments/2026-11-08-writer-sync/README.md
+  s_73d2cba7314b54::t_54a4a59eea7e9f 1-100
+  s_73d2cba7314b54::t_19221ff8c82384 101-108
+benchmarks-ann/experiments/2026-11-08-writer-sync/verify_consumer.py
+  s_73d2cba7314b54::t_52434285c4837c 1-69
+benchmarks-ann/experiments/2026-11-08-writer-sync/baseline-locked.json
+  s_73d2cba7314b54::t_9f58952a9aadce 1-8622
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f643aef6796a315c3b123324d7c273241f6bd84",
+  "prompts": {},
+  "sessions": {
+    "s_73d2cba7314b54": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b8f0-6bc1-7f90-b00b-7325152cb4ba",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_f0ca49e58e3cd3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a1b8f0-6bc1-7f90-b00b-7325152cb4ba",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
