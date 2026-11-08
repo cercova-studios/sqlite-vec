@@ -27,7 +27,16 @@ adapter/G0 tests pass against installed binaries. Backup/restore, rollback,
 native C consumption, tamper/escape rejection and default/IVF separation are checked.
 Generated bundles are in `dist/bundles/949073f-{default,ivf}`; frozen manifests
 are in the receipt directory. The unrelated HNSW/.claude edits are excluded.
-Next: the P4 write contract and V1 capture/undo design, before implementing writes.
+P4/V1's [write/history contract](benchmarks-ann/experiments/2026-11-07-write-history/write-contract.md)
+and [capture comparison](benchmarks-ann/experiments/2026-11-07-write-history/README.md)
+are now recorded. The native fixture verifies typed BLOBs, net capture,
+savepoint/full rollback, strict atomic conflicts and the raw-inverse revision
+rewind counterexample. Eighteen capture runs and four process-exit recovery cases
+pass an independent SQLite row oracle. Session is the next prototype candidate,
+paired with explicit request/revision metadata; it is not enabled in shipped builds.
+The comparison omits a complete writer's history index and revision ledger costs.
+Next: implement the isolated Rust transaction prototype and its two-agent
+claim/idempotency/monotonic-undo tests before exposing public write tools.
 Agent writes, Session/history, branches,
 merges and synchronization remain planned capabilities. Existing read-only
 JSON/JSONL/MCP contracts stay intact. No push, publishing or CI changes.

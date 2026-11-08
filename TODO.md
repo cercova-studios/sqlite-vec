@@ -12,7 +12,8 @@ A Beads-like application is a proving workload, not the datastore's domain model
 
 ## Execution order
 
-P1's local bundle is verified. Next: the P4 write foundation and V1 history. Develop P2/P3 retrieval
+P1's local bundle is verified. The P4/V1 contract and capture investigation are
+complete; next is the isolated Rust writer prototype. Develop P2/P3 retrieval
 interfaces on that foundation. Exercise P5 throughout. V2/V3 branch/merge work
 follows a reviewed history/identity design; V4 remote sync is a later gate.
 Existing read-only CLI/MCP behavior remains available while opt-in write tools
@@ -65,9 +66,13 @@ are designed and verified. No push, publishing or CI changes are authorized.
 
 ## P4 — Ingestion and safe agent writes
 
-- [ ] Design a reusable write boundary over ordinary relational tables, with
+- [x] Design a reusable write boundary over ordinary relational tables, with
   validation, stable IDs, revision checks, idempotency keys and atomic batches.
   Keep schema-specific workflows in applications, not a mandatory generic JSON store.
+  [P4/V1 contract](benchmarks-ann/experiments/2026-11-07-write-history/write-contract.md).
+- [ ] Implement the fresh-fixture Rust transaction prototype: per-request Session
+  capture, explicit request/revision ledger, two-agent claim, retry and safe undo.
+  Keep public write tools disabled until its acceptance checks pass.
 - [ ] Add explicit opt-in write access beside the existing read-only adapter;
   preserve read-only callers, JSON contracts and host-controlled project scope.
 - [ ] Keep source records, embeddings, FTS and vector indexes synchronized in
@@ -97,11 +102,14 @@ are designed and verified. No push, publishing or CI changes are authorized.
 
 ### V1 — History, attribution and selective undo
 
-- [ ] Write the versioned-table contract: opt-in ordinary tables with stable
+- [x] Write the versioned-table contract: opt-in ordinary tables with stable
   primary keys, revision identity, actor/request metadata and transaction boundaries.
-- [ ] Evaluate SQLite Session/changesets against an explicit change log using
+- [x] Evaluate SQLite Session/changesets against an explicit change log using
   measured capture, undo and recovery cases. Session needs host-build support;
   it does not capture virtual tables and is not a complete version-control engine.
+  [Experiment and limits](benchmarks-ann/experiments/2026-11-07-write-history/README.md).
+- [ ] Verify the complete Session+ledger/history-index pipeline before selecting
+  a shipped capture default. Raw inversion rewinds revisions; undo needs a new revision.
 - [ ] Keep canonical versioned data in ordinary tables. Treat FTS/ANN structures
   as derived, tied to a data/model revision; never merge index shadow-table blobs.
 - [ ] Implement selective undo as a new validated change. Reject conflicts with

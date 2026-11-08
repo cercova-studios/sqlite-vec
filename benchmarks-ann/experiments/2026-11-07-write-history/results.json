@@ -1,0 +1,327 @@
+{
+  "base_revision": "c772792f9e9cec7a82e8c8ca4179078c8c7b1896",
+  "checks": {
+    "checks": [
+      "typed_blob",
+      "net_changes",
+      "savepoint",
+      "rollback",
+      "strict_conflict_atomicity",
+      "inverse_rewinds_revision",
+      "pk_null_virtual_exclusions"
+    ]
+  },
+  "compiler": "Apple clang version 21.0.0 (clang-2100.4.1.1)",
+  "flags": [
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-DSQLITE_ENABLE_SESSION",
+    "-DSQLITE_ENABLE_PREUPDATE_HOOK",
+    "-DSQLITE_ENABLE_FTS5"
+  ],
+  "inputs": {
+    "benchmarks-ann/experiments/2026-11-07-write-history/history.c": "ff967b7e890fdbfc63df9d00d677668f43488adbae8bd56f1e220f0d81807940",
+    "benchmarks-ann/experiments/2026-11-07-write-history/run.py": "14ca5a06fb52c75854fd4061c1ee67199c412e648ccdd0e5b117eca4ca235377",
+    "vendor/sqlite3.c": "9ca336fbcbff9f1d78b4f45b6a19583fcc097192310dd2f5f6cd43b9a33d7d69",
+    "vendor/sqlite3.h": "882ad3c0448d0324fb3a6b1a85333a9173d539ac669c9972ae1f03722ff86282"
+  },
+  "oracle_sqlite": "3.54.1",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "recovery": [
+    {
+      "committed": false,
+      "mode": "session",
+      "validated": true
+    },
+    {
+      "committed": true,
+      "mode": "session",
+      "validated": true
+    },
+    {
+      "committed": false,
+      "mode": "log",
+      "validated": true
+    },
+    {
+      "committed": true,
+      "mode": "log",
+      "validated": true
+    }
+  ],
+  "samples": [
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 122880,
+      "mode": "off",
+      "repeat": 0,
+      "rows": 5000,
+      "seconds": 0.004565,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 208384,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 245600,
+      "database_bytes": 380928,
+      "mode": "session",
+      "repeat": 0,
+      "rows": 5000,
+      "seconds": 0.008233,
+      "session_peak_bytes": 8656,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 558208,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 311296,
+      "mode": "log",
+      "repeat": 0,
+      "rows": 5000,
+      "seconds": 0.009182,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 547536,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 122880,
+      "mode": "off",
+      "repeat": 0,
+      "rows": 5000,
+      "seconds": 0.004841,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 208384,
+      "updates": 2
+    },
+    {
+      "changeset_bytes": 240600,
+      "database_bytes": 368640,
+      "mode": "session",
+      "repeat": 0,
+      "rows": 5000,
+      "seconds": 0.008864,
+      "session_peak_bytes": 8656,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 542848,
+      "updates": 2
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 303104,
+      "mode": "log",
+      "repeat": 0,
+      "rows": 5000,
+      "seconds": 0.013399,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 537296,
+      "updates": 2
+    },
+    {
+      "changeset_bytes": 245600,
+      "database_bytes": 380928,
+      "mode": "session",
+      "repeat": 1,
+      "rows": 5000,
+      "seconds": 0.00764,
+      "session_peak_bytes": 8656,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 558208,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 311296,
+      "mode": "log",
+      "repeat": 1,
+      "rows": 5000,
+      "seconds": 0.00852,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 547536,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 122880,
+      "mode": "off",
+      "repeat": 1,
+      "rows": 5000,
+      "seconds": 0.004275,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 208384,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 240600,
+      "database_bytes": 368640,
+      "mode": "session",
+      "repeat": 1,
+      "rows": 5000,
+      "seconds": 0.0083,
+      "session_peak_bytes": 8656,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 542848,
+      "updates": 2
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 303104,
+      "mode": "log",
+      "repeat": 1,
+      "rows": 5000,
+      "seconds": 0.013189,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 537296,
+      "updates": 2
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 122880,
+      "mode": "off",
+      "repeat": 1,
+      "rows": 5000,
+      "seconds": 0.004981,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 208384,
+      "updates": 2
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 311296,
+      "mode": "log",
+      "repeat": 2,
+      "rows": 5000,
+      "seconds": 0.008549,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 547536,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 122880,
+      "mode": "off",
+      "repeat": 2,
+      "rows": 5000,
+      "seconds": 0.003829,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 208384,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 245600,
+      "database_bytes": 380928,
+      "mode": "session",
+      "repeat": 2,
+      "rows": 5000,
+      "seconds": 0.007307,
+      "session_peak_bytes": 8656,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 558208,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 303104,
+      "mode": "log",
+      "repeat": 2,
+      "rows": 5000,
+      "seconds": 0.012887,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 537296,
+      "updates": 2
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 122880,
+      "mode": "off",
+      "repeat": 2,
+      "rows": 5000,
+      "seconds": 0.005054,
+      "session_peak_bytes": 0,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 208384,
+      "updates": 2
+    },
+    {
+      "changeset_bytes": 240600,
+      "database_bytes": 368640,
+      "mode": "session",
+      "repeat": 2,
+      "rows": 5000,
+      "seconds": 0.008414,
+      "session_peak_bytes": 8656,
+      "sqlite": "3.45.3",
+      "sqlite_peak_bytes": 542848,
+      "updates": 2
+    }
+  ],
+  "summary": [
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 122880,
+      "median_ms": 4.275,
+      "mode": "off",
+      "session_peak_bytes": 0,
+      "sqlite_peak_bytes": 208384,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 245600,
+      "database_bytes": 380928,
+      "median_ms": 7.64,
+      "mode": "session",
+      "session_peak_bytes": 8656,
+      "sqlite_peak_bytes": 558208,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 311296,
+      "median_ms": 8.549,
+      "mode": "log",
+      "session_peak_bytes": 0,
+      "sqlite_peak_bytes": 547536,
+      "updates": 1
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 122880,
+      "median_ms": 4.981,
+      "mode": "off",
+      "session_peak_bytes": 0,
+      "sqlite_peak_bytes": 208384,
+      "updates": 2
+    },
+    {
+      "changeset_bytes": 240600,
+      "database_bytes": 368640,
+      "median_ms": 8.414,
+      "mode": "session",
+      "session_peak_bytes": 8656,
+      "sqlite_peak_bytes": 542848,
+      "updates": 2
+    },
+    {
+      "changeset_bytes": 0,
+      "database_bytes": 303104,
+      "median_ms": 13.189,
+      "mode": "log",
+      "session_peak_bytes": 0,
+      "sqlite_peak_bytes": 537296,
+      "updates": 2
+    }
+  ]
+}
