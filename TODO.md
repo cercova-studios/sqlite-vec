@@ -12,13 +12,13 @@ A Beads-like application is a proving workload, not the datastore's domain model
 
 ## Execution order
 
-Start P1, then the P4 write foundation and V1 history. Develop P2/P3 retrieval
+P1's local bundle is verified. Next: the P4 write foundation and V1 history. Develop P2/P3 retrieval
 interfaces on that foundation. Exercise P5 throughout. V2/V3 branch/merge work
 follows a reviewed history/identity design; V4 remote sync is a later gate.
 Existing read-only CLI/MCP behavior remains available while opt-in write tools
 are designed and verified. No push, publishing or CI changes are authorized.
 
-## P1 — Reliable local consumption (in progress)
+## P1 — Reliable local consumption (verified on macOS arm64)
 
 - [x] Stage a standalone amalgamation for the Rust binding and regenerate it
   when an included C feature changes. Verify a consumer outside this checkout.
@@ -27,13 +27,15 @@ are designed and verified. No push, publishing or CI changes are authorized.
   [Verification receipt](benchmarks-ann/experiments/2026-11-07-local-datastore/README.md).
 - [x] Resolve the host-linked Rust registration failure with per-connection
   registration; verify Apple, Homebrew and bundled SQLite independently.
-- [ ] Provide one project-local bundle/install path for the Rust CLI/MCP binary,
+- [x] Provide one project-local bundle/install path for the Rust CLI/MCP binary,
   matching native library, C amalgamation/header and a build manifest. Record
   source revision/hashes, SQLite version, platform and feature flags. Keep build
   profiles separate so an IVF/default switch cannot silently reuse an old binary.
-- [ ] Verify a clean project can install, inspect capabilities, write/read its
+- [x] Verify a clean project can install, inspect capabilities, write/read its
   SQLite data, back up, restore and reopen without requiring this source tree.
   Pin this fork explicitly; upstream registry packages do not contain local work.
+  [Build and use a local bundle](docs/local-bundle.md). Other-platform validation
+  remains open; these checks do not establish release readiness.
 
 ## P2 — Plain-text semantic and hybrid search
 

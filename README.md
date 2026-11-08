@@ -42,6 +42,10 @@ See <a href="#sponsors">the Sponsors section</a> for more details.
 
 ## Installing
 
+For this fork's project-local SQLite CLI, search CLI/MCP adapter and native C
+bundle, use the [local bundle guide](docs/local-bundle.md). It pins committed
+sources and records build inputs and installed artifact hashes in a manifest.
+
 See [Installing `sqlite-vec`](https://alexgarcia.xyz/sqlite-vec/installation.html)
 for more details.
 

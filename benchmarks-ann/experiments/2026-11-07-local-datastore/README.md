@@ -112,3 +112,52 @@ SQLITE3_INCLUDE_DIR=/opt/zerobrew/opt/sqlite/include \
 
 These Homebrew paths describe this workstation, not portable defaults. The C probe
 and SDK evidence explain the host failure; bundling SQLite is not used to hide it.
+
+## Project-local bundle completed
+
+The builder and installed verifier are `scripts/local_bundle.py`. Build/use/recovery
+instructions live in [the local guide](../../../docs/local-bundle.md).
+The build compiles committed `949073f` in fresh temporary source/target directories,
+excluding the unrelated dirty HNSW change. The invoking builder and guide are copied
+as separately hashed artifacts. No database in an existing project is modified.
+
+The [default manifest](default-manifest.json) and [IVF manifest](ivf-manifest.json)
+freeze the measured build inputs and installed output hashes. Both have identical
+source/vendor input hashes; the native library hashes and reported IVF capabilities
+differ. They record native SQLite 3.45.3 and adapter-bundled SQLite 3.54.1 separately.
+Native flags include host NEON, FTS5 and, for the IVF profile, its experimental macro.
+Generated bundles remain under `dist/bundles/949073f-default` and
+`dist/bundles/949073f-ivf`; `make clean` removes these generated outputs.
+
+Executed checks:
+
+```sh
+python3 scripts/local_bundle.py build --output /tmp/vec-bundle-default-final-20261107
+python3 scripts/local_bundle.py build --profile ivf --output /tmp/vec-bundle-ivf-final-20261107
+python3 tests/bundle.py --bundle /tmp/vec-bundle-default-final-20261107
+python3 tests/bundle.py --bundle /tmp/vec-bundle-ivf-final-20261107
+python3 tests/packaging.py
+```
+
+Each installed-bundle run passes five tests. The unit portions reject altered
+hashes/sizes, missing files, malformed manifests, escaping paths and symlinks.
+Existing output is preserved; injected setup/native build failures never publish
+a manifest, and the native failure's diagnostic remains in `build.log`.
+The integration test copies the bundle to a fresh project and runs from there:
+ordinary/HNSW writes, savepoint/full rollback, statement failure, close/reopen,
+FTS5, backup/restore/integrity, default-vs-IVF admission, adapter describe/search/fetch,
+rejected writes, MCP discovery and static/amalgamation C consumers. Manifest SQLite
+versions are compared with runtime results. Installed hash verification works after
+relocation without the source tree. The three original packaging checks also pass.
+
+All 76 existing adapter and G0 tests pass in a separate temporary test tree using
+the bundled default library and Rust binary. This covers existing parity, scope,
+read-only protections, native failures/rollback, cancellation and independent graph
+oracle fixtures. The updated Rust example runs successfully. Rust formatting,
+Python compilation and whitespace checks pass.
+
+Only macOS arm64 was exercised. Linux/Windows, broader native/IVF/Lance suites,
+large or concurrent project workloads and crash recovery were not checked in this
+slice. Windows bundles are explicitly unsupported. Hashes provide integrity checks,
+not signatures or supply-chain authentication. Native CLI threading/options and
+the adapter's existing read-only admission limits remain in effect. No push or CI.

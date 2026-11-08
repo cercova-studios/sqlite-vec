@@ -15,8 +15,20 @@ package verification. [Receipt and replay](benchmarks-ann/experiments/2026-11-07
 The host-linked Rust failure is resolved: Apple's SQLite rejects global
 auto-extension registration (`SQLITE_MISUSE`), so the binding/example now expose
 per-connection registration. Two tests pass on Apple, Homebrew and bundled SQLite;
-global registration remains tested on supporting hosts. A project-local bundle/manifest is next
-in P1. Agent writes, Session/history, branches,
+global registration remains tested on supporting hosts. P1's project-local bundle
+and manifest are now verified on macOS arm64: build default/IVF into new directories
+with `scripts/local_bundle.py`, then verify installed artifacts. The bundle includes
+the native SQLite CLI, existing read-only Rust CLI/MCP adapter, native library/static
+archive and C sources/headers. It compiles committed sources in isolation and records
+input/artifact hashes, native flags and both SQLite versions (vendor 3.45.3,
+adapter 3.54.1). [Usage](docs/local-bundle.md) and the receipt above describe limits.
+Five bundle checks pass for each profile, three packaging checks pass, and all 76
+adapter/G0 tests pass against installed binaries. Backup/restore, rollback,
+native C consumption, tamper/escape rejection and default/IVF separation are checked.
+Generated bundles are in `dist/bundles/949073f-{default,ivf}`; frozen manifests
+are in the receipt directory. The unrelated HNSW/.claude edits are excluded.
+Next: the P4 write contract and V1 capture/undo design, before implementing writes.
+Agent writes, Session/history, branches,
 merges and synchronization remain planned capabilities. Existing read-only
 JSON/JSONL/MCP contracts stay intact. No push, publishing or CI changes.
 
