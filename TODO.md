@@ -13,7 +13,9 @@ A Beads-like application is a proving workload, not the datastore's domain model
 ## Execution order
 
 P1's local bundle is verified. The P4/V1 contract and capture investigation are
-complete; next is the isolated Rust writer prototype. Develop P2/P3 retrieval
+complete, and the isolated Rust writer prototype is verified. Next: measure the full
+writer/history path and integrate source/FTS/vector synchronization before exposing
+write tools. Develop P2/P3 retrieval
 interfaces on that foundation. Exercise P5 throughout. V2/V3 branch/merge work
 follows a reviewed history/identity design; V4 remote sync is a later gate.
 Existing read-only CLI/MCP behavior remains available while opt-in write tools
@@ -70,16 +72,19 @@ are designed and verified. No push, publishing or CI changes are authorized.
   validation, stable IDs, revision checks, idempotency keys and atomic batches.
   Keep schema-specific workflows in applications, not a mandatory generic JSON store.
   [P4/V1 contract](benchmarks-ann/experiments/2026-11-07-write-history/write-contract.md).
-- [ ] Implement the fresh-fixture Rust transaction prototype: per-request Session
+- [x] Implement the fresh-fixture Rust transaction prototype: per-request Session
   capture, explicit request/revision ledger, two-agent claim, retry and safe undo.
   Keep public write tools disabled until its acceptance checks pass.
+  [Prototype and tested limits](examples/write-prototype/README.md). It is isolated
+  on rusqlite 0.40.2 because 0.41's Session build dependency cannot currently resolve.
 - [ ] Add explicit opt-in write access beside the existing read-only adapter;
   preserve read-only callers, JSON contracts and host-controlled project scope.
 - [ ] Keep source records, embeddings, FTS and vector indexes synchronized in
   transactions. Compute expensive embeddings outside write-lock critical sections.
-- [ ] Prove atomic claim/update and stale-revision rejection with concurrent
+- [x] Prove atomic claim/update and stale-revision rejection with concurrent
   agents; test failed statements, savepoints, full rollback, cancellation and
   retried requests. SQLite's per-database single-writer constraint still applies.
+  Verified for fresh task-only fixtures; retrieval/provider writes remain unverified.
 - [ ] Define schema versions and test backup/restore and crash recovery before
   using these writes on important project data. Existing-data migrations require
   a concrete migration/rollback review; initial implementations use fresh fixtures.

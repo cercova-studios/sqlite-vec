@@ -126,6 +126,23 @@ the same snapshot. Admission limits restrict supported workloads; they do not
 provide hard native memory or work budgets for BFS. The typed `witness` operation uses the bounded native evidence helper with per-call budgets and MCP cancellation. See the adapter
 [contract and runnable example](examples/search-lab/README.md).
 
+## Experimental task writer
+
+`examples/write-prototype` is a separate Rust library over fresh ordinary SQLite
+task fixtures. `Writer` owns one write connection; it does not share or weaken the
+read-only adapter connection. `BEGIN IMMEDIATE` serializes revision checks, task
+mutations, monotonic sidecar versions/tombstones, Session capture, changed-row
+indexes and immutable retry receipts. Undo inverts canonical task values only and
+allocates a new revision. Uncertain commit/rollback outcomes discard the connection.
+Its schema marker/version checks reject unsupported fixtures; they are not an audit
+security boundary. Byte/row limits bound admitted data and capture output, not SQLite
+RSS. The library has no transport routes or derived retrieval-index writes.
+
+The prototype pins rusqlite 0.40.2 because the adapter's 0.41 Session feature currently
+cannot resolve bindgen 0.73. The adapter's dependencies and default tools remain
+unchanged. See [prototype scope and checks](examples/write-prototype/README.md) for
+the version-split removal condition, failure behavior and resource limits.
+
 ## Graph traversal
 
 `sqlite-vec-graph.c` registers `graph_bfs` and `graph_shortest_path` over a selected

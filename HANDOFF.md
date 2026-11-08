@@ -35,8 +35,15 @@ rewind counterexample. Eighteen capture runs and four process-exit recovery case
 pass an independent SQLite row oracle. Session is the next prototype candidate,
 paired with explicit request/revision metadata; it is not enabled in shipped builds.
 The comparison omits a complete writer's history index and revision ledger costs.
-Next: implement the isolated Rust transaction prototype and its two-agent
-claim/idempotency/monotonic-undo tests before exposing public write tools.
+The isolated [Rust task writer](examples/write-prototype/README.md) is now runnable:
+create/claim/delete, exact retry receipts, monotonic undo/tombstones and bounded
+history reads. It owns a separate connection and has no CLI/MCP routing. The
+search adapter, bundle and C core are unchanged. rusqlite 0.41 Session resolution
+fails on `bindgen ^0.73`; the prototype therefore pins 0.40.2 with its own lockfile.
+This is an explicit integration blocker, not an adapter downgrade or hidden shim.
+Debug/release writer tests, strict Clippy and read-only parity are recorded in the
+prototype receipt. Next: complete-path performance/resource measurements and
+source/FTS/vector synchronization before exposing public writes.
 Agent writes, Session/history, branches,
 merges and synchronization remain planned capabilities. Existing read-only
 JSON/JSONL/MCP contracts stay intact. No push, publishing or CI changes.
