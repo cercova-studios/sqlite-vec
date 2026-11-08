@@ -1,0 +1,81 @@
+tests/test-unit.c
+  s_70b027a60d4a55::t_0e4a8e20895a27 2271-2312,2370
+tests/test-loadable.py
+  s_70b027a60d4a55::t_ed0961da51141b 1029-1051
+  s_70b027a60d4a55::t_f4065da0d3ecb9 1052-1053
+benchmarks-ann/experiments/2026-11-08-lance-drop/receipt.json
+  s_70b027a60d4a55::t_382e80ca3665ab 99-100
+  s_528e6b3f95df22::t_3265146dd2537a 78-84
+  s_70b027a60d4a55::t_715d34fb12c83c 1-77,85-98,101
+HANDOFF.md
+  s_70b027a60d4a55::t_e667ae3c7fed1e 12-20,73-74
+lance/README.md
+  s_70b027a60d4a55::t_229ccf2d5eba50 48-49
+  s_70b027a60d4a55::t_e667ae3c7fed1e 43-47,101-105
+lance/src/store.rs
+  s_70b027a60d4a55::t_73b614ec2b4570 698-699
+  s_70b027a60d4a55::t_fabf37bd758bf1 695-696
+  s_528e6b3f95df22::t_d71c202095fbef 701
+benchmarks-ann/experiments/2026-11-08-lance-drop/clippy-comparison.json
+  s_70b027a60d4a55::t_715d34fb12c83c 1-434
+benchmarks-ann/experiments/2026-11-08-lance-drop/fmt-check.json
+  s_528e6b3f95df22::t_3265146dd2537a 1-4
+TODO.md
+  s_70b027a60d4a55::t_e667ae3c7fed1e 29-32
+benchmarks-ann/experiments/2026-11-08-lance-drop/README.md
+  s_70b027a60d4a55::t_423559d8026aec 57,61-62
+  s_70b027a60d4a55::t_af448e28a86dc7 1-56,58-60,63-78,81-104
+  s_70b027a60d4a55::t_229ccf2d5eba50 79-80
+benchmarks-ann/experiments/2026-11-08-lance-drop/before-rollback_and_readers.json
+  s_528e6b3f95df22::t_3265146dd2537a 1-4
+sqlite-vec.h.tmpl
+  s_70b027a60d4a55::t_edd5344f117b78 85-88
+ARCHITECTURE.md
+  s_70b027a60d4a55::t_e667ae3c7fed1e 82-90
+lance/src/lance0.rs
+  s_70b027a60d4a55::t_73b614ec2b4570 175-178
+tests/test-hybrid.py
+  s_70b027a60d4a55::t_3cdf1e11c1999e 13-14,407-440,479-480,484-487,489,491-508,511-513
+  s_70b027a60d4a55::t_a41bde1b48f313 398,441-446,448-461,464,466-478
+  s_70b027a60d4a55::t_0f7de3e1209131 377-378,385-387,481,488,490,509-510
+  s_70b027a60d4a55::t_b335262e5edf10 482-483
+  s_70b027a60d4a55::t_ed0961da51141b 447,462-463,465
+  s_70b027a60d4a55::t_c85858128cae89 6,16,293,302-368,370-376,379-384,388-397,399-403,405-406
+  s_70b027a60d4a55::t_8a281505b82eb1 15,369,404
+  s_70b027a60d4a55::t_ed8188fe143c41 514-515
+sqlite-vec.c
+  s_70b027a60d4a55::t_73b614ec2b4570 7002,7103,7165,7167
+  s_70b027a60d4a55::t_2773008d1f892d 7009-7014,7126
+benchmarks-ann/experiments/2026-11-07-write-history/rust-review.md
+  s_70b027a60d4a55::t_e667ae3c7fed1e 18-20
+benchmarks-ann/experiments/2026-11-08-lance-drop/after-core-full.xml
+  s_70b027a60d4a55::t_47b2d2a45e0a40 1
+benchmarks-ann/experiments/2026-11-08-lance-drop/after-full.xml
+  s_70b027a60d4a55::t_8bf51eea14d198 1
+benchmarks-ann/experiments/2026-11-08-lance-drop/negative-controls.json
+  s_70b027a60d4a55::t_5c3b028b55e9af 1-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aa33e68eaf111bdfefb28648961129ecf15caf1d",
+  "prompts": {},
+  "sessions": {
+    "s_528e6b3f95df22": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
