@@ -44,6 +44,18 @@ This is an explicit integration blocker, not an adapter downgrade or hidden shim
 Debug/release writer tests, strict Clippy and read-only parity are recorded in the
 prototype receipt. Next: complete-path performance/resource measurements and
 source/FTS/vector synchronization before exposing public writes.
+
+Post-prototype [all-Rust review](benchmarks-ann/experiments/2026-11-07-write-history/rust-review.md)
+covers 20 tracked Rust sources/seven manifests at `8f0af1b`. Five existing Lance
+contract violations reproduce on fresh fixtures using the cached hybrid artifact:
+rolled-back provider DROP loses files, duplicate lance0 rowids are accepted,
+attached schemas collide in metadata, NOCASE equality misses rows, and invalid
+UTF-8 TEXT is silently rewritten. The TEXT conversion also has a source-confirmed
+NULL-slice safety violation on OOM (not fault-injected). Legacy Rust harness input
+invalidation fails; the adapter's timed cancellation test failed 9/10 on one run.
+Fresh Lance check is blocked by missing protoc, and strict adapter Clippy/Lance
+format/binding locked checks are not green. No production repairs were made by
+the review. Prioritize the P1 Lance findings before broad Lance writes.
 Agent writes, Session/history, branches,
 merges and synchronization remain planned capabilities. Existing read-only
 JSON/JSONL/MCP contracts stay intact. No push, publishing or CI changes.

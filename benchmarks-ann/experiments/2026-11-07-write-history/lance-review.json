@@ -1,0 +1,65 @@
+{
+  "review_revision": "8f0af1b7cf6fef3396ff66dc05bb5244b8341d0a",
+  "artifact": {
+    "path": "/Users/rohit/sandbox/sqlite-vec/dist/vec0_lance.dylib",
+    "sha256": "e8ce1aab687431c911067557806df94e8b8031eafb1d32db7ca5b5259be18478",
+    "provenance": "existing build; fresh check blocked by missing protoc"
+  },
+  "sqlite": "3.53.1",
+  "findings": [
+    {
+      "case": "provider_drop_rollback",
+      "correct": false,
+      "before": [
+        [
+          1,
+          "00FF"
+        ]
+      ],
+      "after": null,
+      "error": "lance: Dataset at path var/folders/q1/3gr5b24x4_lcv8lgskqbchzm0000gn/T/vec-rust-contract-review-3z28vfqu/rollback/rows.lance was not found: Not found: var/folders/q1/3gr5b24x4_lcv8lgskqbchzm0000gn/T/vec-rust-contract-review-3z28vfqu/rollback/rows.lance/_versions, /Users/rohit/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-table-13.0.0/src/io/commit.rs:653:26, /Users/rohit/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-13.0.0/src/dataset/builder.rs:913:29",
+      "dataset_exists_after_drop": false
+    },
+    {
+      "case": "lance0_duplicate_rowid",
+      "correct": false,
+      "duplicate_rejected": false,
+      "rows": [
+        [
+          1,
+          "first"
+        ],
+        [
+          1,
+          "second"
+        ]
+      ]
+    },
+    {
+      "case": "lance0_nocase",
+      "correct": false,
+      "expected": [
+        [
+          1
+        ]
+      ],
+      "observed": []
+    },
+    {
+      "case": "provider_invalid_utf8",
+      "correct": false,
+      "expected": "FF",
+      "observed": "EFBFBD",
+      "error": null
+    },
+    {
+      "case": "provider_attached_schema",
+      "correct": false,
+      "observed": null,
+      "error": "vec0 storage: lance: Dataset at path var/folders/q1/3gr5b24x4_lcv8lgskqbchzm0000gn/T/vec-rust-contract-review-3z28vfqu/schema/b.lance was not found: Not found: var/folders/q1/3gr5b24x4_lcv8lgskqbchzm0000gn/T/vec-rust-contract-review-3z28vfqu/schema/b.lance/_versions, /Users/rohit/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-table-13.0.0/src/io/commit.rs:653:26, /Users/rohit/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-13.0.0/src/dataset/builder.rs:913:29",
+      "other_shadow": [],
+      "other_dataset_exists": false
+    }
+  ],
+  "violations": 5
+}

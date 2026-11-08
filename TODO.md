@@ -21,6 +21,21 @@ follows a reviewed history/identity design; V4 remote sync is a later gate.
 Existing read-only CLI/MCP behavior remains available while opt-in write tools
 are designed and verified. No push, publishing or CI changes are authorized.
 
+## Rust review follow-ups
+
+[All-Rust review and counterexamples](benchmarks-ann/experiments/2026-11-07-write-history/rust-review.md).
+These are existing defects/gaps, not changes made by the task writer prototype.
+
+- [ ] P1: preserve Lance files across rolled-back DROP; enforce lance0 rowid
+  uniqueness; reject NULL TEXT buffers before constructing Rust slices on OOM.
+- [ ] P2: qualify Lance metadata by SQLite schema; preserve collation semantics;
+  reject unsupported TEXT encoding without lossy replacement.
+- [ ] P2: track all included C/header inputs in the legacy Rust harness/micro builds.
+- [ ] P2: make the adapter cancellation test deterministic without weakening its
+  asserted execution boundary. Its observed Rust suite result is 9/10, not a pass.
+- [ ] Repair the stale generated-version Rust binding lock and existing lint/format
+  gaps; qualify fresh Lance builds once protoc is available. Do not bulk-rewrite code.
+
 ## P1 — Reliable local consumption (verified on macOS arm64)
 
 - [x] Stage a standalone amalgamation for the Rust binding and regenerate it

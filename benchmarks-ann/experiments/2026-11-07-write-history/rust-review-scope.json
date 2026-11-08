@@ -1,0 +1,142 @@
+{
+  "revision": "8f0af1b",
+  "rust_files": 20,
+  "manifests": 7,
+  "files": [
+    {
+      "path": "benchmarks-ann/experiments/2026-11-02-adapter-fts/profile.rs",
+      "lines": 133,
+      "sha256": "c79b6cf6d595528bc6f773f8d5846bcb277cd8f36f90b9d01592b63875ad1d04"
+    },
+    {
+      "path": "benchmarks/micro/benches/my_benchmark.rs",
+      "lines": 105,
+      "sha256": "aefa93a7e98738e494d4e49dbee56ec96fff7219906995186198f861076f4886"
+    },
+    {
+      "path": "benchmarks/micro/build.rs",
+      "lines": 5,
+      "sha256": "075f5697c6b9b6ee25ebcf0163e50f078f474a26eab0fd9269134b643ed168e1"
+    },
+    {
+      "path": "benchmarks/micro/src/lib.rs",
+      "lines": 12,
+      "sha256": "eb6f5c317a28fe157c89f167dea1e1efbde00363f67adc06c5ef6cc7328db0d3"
+    },
+    {
+      "path": "bindings/rust/build.rs",
+      "lines": 9,
+      "sha256": "9f2af1299146855660ba1136381655e703ed49864ad53bedddbacf23880ce1d4"
+    },
+    {
+      "path": "bindings/rust/src/lib.rs",
+      "lines": 85,
+      "sha256": "46fc2ed06205e3baa055fa818e6ecbf407810e3041edca4bd0327144b07e2e48"
+    },
+    {
+      "path": "examples/search-lab/src/lib.rs",
+      "lines": 981,
+      "sha256": "ea42b3ce8013b5dbc2d87f75caeebf08c879f0148dea945aa957e4cefb7bda49"
+    },
+    {
+      "path": "examples/search-lab/src/main.rs",
+      "lines": 155,
+      "sha256": "10b8b4c66e2bb50e3776422c9c1eb35445ba57b961b9c3de88cdd25e35c76e9a"
+    },
+    {
+      "path": "examples/search-lab/src/tests.rs",
+      "lines": 434,
+      "sha256": "e2ee455c42e93d5d87eec4bb691ea8ab4a84eab61b93c13ea58eff15725c5ed8"
+    },
+    {
+      "path": "examples/simple-rust/demo.rs",
+      "lines": 60,
+      "sha256": "226dd52c2663c9502344b7c844dcc5d0415b48d951033cfeccd2c12253293822"
+    },
+    {
+      "path": "examples/write-prototype/src/lib.rs",
+      "lines": 589,
+      "sha256": "ace4d20be69d128540450c31e77d7f95c71c92577c93693ef8b1f0337317099d"
+    },
+    {
+      "path": "examples/write-prototype/src/tests.rs",
+      "lines": 581,
+      "sha256": "d746127517d41e7c1d7f03816ae6845ce22413138a6c4a1379838946a2586d05"
+    },
+    {
+      "path": "lance/build.rs",
+      "lines": 67,
+      "sha256": "9d4949ca77b6485b045bb12fb39b19b6b5a871ec0fec296f4ec0e7a0a3eca00d"
+    },
+    {
+      "path": "lance/examples/index-plan.rs",
+      "lines": 24,
+      "sha256": "e5d7ddcc0af3165985178734966963041db6c4f1c3023b3f1ab956e5aa0e4671"
+    },
+    {
+      "path": "lance/src/lance0.rs",
+      "lines": 402,
+      "sha256": "db4e3df3c3ce33596316a1f1216ed59457378c35b79d25c641918f5944a4a8da"
+    },
+    {
+      "path": "lance/src/lib.rs",
+      "lines": 47,
+      "sha256": "de5a59faf987cfdfb5185ebe582a322f7e4e10ada9f1437a87e033e5b74b51f3"
+    },
+    {
+      "path": "lance/src/provider.rs",
+      "lines": 451,
+      "sha256": "99e89f38f2b53de9d462116e26e1539373756e24b0c1195300c9207a51a9b2d0"
+    },
+    {
+      "path": "lance/src/store.rs",
+      "lines": 754,
+      "sha256": "13f93cf249ef7c5c8a16bb926c4ac666f9b51508e86ef6cdc9f344163769dcfd"
+    },
+    {
+      "path": "tests/build.rs",
+      "lines": 12,
+      "sha256": "e8b80028334418c4ba93d1f9ce824f1eda341da4fb3d28e12e8d2fbefd98ee8e"
+    },
+    {
+      "path": "tests/unittest.rs",
+      "lines": 186,
+      "sha256": "3135735279920eb0abb030c675964ecc082e2d536925ebbb65f814d7dea9787a"
+    },
+    {
+      "path": "benchmarks/micro/Cargo.toml",
+      "lines": 19,
+      "sha256": "9eecd0073617a509f4f51e32610549bdef0f57f39825d813f96ba7f405143818"
+    },
+    {
+      "path": "bindings/rust/Cargo.toml.tmpl",
+      "lines": 19,
+      "sha256": "fcad36fb1e3986ba39545ff2943ef3d5b829646a66a0eadc007a38d523f6242e"
+    },
+    {
+      "path": "examples/search-lab/Cargo.toml",
+      "lines": 22,
+      "sha256": "6f952c80f24257459bda90845adbed42f9905df96c29ce6e7bafe28ecd893f78"
+    },
+    {
+      "path": "examples/simple-rust/Cargo.toml",
+      "lines": 12,
+      "sha256": "52b173ea3f30d44dfabba2e085109d84ea927655f97ac7925e60c3c1ea0bb2fc"
+    },
+    {
+      "path": "examples/write-prototype/Cargo.toml",
+      "lines": 9,
+      "sha256": "95ee94cf19fbf1910116bcd17c9c2707c6fc0f38b0f3a2075165eeb5edd56e5f"
+    },
+    {
+      "path": "lance/Cargo.toml",
+      "lines": 21,
+      "sha256": "e4298db4cf1323036bb196da46d044576f1be744404da0fdd731ad1d82d022c2"
+    },
+    {
+      "path": "tests/Cargo.toml",
+      "lines": 15,
+      "sha256": "6c276f246a17d1fc6ee8f52a430dc6c42551ea85ad345a625e4abc6f59166a62"
+    }
+  ]
+}
