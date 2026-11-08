@@ -1,0 +1,54 @@
+TODO.md
+  s_70b027a60d4a55::t_460dedce5d562f 15,21,30,34,37-38
+docs/local-bundle.md
+  s_70b027a60d4a55::t_3d850e3dc5c19a 1-99
+scripts/local_bundle.py
+  s_70b027a60d4a55::t_3d850e3dc5c19a 36-38,44-50,59-60,109,118-119,137-139
+  s_70b027a60d4a55::t_529c5d13c678e1 155-156
+  s_70b027a60d4a55::t_03b7cfe3b3fa0e 1-35,39-43,51-58,61-62,64-108,110-117,120-136,140-154,157-164,168-173,177-179,183-208
+  s_70b027a60d4a55::t_9993439d643e07 165-167,174-176
+  s_70b027a60d4a55::t_cdb7f7d2726395 63,180-182
+README.md
+  s_70b027a60d4a55::t_f05d8d344eb3ab 45-48
+tests/bundle.py
+  s_70b027a60d4a55::t_6d7e0ef67c28b8 74-89
+  s_70b027a60d4a55::t_9993439d643e07 7-8,95,135,163-165,191,204
+  s_70b027a60d4a55::t_f05d8d344eb3ab 174-177,181-184
+  s_70b027a60d4a55::t_cdb7f7d2726395 1-6,9-73,90-94,96-134,136-162,166-173,178-180,185-190,192-203,205-218
+HANDOFF.md
+  s_70b027a60d4a55::t_2c5d0395351922 25
+  s_70b027a60d4a55::t_460dedce5d562f 18-24,26-31
+ARCHITECTURE.md
+  s_70b027a60d4a55::t_f05d8d344eb3ab 41-55
+benchmarks-ann/experiments/2026-11-07-local-datastore/README.md
+  s_70b027a60d4a55::t_2c5d0395351922 142,144-145
+  s_70b027a60d4a55::t_460dedce5d562f 115-141,143,146-163
+benchmarks-ann/experiments/2026-11-07-local-datastore/ivf-manifest.json
+  s_528e6b3f95df22::t_3b52a1c72246f8 1-247
+benchmarks-ann/experiments/2026-11-07-local-datastore/default-manifest.json
+  s_528e6b3f95df22::t_3b52a1c72246f8 1-247
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c772792f9e9cec7a82e8c8ca4179078c8c7b1896",
+  "prompts": {},
+  "sessions": {
+    "s_528e6b3f95df22": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_70b027a60d4a55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a179b5-581e-7dd3-a2f7-ce309fa4c09b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
