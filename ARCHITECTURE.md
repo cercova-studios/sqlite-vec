@@ -79,6 +79,15 @@ The Lance provider (`lance/src/provider.rs`) and `lance0` share
 rules. Its shadow table `<table>_storage` records the committed Lance version and
 the dataset location.
 
+Both entrypoints route DROP through `LanceStore::destroy`: only the SQLite version
+table is removed, so rollback and WAL readers retain their dataset files. Committed
+DROP also retains local/remote files; no automatic filesystem cleanup is performed.
+DROP refuses uncommitted writes/maintenance to that store because a recreated vtab
+cannot recover its pending map. vec0 calls the provider before changing other shadow
+tables so that refusal cannot invalidate pending state. A failed `vec0Destroy`
+retains the live vtab; only successful destruction frees it. `lance0` removes its
+`<table>_lance` version table through the same lifecycle method.
+
 Storage ABI version 2 adds the optional `xCommand` callback. The C core checks
 `iVersion >= 2` before reading it; providers using version 1 still support their
 original operations. Commands unknown to the C indexes are forwarded to storage.

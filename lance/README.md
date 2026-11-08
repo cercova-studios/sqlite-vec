@@ -40,7 +40,13 @@ select rowid, title, length(image) from items where embedding match :q and k = 1
 
 - Without `storage_uri`, the dataset goes next to the database file, as `<db>.<table>.lance`. In-memory databases need `storage_uri`.
 - Inserts, updates, deletes, transactions, savepoints and failed statements behave as they do with the default storage.
-- `ALTER TABLE ... RENAME` keeps the data. `DROP TABLE` deletes a local dataset; a remote one (`s3://...`) is left in place.
+- `ALTER TABLE ... RENAME` keeps the data. `DROP TABLE` removes SQLite metadata
+  and retains local and remote datasets, including after commit. Retention protects
+  rolled-back drops and existing readers. Dataset files can continue to occupy disk
+  space after the SQL table is gone; cleanup requires proving that no table,
+  database or reader still needs them.
+- When replacing a dropped `vec0` table, use a fresh `storage_uri`. Creation rejects
+  a retained dataset at the same location, including the default location.
 - Auxiliary values are read from Lance, which costs about 0.5 ms per query or point read (20k rows, measured on Apple M-series). Use it for large blobs that you don't want in the SQLite file. Small values that are read often are faster in the default storage.
 
 ## `lance0` columns
@@ -92,6 +98,11 @@ build a second vector index in Lance.
 - **Rollback and crashes.** Readers always open Lance at the recorded version. If SQLite rolls back after Lance committed, for example because a later table failed to commit or the process crashed, that Lance version is never visible. The next write restores Lance to the recorded version first.
 - **Reading your own writes.** Inside a transaction, reads include the transaction's inserts, updates and deletes.
 - **Savepoints.** `ROLLBACK TO` and failed statements undo only their own writes.
+- **DROP.** Both `lance0` and `vec0 storage=lance` retain dataset files and remove
+  their SQLite version metadata transactionally. A transaction that has written to
+  that Lance table or requested maintenance must commit or roll back before DROP.
+  Rejected DROP preserves its pending changes. SQLite can report this refusal as
+  a generic SQL error rather than forwarding the module's detailed message.
 
 This relies on a single writer, which SQLite already enforces.
 

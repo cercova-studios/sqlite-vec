@@ -1,0 +1,434 @@
+[
+  {
+    "label": "baseline",
+    "returncode": 101,
+    "diagnostics": [
+      {
+        "code": "clippy::chunks_exact_to_as_chunks",
+        "message": "using `chunks_exact` with a constant chunk size",
+        "spans": [
+          {
+            "byte_end": 1875,
+            "byte_start": 1860,
+            "column_end": 30,
+            "column_start": 15,
+            "expansion": null,
+            "file_name": "src/lance0.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 55,
+            "line_start": 55,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 30,
+                "highlight_start": 15,
+                "text": "            b.chunks_exact(4).map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect()"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::needless_borrows_for_generic_args",
+        "message": "the borrowed expression implements the required traits",
+        "spans": [
+          {
+            "byte_end": 13874,
+            "byte_start": 13863,
+            "column_end": 55,
+            "column_start": 44,
+            "expansion": null,
+            "file_name": "src/lance0.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 349,
+            "line_start": 349,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 55,
+                "highlight_start": 44,
+                "text": "            COL_DISTANCE => ctx.set_result(&r.distance),"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::needless_borrows_for_generic_args",
+        "message": "the borrowed expression implements the required traits",
+        "spans": [
+          {
+            "byte_end": 13921,
+            "byte_start": 13909,
+            "column_end": 45,
+            "column_start": 33,
+            "expansion": null,
+            "file_name": "src/lance0.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 350,
+            "line_start": 350,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 45,
+                "highlight_start": 33,
+                "text": "            _ => ctx.set_result(&None::<i64>),"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::collapsible_if",
+        "message": "this `if` statement can be collapsed",
+        "spans": [
+          {
+            "byte_end": 8784,
+            "byte_start": 8638,
+            "column_end": 10,
+            "column_start": 9,
+            "expansion": null,
+            "file_name": "src/store.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 217,
+            "line_start": 213,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 65,
+                "highlight_start": 9,
+                "text": "        if let Some((ver, ds)) = self.opened.borrow().as_ref() {"
+              },
+              {
+                "highlight_end": 27,
+                "highlight_start": 1,
+                "text": "            if *ver == v {"
+              },
+              {
+                "highlight_end": 39,
+                "highlight_start": 1,
+                "text": "                return Ok(ds.clone());"
+              },
+              {
+                "highlight_end": 14,
+                "highlight_start": 1,
+                "text": "            }"
+              },
+              {
+                "highlight_end": 10,
+                "highlight_start": 1,
+                "text": "        }"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::doc_lazy_continuation",
+        "message": "doc list item without indentation",
+        "spans": [
+          {
+            "byte_end": 12674,
+            "byte_start": 12674,
+            "column_end": 9,
+            "column_start": 9,
+            "expansion": null,
+            "file_name": "src/store.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 317,
+            "line_start": 317,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 9,
+                "highlight_start": 9,
+                "text": "    /// Returns false for commands this store does not know."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::chunks_exact_to_as_chunks",
+        "message": "using `chunks_exact` with a constant chunk size",
+        "spans": [
+          {
+            "byte_end": 28453,
+            "byte_start": 28438,
+            "column_end": 62,
+            "column_start": 47,
+            "expansion": null,
+            "file_name": "src/store.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 659,
+            "line_start": 659,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 62,
+                "highlight_start": 47,
+                "text": "                                flat.extend(b.chunks_exact(4).map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]])));"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::chunks_exact_to_as_chunks",
+        "message": "using `chunks_exact` with a constant chunk size",
+        "spans": [
+          {
+            "byte_end": 32593,
+            "byte_start": 32578,
+            "column_end": 27,
+            "column_start": 12,
+            "expansion": null,
+            "file_name": "src/store.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 751,
+            "line_start": 751,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 27,
+                "highlight_start": 12,
+                "text": "    Some(b.chunks_exact(4).zip(q)"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stderr": "   Compiling sqlite-vec-lance v0.1.0 (/private/tmp/vec-lance-drop-3g69ln40/lance)\nerror: could not compile `sqlite-vec-lance` (lib) due to 7 previous errors\n"
+  },
+  {
+    "label": "candidate",
+    "returncode": 101,
+    "diagnostics": [
+      {
+        "code": "clippy::chunks_exact_to_as_chunks",
+        "message": "using `chunks_exact` with a constant chunk size",
+        "spans": [
+          {
+            "byte_end": 1875,
+            "byte_start": 1860,
+            "column_end": 30,
+            "column_start": 15,
+            "expansion": null,
+            "file_name": "src/lance0.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 55,
+            "line_start": 55,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 30,
+                "highlight_start": 15,
+                "text": "            b.chunks_exact(4).map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect()"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::needless_borrows_for_generic_args",
+        "message": "the borrowed expression implements the required traits",
+        "spans": [
+          {
+            "byte_end": 13948,
+            "byte_start": 13937,
+            "column_end": 55,
+            "column_start": 44,
+            "expansion": null,
+            "file_name": "src/lance0.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 353,
+            "line_start": 353,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 55,
+                "highlight_start": 44,
+                "text": "            COL_DISTANCE => ctx.set_result(&r.distance),"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::needless_borrows_for_generic_args",
+        "message": "the borrowed expression implements the required traits",
+        "spans": [
+          {
+            "byte_end": 13995,
+            "byte_start": 13983,
+            "column_end": 45,
+            "column_start": 33,
+            "expansion": null,
+            "file_name": "src/lance0.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 354,
+            "line_start": 354,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 45,
+                "highlight_start": 33,
+                "text": "            _ => ctx.set_result(&None::<i64>),"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::collapsible_if",
+        "message": "this `if` statement can be collapsed",
+        "spans": [
+          {
+            "byte_end": 8784,
+            "byte_start": 8638,
+            "column_end": 10,
+            "column_start": 9,
+            "expansion": null,
+            "file_name": "src/store.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 217,
+            "line_start": 213,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 65,
+                "highlight_start": 9,
+                "text": "        if let Some((ver, ds)) = self.opened.borrow().as_ref() {"
+              },
+              {
+                "highlight_end": 27,
+                "highlight_start": 1,
+                "text": "            if *ver == v {"
+              },
+              {
+                "highlight_end": 39,
+                "highlight_start": 1,
+                "text": "                return Ok(ds.clone());"
+              },
+              {
+                "highlight_end": 14,
+                "highlight_start": 1,
+                "text": "            }"
+              },
+              {
+                "highlight_end": 10,
+                "highlight_start": 1,
+                "text": "        }"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::doc_lazy_continuation",
+        "message": "doc list item without indentation",
+        "spans": [
+          {
+            "byte_end": 12674,
+            "byte_start": 12674,
+            "column_end": 9,
+            "column_start": 9,
+            "expansion": null,
+            "file_name": "src/store.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 317,
+            "line_start": 317,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 9,
+                "highlight_start": 9,
+                "text": "    /// Returns false for commands this store does not know."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::chunks_exact_to_as_chunks",
+        "message": "using `chunks_exact` with a constant chunk size",
+        "spans": [
+          {
+            "byte_end": 28453,
+            "byte_start": 28438,
+            "column_end": 62,
+            "column_start": 47,
+            "expansion": null,
+            "file_name": "src/store.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 659,
+            "line_start": 659,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 62,
+                "highlight_start": 47,
+                "text": "                                flat.extend(b.chunks_exact(4).map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]])));"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "clippy::chunks_exact_to_as_chunks",
+        "message": "using `chunks_exact` with a constant chunk size",
+        "spans": [
+          {
+            "byte_end": 32409,
+            "byte_start": 32394,
+            "column_end": 27,
+            "column_start": 12,
+            "expansion": null,
+            "file_name": "src/store.rs",
+            "is_primary": true,
+            "label": null,
+            "line_end": 746,
+            "line_start": 746,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 27,
+                "highlight_start": 12,
+                "text": "    Some(b.chunks_exact(4).zip(q)"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stderr": "   Compiling sqlite-vec-lance v0.1.0 (/private/tmp/vec-lance-drop-3g69ln40/lance)\nerror: could not compile `sqlite-vec-lance` (lib) due to 7 previous errors\n"
+  }
+]

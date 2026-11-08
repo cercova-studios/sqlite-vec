@@ -15,6 +15,9 @@ by this review.
 
 ### R1 — P1: provider DROP deletes data before SQLite commit
 
+Resolved by the [2026-11-08 DROP repair](../2026-11-08-lance-drop/README.md).
+The following describes the reviewed pre-fix behavior.
+
 `lance/src/provider.rs:284` routes destruction to `LanceStore::destroy`;
 `lance/src/store.rs:698-703` drops SQLite metadata and immediately calls
 `remove_dir_all` on the local dataset. That filesystem operation cannot roll back.

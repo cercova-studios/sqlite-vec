@@ -172,6 +172,10 @@ unsafe impl<'vtab> VTab<'vtab> for LanceTab {
 
 impl CreateVTab<'_> for LanceTab {
     const KIND: VTabKind = VTabKind::Default;
+
+    fn destroy(&self) -> Result<()> {
+        self.store.destroy()
+    }
 }
 
 impl UpdateVTab<'_> for LanceTab {

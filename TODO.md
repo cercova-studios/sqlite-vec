@@ -26,7 +26,10 @@ are designed and verified. No push, publishing or CI changes are authorized.
 [All-Rust review and counterexamples](benchmarks-ann/experiments/2026-11-07-write-history/rust-review.md).
 These are existing defects/gaps, not changes made by the task writer prototype.
 
-- [ ] P1: preserve Lance files across rolled-back DROP; enforce lance0 rowid
+- [x] P1: retain Lance datasets across rolled-back/committed DROP, preserve
+  active readers and reject DROP of pending writes without losing state.
+  [Regression evidence](benchmarks-ann/experiments/2026-11-08-lance-drop/README.md).
+- [ ] P1: enforce lance0 rowid
   uniqueness; reject NULL TEXT buffers before constructing Rust slices on OOM.
 - [ ] P2: qualify Lance metadata by SQLite schema; preserve collation semantics;
   reject unsupported TEXT encoding without lossy replacement.

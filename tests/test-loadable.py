@@ -1026,6 +1026,31 @@ def test_vec0_drops():
     ] == []
 
 
+@pytest.mark.parametrize("index", ["", "indexed by hnsw()"])
+def test_vec0_failed_drop_preserves_live_vtab(index):
+    db = connect(EXT_PATH)
+    try:
+        db.execute(f"create virtual table t using vec0(v float[2] {index}, +doc blob)")
+        db.execute("insert into t(rowid,v,doc) values (1,'[1,0]',x'00ff')")
+        db.commit()
+        schema = execute_all(db, "select name,sql from sqlite_schema order by name")
+        db.set_authorizer(authorizer_deny_on(sqlite3.SQLITE_DROP_TABLE, "t_auxiliary"))
+        try:
+            with pytest.raises(sqlite3.Error):
+                db.execute("drop table t")
+        finally:
+            db.set_authorizer(None)
+        assert execute_all(db, "select name,sql from sqlite_schema order by name") == schema
+        assert execute_all(db, "select rowid,v,doc from t") == [dict(rowid=1,v=_f32([1,0]),doc=b"\x00\xff")]
+        db.execute("insert into t(rowid,v,doc) values (2,'[2,0]',NULL)")
+        db.commit()
+        assert db.execute("select count(*) from t").fetchone()[0] == 2
+        db.execute("drop table t")
+        assert not execute_all(db, "select name from sqlite_schema where name like 't%'")
+    finally:
+        db.close()
+
+
 def test_vec0_delete():
     db = connect(EXT_PATH)
     db.execute("create virtual table t1 using vec0(aaa float[4], chunk_size=8)")

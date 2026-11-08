@@ -3,12 +3,17 @@
 Build first with `make hybrid` (needs Rust and protoc); skipped otherwise.
 """
 import glob
+import hashlib
 import os
 import random
 import re
 import shutil
 import sqlite3
 import struct
+import subprocess
+import sys
+from contextlib import closing
+from pathlib import Path
 
 import pytest
 
@@ -285,13 +290,227 @@ def test_vec0_storage_lance_location_rename_drop(root):
     db.execute("alter table t rename to t2")
     assert db.execute("select doc from t2 where rowid = 1").fetchone() == (b"\x01\x02",)
     db.execute("drop table t2")
-    assert not os.path.exists(path + ".t.lance")      # local data removed with the table
+    assert os.path.isdir(path + ".t.lance")          # retained for rollback/readers
     mem = connect(":memory:")
     with pytest.raises(sqlite3.Error, match="storage_uri is required"):
         mem.execute("create virtual table t using vec0(v float[2], +doc blob, storage=lance)")
     with pytest.raises(sqlite3.Error, match="supports flat and hnsw"):
         mem.execute(f"create virtual table t using vec0(v float[8] indexed by rescore(quantizer=bit), "
                     f"storage=lance, storage_uri='{root}/x')")
+
+
+@pytest.fixture(params=["flat", "hnsw", "lance0"])
+def drop_case(tmp_path, request):
+    path = tmp_path / "drop.db"
+    dataset = tmp_path / "retained.lance"
+    db = connect(str(path))
+    db.execute("pragma journal_mode=WAL")
+    db.execute("pragma foreign_keys=ON")
+    if request.param == "lance0":
+        db.execute(f"create virtual table subject using lance0('{dataset}', 2)")
+        projection, shadow = "rowid,vector,payload", "subject_lance"
+    else:
+        index = "indexed by hnsw()" if request.param == "hnsw" else ""
+        db.execute(f"create virtual table subject using vec0(v float[2] {index}, +doc blob, "
+                   f"storage=lance, storage_uri='{dataset}')")
+        projection, shadow = "rowid,v,doc", "subject_storage"
+    db.execute("create table expected(id integer primary key, v blob, doc blob)")
+    rows = [(1, _f32([1, 0]), b"\x00\xff"), (2, _f32([2, 0]), None)]
+    db.execute("begin")
+    db.executemany(f"insert into subject({projection}) values (?,?,?)", rows)
+    db.executemany("insert into expected values (?,?,?)", rows)
+    db.execute("commit")
+    try:
+        yield db, path, dataset, projection, shadow
+    finally:
+        db.close()
+
+
+def dataset_files(dataset):
+    return {str(p.relative_to(dataset)): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in dataset.rglob("*") if p.is_file()}
+
+
+@pytest.mark.parametrize("ending", ["rollback", "savepoint", "failed_commit"])
+def test_lance_drop_rollback_preserves_dataset_and_rows(drop_case, ending):
+    db, path, dataset, projection, shadow = drop_case
+    original = dataset_files(dataset)
+    assert original
+    schema = db.execute("select name,sql from sqlite_schema order by name").fetchall()
+    version = db.execute(f"select k,v from {shadow} order by k").fetchall()
+    if ending == "failed_commit":
+        db.execute("create table parent(id primary key)")
+        db.execute("create table child(id references parent deferrable initially deferred)")
+        schema = db.execute("select name,sql from sqlite_schema order by name").fetchall()
+    db.execute("begin")
+    if ending == "savepoint":
+        db.execute("insert into expected values (3, x'00', NULL)")
+        db.execute("savepoint before_drop")
+    elif ending == "failed_commit":
+        db.execute("insert into child values (99)")
+    db.execute("drop table subject")
+    assert dataset_files(dataset) == original
+    if ending == "savepoint":
+        db.execute("rollback to before_drop")
+        db.execute("release before_drop")
+        assert db.execute("select count(*) from expected where id=3").fetchone() == (1,)
+        db.execute("delete from expected where id=3")
+        db.execute("commit")
+    else:
+        if ending == "failed_commit":
+            with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
+                db.execute("commit")
+            assert db.in_transaction
+        db.execute("rollback")
+    assert db.execute("select name,sql from sqlite_schema order by name").fetchall() == schema
+    assert db.execute(f"select k,v from {shadow} order by k").fetchall() == version
+    expected = db.execute("select id,v,doc from expected order by id").fetchall()
+    assert db.execute(f"select {projection} from subject order by rowid").fetchall() == expected
+    with closing(connect(str(path))) as reopened:
+        assert reopened.execute(f"select {projection} from subject order by rowid").fetchall() == expected
+        assert reopened.execute("pragma integrity_check").fetchone() == ("ok",)
+    # Restored tables remain writable; the provider must reopen at the recorded version.
+    db.execute(f"insert into subject({projection}) values (3, ?, x'01')", [_f32([3, 0])])
+    assert db.execute("select count(*) from subject").fetchone() == (3,)
+
+
+@pytest.mark.parametrize("prime_reader", [False, True])
+def test_lance_drop_commit_keeps_dataset_and_wal_reader(drop_case, prime_reader):
+    db, path, dataset, projection, shadow = drop_case
+    original = dataset_files(dataset)
+    expected = db.execute("select id,v,doc from expected order by id").fetchall()
+    reader = connect(str(path))
+    try:
+        reader.execute("begin")
+        assert reader.execute("select id,v,doc from expected order by id").fetchall() == expected
+        if prime_reader:
+            assert reader.execute(f"select {projection} from subject order by rowid").fetchall() == expected
+        db.execute("begin")
+        db.execute("drop table subject")
+        db.execute("commit")
+        assert dataset_files(dataset) == original
+        assert reader.execute(f"select {projection} from subject order by rowid").fetchall() == expected
+        reader.execute("rollback")
+        with pytest.raises(sqlite3.OperationalError, match="no such table"):
+            reader.execute("select * from subject")
+    finally:
+        reader.close()
+    assert not db.execute("select name from sqlite_schema where name like 'subject%'").fetchall()
+    if shadow == "subject_storage":
+        with pytest.raises(sqlite3.Error, match="already exists"):
+            db.execute(f"create virtual table subject using vec0(v float[2], +doc blob, "
+                       f"storage=lance, storage_uri='{dataset}')")
+        assert dataset_files(dataset) == original
+    with closing(connect(str(path))) as reopened:
+        assert not reopened.execute("select name from sqlite_schema where name='subject'").fetchall()
+        assert reopened.execute("pragma integrity_check").fetchone() == ("ok",)
+
+
+@pytest.mark.parametrize("committed", [False, True])
+def test_lance_drop_process_exit_recovery(drop_case, committed):
+    db, path, dataset, projection, _ = drop_case
+    original = dataset_files(dataset)
+    expected = db.execute("select id,v,doc from expected order by id").fetchall()
+    db.close()
+    extension = next(Path().glob(EXT + ".*")).resolve()
+    code = """
+import os, sqlite3, sys
+db = sqlite3.connect(sys.argv[1], isolation_level=None)
+db.enable_load_extension(True)
+db.load_extension(sys.argv[2])
+db.enable_load_extension(False)
+db.execute('begin')
+db.execute('drop table subject')
+if sys.argv[3] == '1':
+    db.execute('commit')
+os._exit(42)
+"""
+    result = subprocess.run([sys.executable, "-c", code, str(path), str(extension),
+                             "1" if committed else "0"], capture_output=True, timeout=30)
+    assert result.returncode == 42, result.stderr.decode()
+    assert dataset_files(dataset) == original
+    reopened = connect(str(path))
+    try:
+        if committed:
+            assert not reopened.execute("select name from sqlite_schema where name='subject'").fetchall()
+        else:
+            assert reopened.execute(f"select {projection} from subject order by rowid").fetchall() == expected
+        assert reopened.execute("pragma integrity_check").fetchone() == ("ok",)
+    finally:
+        reopened.close()
+
+
+@pytest.mark.parametrize("operation", ["insert", "update", "delete", "optimize"])
+@pytest.mark.parametrize("resolution", ["commit", "rollback"])
+def test_lance_drop_refuses_pending_changes_without_losing_them(drop_case, operation, resolution):
+    db, path, dataset, projection, _ = drop_case
+    payload = projection.split(",")[2]
+    db.execute("begin")
+    if operation == "insert":
+        db.execute(f"insert into subject({projection}) values (3,?,x'0102')", [_f32([3,0])])
+        db.execute("insert into expected values (3,?,x'0102')", [_f32([3,0])])
+    elif operation == "update":
+        db.execute(f"update subject set {payload}=x'03' where rowid=1")
+        db.execute("update expected set doc=x'03' where id=1")
+    elif operation == "delete":
+        db.execute("delete from subject where rowid=1")
+        db.execute("delete from expected where id=1")
+    else:
+        db.execute("insert into subject(subject) values ('optimize')")
+    own_rows = db.execute("select id,v,doc from expected order by id").fetchall()
+    db.execute("savepoint keep_pending")
+    # SQLite's xDestroy path does not forward module-specific error text.
+    with pytest.raises(sqlite3.OperationalError) as refused:
+        db.execute("drop table subject")
+    assert refused.value.sqlite_errorcode == sqlite3.SQLITE_ERROR
+    assert db.in_transaction
+    assert db.execute(f"select {projection} from subject order by rowid").fetchall() == own_rows
+    db.execute("rollback to keep_pending")
+    db.execute("release keep_pending")
+    assert db.execute(f"select {projection} from subject order by rowid").fetchall() == own_rows
+    db.execute(resolution)
+    expected = db.execute("select id,v,doc from expected order by id").fetchall()
+    assert db.execute(f"select {projection} from subject order by rowid").fetchall() == expected
+    with closing(connect(str(path))) as reopened:
+        assert reopened.execute(f"select {projection} from subject order by rowid").fetchall() == expected
+    files = dataset_files(dataset)
+    db.execute("drop table subject")
+    assert dataset_files(dataset) == files
+
+
+@pytest.mark.parametrize("index", ["", "indexed by hnsw()"])
+@pytest.mark.parametrize("target", ["subject_storage", "subject_chunks"])
+def test_lance_drop_statement_failure_keeps_data_and_all_shadow_tables(tmp_path, index, target):
+    path = tmp_path / "failure.db"
+    dataset = tmp_path / "failure.lance"
+    db = connect(str(path))
+    try:
+        db.execute(f"create virtual table subject using vec0(v float[2] {index}, +doc blob, "
+                   f"storage=lance, storage_uri='{dataset}')")
+        db.execute("insert into subject(rowid,v,doc) values (1,'[1,0]',x'00ff')")
+        schema = db.execute("select name,sql from sqlite_schema order by name").fetchall()
+        files = dataset_files(dataset)
+        denied = []
+        def authorizer(action, name, _column, _schema, _source):
+            if action == sqlite3.SQLITE_DROP_TABLE and name == target:
+                denied.append(name)
+                return sqlite3.SQLITE_DENY
+            return sqlite3.SQLITE_OK
+        db.set_authorizer(authorizer)
+        try:
+            with pytest.raises(sqlite3.Error):
+                db.execute("drop table subject")
+        finally:
+            db.set_authorizer(None)
+        assert denied == [target]
+        assert not db.in_transaction
+        assert dataset_files(dataset) == files
+        assert db.execute("select name,sql from sqlite_schema order by name").fetchall() == schema
+        assert db.execute("select rowid,v,doc from subject").fetchall() == [(1,_f32([1,0]),b"\x00\xff")]
+        db.execute("insert into subject(rowid,v,doc) values (2,'[2,0]',NULL)")
+        assert db.execute("select count(*) from subject").fetchone() == (2,)
+    finally:
+        db.close()
 
 
 def test_vec0_storage_lance_transactions(db, root):

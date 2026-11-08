@@ -692,18 +692,13 @@ impl LanceStore {
 
     // ------------------------------------------------------------ lifecycle
 
-    /// DROP TABLE: remove the version table and, for a local path, the data.
-    /// ponytail: remote (s3://...) datasets are left in place; deleting
-    /// objects under a URI is a decision for the owner of the bucket.
+    /// DROP TABLE removes only SQLite metadata. Retain datasets because
+    /// xDestroy can be rolled back and existing readers may still need them.
     pub fn destroy(&self) -> Result<()> {
-        self.conn()?.execute(&format!("drop table if exists {}", quote(&self.shadow)), [])?;
-        if !self.uri.contains("://") {
-            match std::fs::remove_dir_all(&self.uri) {
-                Ok(()) => {}
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => return Err(lance_err(e)),
-            }
+        if self.in_write {
+            return Err(lance_err("cannot drop with uncommitted Lance writes or maintenance; commit or roll back first"));
         }
+        self.conn()?.execute(&format!("drop table if exists {}", quote(&self.shadow)), [])?;
         Ok(())
     }
 

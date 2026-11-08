@@ -9,6 +9,15 @@ priorities and Dolt-inspired history/undo/branch/merge/sync track are consolidat
 there, with explicit acceptance gates. The old ANN plan and extensionless TODO
 are archived and are not publication or implementation instructions.
 
+Lance DROP rollback repair — 2026-11-08: `LanceStore::destroy` now removes only
+SQLite metadata and retains dataset files even after committed DROP. `lance0` uses
+the same method. DROP with pending writes/maintenance is rejected before vec0
+changes its shadow schema, preserving the pending map. Failed vec0 destruction
+keeps the live vtab and avoids finalizing a stale statement pointer. See the
+[regression receipt](benchmarks-ann/experiments/2026-11-08-lance-drop/README.md)
+for fresh baseline/candidate builds, failure controls and validation limits.
+Dataset retention can leave files after DROP; no cleanup command is added.
+
 Completed P1 slice: Rust standalone-source staging and native incremental
 dependencies, verified with isolated C consumers, the Rust test and local Cargo
 package verification. [Receipt and replay](benchmarks-ann/experiments/2026-11-07-local-datastore/README.md).
@@ -61,7 +70,8 @@ UTF-8 TEXT is silently rewritten. The TEXT conversion also has a source-confirme
 NULL-slice safety violation on OOM (not fault-injected). Legacy Rust harness input
 invalidation fails; the Rust adapter suite passed 9 of 10 tests on one run,
 with its timed cancellation test failing.
-Fresh Lance check is blocked by missing protoc, and strict adapter Clippy/Lance
+That review's fresh Lance check was blocked by missing protoc; the DROP repair
+above uses a temporary verified compiler for fresh builds. Strict adapter Clippy/Lance
 format/binding locked checks are not green. No production repairs were made by
 the review. Prioritize the P1 Lance findings before broad Lance writes.
 Agent writes, Session/history, branches,

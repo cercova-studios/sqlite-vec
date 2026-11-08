@@ -6999,12 +6999,18 @@ static int vec0Disconnect(sqlite3_vtab *pVtab) {
 }
 static int vec0Destroy(sqlite3_vtab *pVtab) {
   vec0_vtab *p = (vec0_vtab *)pVtab;
-  sqlite3_stmt *stmt;
+  sqlite3_stmt *stmt = NULL;
   int rc;
   const char *zSql;
 
   // Free up any sqlite3_stmt, otherwise DROPs on those tables will fail
   vec0_free_resources(p);
+
+  // Let providers refuse DROP before schema changes can invalidate pending state.
+  if (p->storage) {
+    rc = vec0_storage_error(p, p->storage->xDestroy(p->storageHandle));
+    if (rc != SQLITE_OK) goto done;
+  }
 
   // TODO(test) later: can't evidence-of here, bc always gives "SQL logic error" instead of
   // provided error
@@ -7094,6 +7100,7 @@ static int vec0Destroy(sqlite3_vtab *pVtab) {
     sqlite3_finalize(stmt);
   }
 
+  stmt = NULL;
 #if SQLITE_VEC_ENABLE_RESCORE
   rc = rescore_drop_tables(p);
   if (rc != SQLITE_OK) {
@@ -7116,10 +7123,7 @@ static int vec0Destroy(sqlite3_vtab *pVtab) {
   }
 #endif
 
-  if (p->storage) {
-    rc = vec0_storage_error(p, p->storage->xDestroy(p->storageHandle));
-    if (rc != SQLITE_OK) goto done;
-  } else if(p->numAuxiliaryColumns > 0) {
+  if (!p->storage && p->numAuxiliaryColumns > 0) {
     zSql = sqlite3_mprintf("DROP TABLE " VEC0_SHADOW_AUXILIARY_NAME, p->schemaName, p->tableName);
     rc = sqlite3_prepare_v2(p->db, zSql, -1, &stmt, 0);
     sqlite3_free((void *)zSql);
@@ -7158,9 +7162,9 @@ static int vec0Destroy(sqlite3_vtab *pVtab) {
 
 done:
   sqlite3_finalize(stmt);
-  vec0_free(p);
-  // If there was an error
+  // SQLite retains the vtab when xDestroy fails; its state must remain usable.
   if (rc == SQLITE_OK) {
+    vec0_free(p);
     sqlite3_free(p);
   }
   return rc;

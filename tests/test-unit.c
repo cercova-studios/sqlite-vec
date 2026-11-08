@@ -2268,6 +2268,48 @@ static void test_flat_selective_blob_reads(void) {
   assert(sqlite3_close(db) == SQLITE_OK);
 }
 
+static int deny_auxiliary_drop(void *context, int action, const char *name,
+                               const char *column, const char *schema,
+                               const char *source) {
+  (void)column;
+  (void)schema;
+  (void)source;
+  if (action == SQLITE_DROP_TABLE && strcmp(name, "t_auxiliary") == 0) {
+    (*(int *)context)++;
+    return SQLITE_DENY;
+  }
+  return SQLITE_OK;
+}
+
+static void test_vec0_failed_drop_preserves_vtab(void) {
+  const char *indexes[] = {"", "indexed by hnsw()"};
+  for (unsigned i = 0; i < sizeof(indexes) / sizeof(indexes[0]); i++) {
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    int denied = 0;
+    assert(sqlite3_open(":memory:", &db) == SQLITE_OK);
+    assert(sqlite3_vec_init(db, NULL, NULL) == SQLITE_OK);
+    char *sql = sqlite3_mprintf("CREATE VIRTUAL TABLE t USING vec0(v float[2] %s,+doc blob);"
+                               "INSERT INTO t(rowid,v,doc) VALUES(1,'[1,0]',x'00ff');", indexes[i]);
+    assert(sql);
+    assert(sqlite3_exec(db, sql, NULL, NULL, NULL) == SQLITE_OK);
+    sqlite3_free(sql);
+    assert(sqlite3_set_authorizer(db, deny_auxiliary_drop, &denied) == SQLITE_OK);
+    assert(sqlite3_exec(db, "DROP TABLE t", NULL, NULL, NULL) != SQLITE_OK);
+    assert(denied == 1);
+    assert(sqlite3_set_authorizer(db, NULL, NULL) == SQLITE_OK);
+    assert(sqlite3_prepare_v2(db, "SELECT rowid,hex(doc) FROM t", -1, &stmt, NULL) == SQLITE_OK);
+    assert(sqlite3_step(stmt) == SQLITE_ROW);
+    assert(sqlite3_column_int64(stmt, 0) == 1);
+    assert(strcmp((const char *)sqlite3_column_text(stmt, 1), "00FF") == 0);
+    assert(sqlite3_step(stmt) == SQLITE_DONE);
+    sqlite3_finalize(stmt);
+    assert(sqlite3_exec(db, "INSERT INTO t(rowid,v) VALUES(2,'[2,0]');DROP TABLE t;",
+                        NULL, NULL, NULL) == SQLITE_OK);
+    assert(sqlite3_close(db) == SQLITE_OK);
+  }
+}
+
 int main() {
   printf("Starting unit tests...\n");
 #ifdef SQLITE_VEC_ENABLE_AVX
@@ -2325,5 +2367,6 @@ int main() {
   test_graph_cache_module_lifetime();
   test_graph_witness_arena_boundaries();
   test_flat_selective_blob_reads();
+  test_vec0_failed_drop_preserves_vtab();
   printf("All unit tests passed.\n");
 }

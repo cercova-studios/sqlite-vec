@@ -82,7 +82,10 @@ typedef struct sqlite3_vec_storage_methods {
                const int *aVecDims,
                sqlite3_vec_storage **ppStore, char **pzErr);
   void (*xClose)(sqlite3_vec_storage *);
-  int (*xDestroy)(sqlite3_vec_storage *); /* DROP TABLE: delete all data */
+  /* Transactional DROP, before vec0 removes its shadow tables. May reject
+  ** without discarding pending state. Retain external data needed by rollback
+  ** or readers; xClose releases the handle. */
+  int (*xDestroy)(sqlite3_vec_storage *);
   int (*xRename)(sqlite3_vec_storage *, const char *zNewTable);
 
   /* Writes. xPut stores a new row: nAux auxiliary values and nVec vectors
