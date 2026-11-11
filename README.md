@@ -42,6 +42,9 @@ See <a href="#sponsors">the Sponsors section</a> for more details.
 
 ## Installing
 
+For agent setup, contributions and project context, start with the
+[portable onboarding guide](docs/agent-onboarding.md).
+
 For this fork's project-local SQLite CLI, search CLI/MCP adapter and native C
 bundle, use the [local bundle guide](docs/local-bundle.md). It pins committed
 sources and records build inputs and installed artifact hashes in a manifest.

@@ -10,6 +10,15 @@ Very much a WIP.
 
 ## Builds
 
+`scripts/bootstrap.py` provides a read-only prerequisite report by default.
+Its `dev --output PATH` route builds working-tree C sources through existing Make
+targets in a fresh output directory, then runs C unit and in-memory vector/FTS5
+checks. It enables FTS5, retains a full log and never installs tools or downloads
+dependencies. Make may generate the ignored root header. Existing destinations
+are rejected; failed attempts retain their outputs for diagnosis. This contributor
+route is separate from committed-source local bundles described below. See
+[portable agent onboarding](docs/agent-onboarding.md).
+
 - **C core** (`sqlite-vec.c`, `sqlite-vec-*.c`): `make loadable`, `static`,
   `amalgamation`. It depends only on SQLite, so it can ship as a single file.
 - **Hybrid** (`lance/`, `make hybrid` → `dist/vec0_lance`): a Rust crate whose
