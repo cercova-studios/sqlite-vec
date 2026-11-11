@@ -1,0 +1,41 @@
+tests/bundle.py
+  s_8e1621011687ed::t_c1525908eeafed 106-111
+  s_8e1621011687ed::t_1e0a2b2b7cf4d8 100
+ARCHITECTURE.md
+  s_8e1621011687ed::t_c1525908eeafed 68-73
+examples/bundle-consumer/app.py
+  s_eb124f8c9fdf34::t_8e7984b4cfd1a6 1-17,19-84,87-94,97
+  s_8e1621011687ed::t_c1525908eeafed 95-96
+  s_8e1621011687ed::t_1e0a2b2b7cf4d8 18,85-86
+docs/local-bundle.md
+  s_8e1621011687ed::t_c1525908eeafed 23-24,40-60
+  s_8e1621011687ed::t_74031d95e4b840 61
+scripts/local_bundle.py
+  s_8e1621011687ed::t_c1525908eeafed 157
+docs/agent-onboarding.md
+  s_8e1621011687ed::t_c1525908eeafed 111-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "60877e84b6800587e067ef362d56569a3bd95031",
+  "prompts": {},
+  "sessions": {
+    "s_8e1621011687ed": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cb7c-1dfe-7473-9908-6093db8c8558",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_eb124f8c9fdf34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a1cb7c-1dfe-7473-9908-6093db8c8558",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
