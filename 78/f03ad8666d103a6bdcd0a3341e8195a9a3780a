@@ -1,0 +1,35 @@
+benchmarks-ann/experiments/README.md
+  s_8e1621011687ed::t_ff3e970ea124be 63
+flake.nix
+  s_8e1621011687ed::t_024a8529ce64b2 4
+  s_8e1621011687ed::t_ebfe8be4df5818 1-3,5-18
+docs/agent-onboarding.md
+  s_8e1621011687ed::t_2a88bc39370a10 21-46,51-59
+  s_8e1621011687ed::t_34b52a395479a7 47-50
+  s_8e1621011687ed::t_9f996ace4ae9f5 63-65
+ARCHITECTURE.md
+  s_8e1621011687ed::t_3ec500f320bd99 13-20
+benchmarks-ann/experiments/2026-11-11-nix-onboarding/README.md
+  s_8e1621011687ed::t_942ba971f3b1f0 1-29,33-46,84-168,173-181,191-198
+  s_8e1621011687ed::t_56beffc69adb06 30-32
+  s_8e1621011687ed::t_ff3e970ea124be 47-83,169-172,182-190
+  s_8e1621011687ed::t_8e05dd87793090 199-216
+flake.lock
+  s_8e1621011687ed::t_97538c9c37ca39 1-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "78f03ad8666d103a6bdcd0a3341e8195a9a3780a",
+  "prompts": {},
+  "sessions": {
+    "s_8e1621011687ed": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cb7c-1dfe-7473-9908-6093db8c8558",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
