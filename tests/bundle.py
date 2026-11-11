@@ -97,12 +97,18 @@ class Installed(unittest.TestCase):
         return result.stdout
 
     def test_relocated_write_rollback_restore_cli_mcp_and_c(self):
-        with tempfile.TemporaryDirectory(prefix='vec-project-') as temporary:
+        with tempfile.TemporaryDirectory(prefix="vec project's-") as temporary:
             self.project = Path(temporary)
             local = self.project / '.sqlite-vec'
             shutil.copytree(INSTALLED, local)
             manifest = bundle.verify(local)
             self.run_command(['python3', local / 'tools/local_bundle.py', 'verify', local])
+            shutil.copyfile(local / 'examples/app.py', self.project / 'app.py')
+            demo = json.loads(self.run_command(['python3', self.project / 'app.py']))
+            self.assertTrue(demo['ok'], demo)
+            self.assertEqual([r['id'] for r in demo['neighbors']], [101, 202, 303, 404])
+            self.assertEqual([r['distance'] for r in demo['neighbors']], [0, 5, 10, 13])
+            self.run_command(['python3', '-O', self.project / 'app.py'], expected=1)
             sqlite = local / 'bin/sqlite3'
             db = self.project / 'app.db'
             self.run_command([sqlite, db], '''.bail on

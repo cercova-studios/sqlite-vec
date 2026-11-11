@@ -65,8 +65,12 @@ The default and experimental IVF profiles use isolated builds. Core dependencies
 remain SQLite-only; the adapter continues to bundle its own SQLite version.
 The manifest records both SQLite versions, native flags/capabilities, compiler
 versions, exact source/vendor input hashes and installed artifact hashes/sizes.
-The builder and guide themselves are copied from the invoking checkout; their
-artifact hashes identify those bytes separately from the compiled source revision.
+The builder, guide and `examples/bundle-consumer/app.py` starter are copied from
+the invoking checkout; their artifact hashes identify those bytes separately from
+the compiled source revision. The installed `examples/app.py` runs from beside
+the bundle, using its native CLI against fresh project-local fixtures. Independent
+Python distances check KNN results; reopen, rollback and backup/restore are checked
+without a model, Python SQLite extension loading or source-checkout dependency.
 Existing destinations are rejected; a manifest is written last as the completion
 marker. Failed builds retain their log. Installed verification reads hashes only;
 it does not authenticate an untrusted bundle. See [local bundles](docs/local-bundle.md)

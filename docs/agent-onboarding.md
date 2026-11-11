@@ -108,7 +108,9 @@ exercise the `dev` command in an isolated checkout with a fresh output directory
 Reuse the existing builder. It builds **committed HEAD**, excluding working-tree
 source edits, into a new destination. Read [bundle prerequisites and recovery](local-bundle.md)
 first: Python 3.12+, Rust/Cargo and a populated offline Cargo cache are required
-in addition to native tools and vendor files.
+in addition to native tools and vendor files. The guide also shows how to copy
+the bundled starter app into the new project and verify actual writes, vector
+queries, rollback, reopening and backup/restore.
 
 ```sh
 python3 scripts/local_bundle.py build --output /tmp/my-project/.sqlite-vec

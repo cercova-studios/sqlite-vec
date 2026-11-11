@@ -154,6 +154,7 @@ def build(output, profile):
             'README.md': REPO / 'docs/local-bundle.md',
             'docs/search-adapter.md': adapter / 'README.md',
             'docs/graph-semantics.md': adapter / 'graph-semantics.md',
+            'examples/app.py': REPO / 'examples/bundle-consumer/app.py',
         }
         for name, original in copies.items():
             target = output / name

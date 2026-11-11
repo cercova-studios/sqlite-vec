@@ -20,8 +20,8 @@ with `cargo fetch --locked --manifest-path examples/search-lab/Cargo.toml` if ne
 Running the installed CLI/MCP binaries does not require Python, Cargo or the checkout.
 
 The builder compiles committed HEAD in a fresh temporary tree; uncommitted source
-edits are excluded. The installed builder and this guide are copied from the current
-checkout and included in artifact hashes. The manifest records the exact input
+edits are excluded. The installed builder, starter app and this guide are copied
+from the current checkout and included in artifact hashes. The manifest records the exact input
 hashes of the native sources, vendor SQLite and adapter sources/lockfile, source
 revision, platform, compiler versions, effective native flags, SQLite versions,
 enabled profile and installed artifact sizes/SHA256 hashes.
@@ -36,6 +36,28 @@ Existing output paths are rejected. A failed build retains `build.log` in the ne
 directory for diagnosis; a complete `manifest.json` marks success. After fixing
 the cause, build into another new directory. Verification checks hashes and sizes;
 it is not a signature or authentication of an untrusted bundle.
+
+## Run a checked example project
+
+The bundle contains a starter app that uses the installed SQLite CLI and Python
+3.9+ standard library. After building and verifying the bundle above, copy the app
+beside `.sqlite-vec` and run it:
+
+```sh
+cp /tmp/my-project/.sqlite-vec/examples/app.py /tmp/my-project/app.py
+python3 /tmp/my-project/app.py
+```
+
+Each run retains fresh disposable databases under `/tmp/my-project/runs/`, outside
+the bundle. It inserts ordinary task records and vectors, checks nearest-neighbor
+IDs `101,202,303,404` and independent L2 distances `0,5,10,13`, then verifies
+reopening, full/savepoint rollback and backup/restore. Success prints JSON with
+`ok: true`. Run without `-O`; the app refuses to disable its assertions. The
+example's explicit vectors do not require a model or embedding service.
+
+Move the complete project directory and rerun `app.py` to check relocation. The
+source checkout is unnecessary at runtime. This sample checks its small fixture;
+it is not an ingestion framework or a production-data migration.
 
 ## Write, query, back up and restore
 
