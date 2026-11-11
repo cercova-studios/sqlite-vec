@@ -106,18 +106,15 @@ hybrid: $(prefix)
 	cargo build --release --manifest-path lance/Cargo.toml
 	cp $(HYBRID_BUILT) $(TARGET_HYBRID)
 static: $(TARGET_STATIC) $(TARGET_STATIC_H)
+# Standalone SQLite CLI with vec0 registered on each opened connection.
 cli: $(TARGET_CLI)
 
 all: loadable static cli
 
 OBJS_DIR=$(prefix)/.objs
-LIBS_DIR=$(prefix)/.libs
 BUILD_DIR=$(prefix)/.build
 
 $(OBJS_DIR): | $(prefix)
-	mkdir -p $@
-
-$(LIBS_DIR): | $(prefix)
 	mkdir -p $@
 
 $(BUILD_DIR): | $(prefix)
@@ -144,43 +141,15 @@ $(TARGET_STATIC_H): sqlite-vec.h | $(prefix)
 	cp $< $@
 
 
-$(OBJS_DIR)/sqlite3.o: vendor/sqlite3.c $(OBJS_DIR)
-	$(CC) -c -g3 -O3 $(CFLAGS) -DSQLITE_EXTRA_INIT=core_init -DSQLITE_CORE -DSQLITE_ENABLE_STMT_SCANSTATUS -DSQLITE_ENABLE_BYTECODE_VTAB -DSQLITE_ENABLE_EXPLAIN_COMMENTS -I./vendor $< -o $@
-
-$(LIBS_DIR)/sqlite3.a: $(OBJS_DIR)/sqlite3.o $(LIBS_DIR)
-	$(AR) rcs $@ $<
-
-$(BUILD_DIR)/shell-new.c: vendor/shell.c $(BUILD_DIR)
-	sed 's/\/\*extra-version-info\*\//EXTRA_TODO/g' $< > $@
-
-$(OBJS_DIR)/shell.o: $(BUILD_DIR)/shell-new.c $(OBJS_DIR)
-	$(CC) -c -g3 -O3 \
-		-I./vendor \
-		-DSQLITE_ENABLE_STMT_SCANSTATUS -DSQLITE_ENABLE_BYTECODE_VTAB -DSQLITE_ENABLE_EXPLAIN_COMMENTS \
-		-DEXTRA_TODO="\"CUSTOMBUILD:sqlite-vec\n\"" \
-		$(CFLAGS) \
-		$< -o $@
-
-$(LIBS_DIR)/shell.a: $(OBJS_DIR)/shell.o $(LIBS_DIR)
-	$(AR) rcs $@ $<
-
-$(OBJS_DIR)/sqlite-vec.o: $(VEC_SOURCES) sqlite-vec.h | $(OBJS_DIR)
-	$(CC) -c -g3 -O3 -Ivendor/ -I./ $(CFLAGS) $< -o $@
-
-$(LIBS_DIR)/sqlite-vec.a: $(OBJS_DIR)/sqlite-vec.o $(LIBS_DIR)
-	$(AR) rcs $@ $<
-
-
-$(TARGET_CLI): sqlite-vec.h $(LIBS_DIR)/sqlite-vec.a $(LIBS_DIR)/shell.a $(LIBS_DIR)/sqlite3.a examples/sqlite3-cli/core_init.c $(prefix)
-	$(CC) -g3 -O3 \
-	-Ivendor/ -I./ \
+$(TARGET_CLI): $(VEC_SOURCES) sqlite-vec.h vendor/sqlite3.c vendor/sqlite3.h \
+               vendor/sqlite3ext.h vendor/shell.c examples/sqlite3-cli/core_init.c | $(prefix)
+	$(CC) -O2 -g \
 	-DSQLITE_CORE \
-	-DSQLITE_VEC_STATIC \
-	-DSQLITE_THREADSAFE=0 -DSQLITE_ENABLE_FTS4 \
-	-DSQLITE_ENABLE_STMT_SCANSTATUS -DSQLITE_ENABLE_BYTECODE_VTAB -DSQLITE_ENABLE_EXPLAIN_COMMENTS \
 	-DSQLITE_EXTRA_INIT=core_init \
+	-DSQLITE_THREADSAFE=0 \
+	-Ivendor/ -I./ \
 	$(CFLAGS) \
-	examples/sqlite3-cli/core_init.c $(LIBS_DIR)/shell.a $(LIBS_DIR)/sqlite3.a $(LIBS_DIR)/sqlite-vec.a \
+	vendor/sqlite3.c vendor/shell.c sqlite-vec.c examples/sqlite3-cli/core_init.c \
 	$(LINK_LIBS) -o $@
 
 
@@ -223,7 +192,7 @@ evidence-of:
 test:
 	sqlite3 :memory: '.read test.sql'
 
-.PHONY: version loadable hybrid test-hybrid test-unit static test clean gh-release evidence-of install uninstall amalgamation
+.PHONY: version loadable hybrid test-hybrid test-unit static cli test clean gh-release evidence-of install uninstall amalgamation
 
 publish-release:
 	./scripts/publish-release.sh
@@ -247,21 +216,6 @@ test-unit: sqlite-vec.h $(prefix)
 .PHONY: test-packaging
 test-packaging: sqlite-vec.h
 	python3 tests/packaging.py
-
-# Standalone sqlite3 CLI with vec0 compiled in. Useful for benchmarking,
-# profiling (has debug symbols), and scripting without .load_extension.
-#   make cli
-#   dist/sqlite3 :memory: "SELECT vec_version()"
-#   dist/sqlite3 < script.sql
-cli: sqlite-vec.h $(prefix)
-	$(CC) -O2 -g \
-	-DSQLITE_CORE \
-	-DSQLITE_EXTRA_INIT=core_init \
-	-DSQLITE_THREADSAFE=0 \
-	-Ivendor/ -I./ \
-	$(CFLAGS) \
-	vendor/sqlite3.c vendor/shell.c sqlite-vec.c examples/sqlite3-cli/core_init.c \
-	$(LINK_LIBS) -o $(prefix)/sqlite3
 
 fuzz-build:
 	$(MAKE) -C tests/fuzz all
