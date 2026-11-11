@@ -1,0 +1,24 @@
+benchmarks-ann/experiments/2026-11-11-agent-onboarding/README.md
+  s_8e1621011687ed::t_2e1ce8530306ae 1-51,87-121
+  s_8e1621011687ed::t_a70922b604afad 52-86
+TODO.md
+  s_8e1621011687ed::t_a70922b604afad 147-149
+docs/agent-onboarding.md
+  s_8e1621011687ed::t_fb7305acbb5284 67-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c1fde29d23c12efcdf7d66e8f315f8ca49f5ef02",
+  "prompts": {},
+  "sessions": {
+    "s_8e1621011687ed": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cb7c-1dfe-7473-9908-6093db8c8558",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
