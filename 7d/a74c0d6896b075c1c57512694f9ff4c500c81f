@@ -1,0 +1,45 @@
+ARCHITECTURE.md
+  s_ca7d5125ef33b2::t_c8cf534dd64b17 113-119
+TODO.md
+  s_ca7d5125ef33b2::t_66d9e0b65f526e 42-45
+benchmarks-ann/experiments/2026-11-07-write-history/rust-review.md
+  s_ca7d5125ef33b2::t_66d9e0b65f526e 68-70
+HANDOFF.md
+  s_ca7d5125ef33b2::t_66d9e0b65f526e 38-54
+lance/src/lance0.rs
+  s_ca7d5125ef33b2::t_07674961ddb94d 87,106,113,146,148
+lance/src/provider.rs
+  s_ca7d5125ef33b2::t_07674961ddb94d 215,250
+tests/test-hybrid.py
+  s_ca7d5125ef33b2::t_75dc64462e3ab3 133-144,186-190
+  s_ca7d5125ef33b2::t_6fa9a6ff9fd845 59-89,98-132,145-171
+  s_ca7d5125ef33b2::t_7799cdf197beea 172-185,191-245
+  s_ca7d5125ef33b2::t_7a6191ba86aa79 90-97
+lance/README.md
+  s_ca7d5125ef33b2::t_c8cf534dd64b17 26-34
+lance/src/store.rs
+  s_ca7d5125ef33b2::t_07674961ddb94d 108,130-133,137,153,177,208,210,215,423,730,736
+benchmarks-ann/experiments/2026-11-11-lance-schema/README.md
+  s_ca7d5125ef33b2::t_43b6eeb720f710 48-50
+  s_ca7d5125ef33b2::t_49cabfeca7f9a9 66-69
+  s_ca7d5125ef33b2::t_4570623d7508d0 41
+  s_ca7d5125ef33b2::t_2cf845e2af443b 1-40,42-47,51-65,70-109
+benchmarks-ann/experiments/README.md
+  s_ca7d5125ef33b2::t_43b6eeb720f710 65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7da74c0d6896b075c1c57512694f9ff4c500c81f",
+  "prompts": {},
+  "sessions": {
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
