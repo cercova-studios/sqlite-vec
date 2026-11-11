@@ -1,0 +1,15 @@
+{
+  "unit_tests": 10,
+  "offline_replay": "passed in active workspace; Git-object recovery pending",
+  "queries": 150,
+  "successful_requests": 450,
+  "model_calls": 1622,
+  "original_pilot_requests": 90,
+  "new_requests": 360,
+  "pilot_ledger_entries": 322,
+  "conservative_usd": 1.677428,
+  "estimated_usd": 1.3865075,
+  "quality_gate_pass": true,
+  "native_distance_checks": 150,
+  "publication": "independent integration review; no push here"
+}

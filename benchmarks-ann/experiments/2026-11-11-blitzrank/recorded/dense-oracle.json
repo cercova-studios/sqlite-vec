@@ -1,0 +1,20 @@
+[
+  {
+    "query": "397",
+    "rows": 50,
+    "max_absolute_error": 5.8990306528450276e-08,
+    "all_strictly_nearer_candidates_present": true
+  },
+  {
+    "query": "1375",
+    "rows": 50,
+    "max_absolute_error": 4.7516268475433776e-08,
+    "all_strictly_nearer_candidates_present": true
+  },
+  {
+    "query": "259",
+    "rows": 50,
+    "max_absolute_error": 5.4744058841649235e-08,
+    "all_strictly_nearer_candidates_present": true
+  }
+]

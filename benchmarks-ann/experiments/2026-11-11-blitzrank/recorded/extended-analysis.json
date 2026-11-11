@@ -1,0 +1,48 @@
+{
+  "additional120_primary": {
+    "mean": 0.09893291334238855,
+    "low": 0.04784323848569036,
+    "high": 0.1520139647093359,
+    "samples": 10000,
+    "seed": 20261111
+  },
+  "methods": {
+    "bm25": {
+      "calls": 542,
+      "input_tokens": 3862369,
+      "output_tokens": 147195,
+      "cached_tokens": 0,
+      "reasoning_tokens": 101052,
+      "estimated_usd": 0.4598344,
+      "trimmed_appearances": 14,
+      "tied_requests": 141,
+      "median_largest_top_tier": 8.0,
+      "maximum_top_tier": 28
+    },
+    "dense": {
+      "calls": 535,
+      "input_tokens": 3859867,
+      "output_tokens": 148794,
+      "cached_tokens": 0,
+      "reasoning_tokens": 103135,
+      "estimated_usd": 0.4603837,
+      "trimmed_appearances": 12,
+      "tied_requests": 138,
+      "median_largest_top_tier": 6.0,
+      "maximum_top_tier": 27
+    },
+    "rrf": {
+      "calls": 545,
+      "input_tokens": 3914584,
+      "output_tokens": 149662,
+      "cached_tokens": 0,
+      "reasoning_tokens": 103238,
+      "estimated_usd": 0.4662894,
+      "trimmed_appearances": 13,
+      "tied_requests": 146,
+      "median_largest_top_tier": 8.0,
+      "maximum_top_tier": 27
+    }
+  },
+  "total_timed_request_seconds": 5494.162080452
+}

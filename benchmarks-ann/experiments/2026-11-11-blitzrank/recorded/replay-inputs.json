@@ -1,0 +1,117 @@
+[
+  {
+    "path": ".work/upstream/blitzrank/engine/algorithms/tournament_graph/__init__.py",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": ".work/upstream/blitzrank/engine/algorithms/tournament_graph/compare_oracle.py",
+    "bytes": 1798,
+    "sha256": "35f38cd2ca35ad11e631ab74c849fbbd0343e588e9e5063ebeb74d0a620ce75c"
+  },
+  {
+    "path": ".work/upstream/blitzrank/engine/algorithms/tournament_graph/tournament_graph.py",
+    "bytes": 4894,
+    "sha256": "7ecdb0267e6188c42305de7bc11782069efebcfa048e006e3a6242107e80fb26"
+  },
+  {
+    "path": ".work/upstream/blitzrank/engine/algorithms/tournament_graph/tournament_graph_sort.py",
+    "bytes": 10800,
+    "sha256": "aa2a77f5d63782761c179fbacd103d744e9f9819d2342198bf1a765fdd0c4563"
+  },
+  {
+    "path": ".work/upstream/blitzrank/engine/algorithms/tournament_graph/types.py",
+    "bytes": 5158,
+    "sha256": "89c94ba239720c4dedaf67f28210216949e4a568d82d99e6029925b223232351"
+  },
+  {
+    "path": ".work/upstream/blitzrank/engine/comparer/listwise_rank_gpt.py",
+    "bytes": 5151,
+    "sha256": "8f766acd707fd504610bafd471a175bd0aac0bf366ac2887c17b22ad713d3164"
+  },
+  {
+    "path": ".work/inputs/benchmarks-ann/experiments/2026-11-08-late-interaction/benchmark.py",
+    "bytes": 11776,
+    "sha256": "334bd25224fe723b5305a84974fb39896e9831b32efdc2c80814ef9f5dd385e1"
+  },
+  {
+    "path": ".work/inputs/benchmarks-ann/experiments/2026-11-08-late-interaction/encoder.py",
+    "bytes": 6700,
+    "sha256": "6860e52e291c470ce00ec24b94299e3c3639231a695296f72a3436163b0404c9"
+  },
+  {
+    "path": ".work/inputs/benchmarks-ann/experiments/2026-11-08-late-interaction/freeze.py",
+    "bytes": 5712,
+    "sha256": "6f02aa447a81fb0cc69cd56525ef1a9ad263db3ea3d0d6d0180068fa54cb012b"
+  },
+  {
+    "path": ".work/inputs/benchmarks-ann/experiments/2026-11-08-late-interaction/build_baselines.py",
+    "bytes": 3606,
+    "sha256": "f2cb8fe37a2daa1c24a9935922b2d322eccb02893b9da952a8f6b9d38fe34897"
+  },
+  {
+    "path": ".work/inputs/benchmarks-ann/experiments/2026-11-08-late-interaction/host_scorer.py",
+    "bytes": 6595,
+    "sha256": "e6609b4f7a4802eeb0924e4e2fadad04668894f67b68b105e3936da0000c7d01"
+  },
+  {
+    "path": ".work/inputs/benchmarks-ann/experiments/2026-11-08-late-interaction/metrics.py",
+    "bytes": 1570,
+    "sha256": "fb2d11c593d8d97d3b8a870c455007545a208ec93e3911b4065e1ed4063fa370"
+  },
+  {
+    "path": ".work/pilot-snapshot/.gitignore",
+    "bytes": 20,
+    "sha256": "3cba886152bff7a7f8618aaa079dbb9aeee4b0214d890efa7154838f2cf42ebb"
+  },
+  {
+    "path": ".work/pilot-snapshot/PROTOCOL.md",
+    "bytes": 11286,
+    "sha256": "1ad4eb7a944cfb20c7dee6ca067d674116af0e01396e74eac9d47e72eac71570"
+  },
+  {
+    "path": ".work/pilot-snapshot/README.md",
+    "bytes": 9521,
+    "sha256": "a62b1956f1c3f77c205c3bc5b1718c733f6dc7efb93e9668a91dbc4a9308a16f"
+  },
+  {
+    "path": ".work/pilot-snapshot/REPORT.md",
+    "bytes": 8273,
+    "sha256": "8432430cfaf7afa6d0a367d5662695077041f289dd79cd8eac83c42f72180cd8"
+  },
+  {
+    "path": ".work/pilot-snapshot/UPSTREAM-LICENSE",
+    "bytes": 1070,
+    "sha256": "c26c47a2b13cc7a4f7a30d3f99ca8ba6d93530d8ad91b2a81565d9215b0a17e5"
+  },
+  {
+    "path": ".work/pilot-snapshot/experiment.py",
+    "bytes": 25034,
+    "sha256": "a314d03944d4c9e5370121c08e62a4578e7b459b71b08c9c2a2003aa8a152cfe"
+  },
+  {
+    "path": ".work/pilot-snapshot/oracle.py",
+    "bytes": 6548,
+    "sha256": "89b7bb23fcc9c3026824ed6a8f28415e053b52f3e3414909e8e5d6b345cb3adb"
+  },
+  {
+    "path": ".work/pilot-snapshot/requirements.lock",
+    "bytes": 438,
+    "sha256": "06fb0414b1c7c3d535e4cc45d1f82396967ceb5eb57213fafb8e0e3d7c0d853f"
+  },
+  {
+    "path": ".work/pilot-snapshot/test_experiment.py",
+    "bytes": 6867,
+    "sha256": "a4e0f8f2061a8e9f9d81654e33c680c53186a38cff2e683de7b4555c0123deb8"
+  },
+  {
+    "path": ".work/pilot-snapshot/verify.py",
+    "bytes": 5962,
+    "sha256": "32696a44232759e049bd8ff03b1af7c0381b87c5b6eef661e902ed16b3d0a142"
+  },
+  {
+    "path": ".work/tokenizer-cache/fb374d419588a4632f3f557e76b4b70aebbca790",
+    "bytes": 3613922,
+    "sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  }
+]

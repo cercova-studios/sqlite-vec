@@ -1,0 +1,16 @@
+test_budget_reserves_before_inference_and_survives_restart (test_experiment.Contracts.test_budget_reserves_before_inference_and_survives_restart) ... ok
+test_failed_generation_is_logged_and_never_repaired (test_experiment.Contracts.test_failed_generation_is_logged_and_never_repaired) ... ok
+test_incomplete_and_tampered_receipts_cannot_pass (test_experiment.Contracts.test_incomplete_and_tampered_receipts_cannot_pass) ... ok
+test_independent_rank_position_metrics (test_experiment.Contracts.test_independent_rank_position_metrics) ... ok
+test_official_sorter_uses_comparisons_and_finds_top_three (test_experiment.Contracts.test_official_sorter_uses_comparisons_and_finds_top_three) ... ok
+test_parallel_workers_cannot_double_spend_the_remaining_budget (test_experiment.Contracts.test_parallel_workers_cannot_double_spend_the_remaining_budget) ... ok
+test_prompt_matches_pinned_upstream (test_experiment.Contracts.test_prompt_matches_pinned_upstream) ... ok
+test_rankings_are_complete_permutations (test_experiment.Contracts.test_rankings_are_complete_permutations) ... ok
+test_reasoning_is_a_subset_not_an_extra_charge (test_experiment.Contracts.test_reasoning_is_a_subset_not_an_extra_charge) ... ok
+test_reuse_refuses_changed_inference_settings (test_experiment.Contracts.test_reuse_refuses_changed_inference_settings) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.097s
+
+OK
+{"verified": true, "queries": 150, "reranked_requests": 450, "model_calls": 1622, "conservative_usd": 1.677428, "summary_sha256": "a11e4b92841081a73157491521e2f113f37644c17f572eb6bc26d6d7c355cc7e"}

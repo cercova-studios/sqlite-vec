@@ -1,0 +1,104 @@
+[
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/benchmark.py",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/benchmark.py",
+    "sha256": "334bd25224fe723b5305a84974fb39896e9831b32efdc2c80814ef9f5dd385e1",
+    "bytes": 11776
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/encoder.py",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/encoder.py",
+    "sha256": "6860e52e291c470ce00ec24b94299e3c3639231a695296f72a3436163b0404c9",
+    "bytes": 6700
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/freeze.py",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/freeze.py",
+    "sha256": "6f02aa447a81fb0cc69cd56525ef1a9ad263db3ea3d0d6d0180068fa54cb012b",
+    "bytes": 5712
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/build_baselines.py",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/build_baselines.py",
+    "sha256": "f2cb8fe37a2daa1c24a9935922b2d322eccb02893b9da952a8f6b9d38fe34897",
+    "bytes": 3606
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/host_scorer.py",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/host_scorer.py",
+    "sha256": "e6609b4f7a4802eeb0924e4e2fadad04668894f67b68b105e3936da0000c7d01",
+    "bytes": 6595
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/metrics.py",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/metrics.py",
+    "sha256": "fb2d11c593d8d97d3b8a870c455007545a208ec93e3911b4065e1ed4063fa370",
+    "bytes": 1570
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/oracle.py",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/oracle.py",
+    "sha256": "cf409fc1bbb130f415a3f409c52b1c1d388e5edfb43dd8803dd555554db13daa",
+    "bytes": 4824
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/protocol.json",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/protocol.json",
+    "sha256": "278c9c65c90895fef0423b9afd17c5a66d635888e01f9b35a022c391f07243bf",
+    "bytes": 9317
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/score.json.gz",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/score.json.gz",
+    "sha256": "e26cf65a345eb5b5b0cf026a8a7d1da97894c1ad3234949f3f734be28336bf87",
+    "bytes": 733236
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/.work/dense-queries.npy",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/.work/dense-queries.npy",
+    "sha256": "a00535ea987989804971c5aa5effab1faa2dd7007185d8b17cb26d5d553eb60b",
+    "bytes": 307328
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-11-08-late-interaction/.work/baseline-only.db",
+    "copy": "benchmarks-ann/experiments/2026-11-08-late-interaction/.work/baseline-only.db",
+    "sha256": "15e1220b8bd39eab4b86ec875dfc225d6e85b45a4fcdff69136b1b02f47ae9fa",
+    "bytes": 33976320
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-10-26-scifact-hybrid/.work/scifact.zip",
+    "copy": "benchmarks-ann/experiments/2026-10-26-scifact-hybrid/.work/scifact.zip",
+    "sha256": "536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165",
+    "bytes": 2816079
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-10-26-scifact-hybrid/.work/model.onnx",
+    "copy": "benchmarks-ann/experiments/2026-10-26-scifact-hybrid/.work/model.onnx",
+    "sha256": "828e1496d7fabb79cfa4dcd84fa38625c0d3d21da474a00f08db0f559940cf35",
+    "bytes": 133093490
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-10-26-scifact-hybrid/.work/model-tokenizer.json",
+    "copy": "benchmarks-ann/experiments/2026-10-26-scifact-hybrid/.work/model-tokenizer.json",
+    "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66",
+    "bytes": 711396
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-10-26-scifact-hybrid/.work/documents.npy",
+    "copy": "benchmarks-ann/experiments/2026-10-26-scifact-hybrid/.work/documents.npy",
+    "sha256": "c2ae50d6b76c8a586c432c75ba964da6df92186aa82d7fce9a8409a28e9fd2cf",
+    "bytes": 7961216
+  },
+  {
+    "source": "benchmarks-ann/experiments/2026-10-26-scifact-hybrid/.work/data-manifest.json",
+    "copy": "benchmarks-ann/experiments/2026-10-26-scifact-hybrid/.work/data-manifest.json",
+    "sha256": "dc57edd8bb894642c9d653bea42fca6b912adb9402bf1f9345ac14a24f41e916",
+    "bytes": 1773
+  },
+  {
+    "source": "dist/bundles/949073f-default/lib/vec0.dylib",
+    "copy": "dist/bundles/949073f-default/lib/vec0.dylib",
+    "sha256": "4785d6f2ef2b1da23ed8c99f218b9dd519f4270e0789a3a20d52f8727f4c0261",
+    "bytes": 282072
+  }
+]

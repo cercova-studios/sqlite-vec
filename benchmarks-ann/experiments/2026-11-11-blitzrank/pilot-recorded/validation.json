@@ -1,0 +1,33 @@
+{
+  "unit_tests": {
+    "command": ".work/venv/bin/python -W error::ResourceWarning -m unittest discover -s . -p test_*.py -v",
+    "tests": 8,
+    "result": "passed",
+    "log": "recorded/tests.log"
+  },
+  "model_audit": {
+    "command": ".work/venv/bin/python verify.py",
+    "queries": 30,
+    "ranked_requests": 90,
+    "model_calls": 322,
+    "result": "passed"
+  },
+  "baseline_analysis": {
+    "command": ".work/venv/bin/python experiment.py analyze",
+    "result": "passed",
+    "quality_gate_pass": false
+  },
+  "native_distance_oracle": {
+    "scores": 150,
+    "queries": 3,
+    "max_absolute_error": 5.8990306528450276e-08,
+    "result": "passed"
+  },
+  "exclusions": [
+    "No C-core or adapter changes",
+    "No full 150-query reranking evaluation",
+    "No repeated reranking latency or concurrent-serving test",
+    "No commit, push or wiki publication"
+  ],
+  "retirement": "Protected review workspace; unique uncommitted data retained pending authorized recovery/retirement."
+}
