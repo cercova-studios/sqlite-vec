@@ -60,6 +60,7 @@ can differ. The summaries below are historical findings, not fresh test passes.
 | Lance identity/conversion | Final checks recorded 88 hybrid plus 66 native passes and four skips; actual conversion OOM controls returned SQLITE_NOMEM without staged writes. Seven existing Clippy findings remained. | [2026-11-10-lance-identity](2026-11-10-lance-identity/README.md) |
 | Contributor onboarding | Two context-free agent trials completed native setup and priority recovery. Vendor fail-fast handling, host SIMD preservation and queue/provenance guidance were repaired; Python remained an optional wrapper over Make. | [2026-11-11-agent-onboarding](2026-11-11-agent-onboarding/README.md) |
 | Dependency onboarding | A fresh agent built and relocated a separate consumer. Five installed-bundle checks passed; the retained live starter example fixed quoted backup paths and refuses disabled assertions. | [2026-11-11-dependency-onboarding](2026-11-11-dependency-onboarding/README.md) |
+| SciFact BlitzRank, 150 queries | RRF + BlitzRank nDCG@10 0.798189 vs dense 0.708804; gain +0.089385, paired 95% interval [+0.042886,+0.138554]. Gate passed; 450 successful requests; total API estimate $1.3865075, conservative $1.677428 under the original $5 cap. Added-query p95 about 19 s. | [Result](2026-11-11-blitzrank/REPORT.md), [reproduction](2026-11-11-blitzrank/README.md) |
 
 ## Active-work exception
 

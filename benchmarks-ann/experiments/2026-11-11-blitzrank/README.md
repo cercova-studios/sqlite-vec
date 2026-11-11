@@ -26,7 +26,7 @@ need the original host paths, original checkout, API key or inference service.
 From a checkout containing the recovery Git object, use a fresh scratch directory:
 
 ```sh
-RECOVERY_SHA=codex/blitzrank-150-recovery
+RECOVERY_SHA=d502752999b6dad2812e89b85c801380676b499b
 REPLAY=/tmp/sqlite-vec-blitzrank-replay
 mkdir -p "$REPLAY"
 git archive --format=tar --output "$REPLAY/source.tar" "$RECOVERY_SHA" \
@@ -45,7 +45,7 @@ identities, runs ten contract tests and audits every actual model decision and
 charge. Expected final output includes `verified:true`, 150 queries, 450
 reranked requests, 1622 model calls and conservative USD 1.677428. The quality
 gate passes, but a negative quality result would be distinct from failed
-verification. The final archive pins the recovery object by immutable SHA.
+verification. The immutable recovery object is `d502752999b6dad2812e89b85c801380676b499b`; [recovery validation](RECOVERY.md) records the exercised Git-object replay.
 
 Run from a writable disposable extraction, without Python `-O`. The verifier
 creates the summary if absent and otherwise requires exact agreement. It never
@@ -113,8 +113,7 @@ there is no uniform sequential p95 over all 150, concurrency load sweep,
 production-serving qualification, cross-corpus result or agent answer-quality
 claim. Cyclic model preferences frequently create tied tiers.
 
-The executable recovery snapshot is preserved for independent review. The final
-current archive retains Markdown only and links to that immutable snapshot.
+The executable recovery snapshot is preserved for independent review. The current archive retains Markdown only and links to that immutable snapshot.
 Original active scratch inputs remain protected separately; no shared cache or
 unrelated working-tree change is discarded. Integration review owns publication
 to the development branch and wiki. No push occurs from this experiment chat.
