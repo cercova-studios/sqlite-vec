@@ -51,3 +51,6 @@ Completed experiment directories retain written reproduction instructions and
 result summaries only. Use the [experiment index](benchmarks-ann/experiments/README.md)
 to recover historical harnesses and receipts from pinned Git revisions. Keep
 active inputs in separate ignored scratch space and coordinate before cleanup.
+Before starting or retiring an experiment, follow
+[experiment hygiene](.agents/skills/experiment-hygiene/SKILL.md) for ownership,
+reproduction records, authorized teardown and recovery checks.
