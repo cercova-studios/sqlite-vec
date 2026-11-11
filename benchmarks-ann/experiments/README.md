@@ -64,14 +64,22 @@ can differ. The summaries below are historical findings, not fresh test passes.
 
 ## Active-work exception
 
-The in-progress BlitzRank experiment is excluded from completed-experiment
-teardown. Its owner copied 17 required input/helper files (179,933,010 bytes) into
-its own ignored workspace; their SHA256 hashes were independently verified before
-old copies were removed. Its active directory, virtual environment, upstream
-checkout and task cache remain intact. Current source examples/tests, shared
-development Python environments and shared Cargo/uv/model caches are preserved.
+At the earlier cleanup commit `70da036`, BlitzRank was still in progress and
+was excluded from completed-experiment teardown. Its owner copied 17 required
+input/helper files (179,933,010 bytes) into an ignored workspace; their SHA256
+hashes were independently verified before the old copies were removed. That
+cleanup preserved the active directory, environment, upstream checkout, task
+cache, current source examples/tests and shared development/model caches.
+
+The full 150-query BlitzRank evaluation is now complete. Its current archive is
+Markdown-only; see the [measured result](2026-11-11-blitzrank/REPORT.md) and
+[verified recovery snapshot](2026-11-11-blitzrank/RECOVERY.md). Its retained
+scratch inputs remain protected separately.
 
 ## Cleanup verification — 11 November 2026
+
+The counts and checks below describe the earlier cleanup at `70da036`; they are
+not a current archive inventory.
 
 | Removed category | Files | Logical bytes |
 | --- | ---: | ---: |
@@ -85,8 +93,9 @@ development Python environments and shared Cargo/uv/model caches are preserved.
 These are removed logical file sizes, not a measurement of net filesystem free
 space. Git history, shared caches and active work remain. The archive removal
 also unlinked three virtual-environment symlinks without touching their targets.
-The retained archive has 39 historical Markdown records plus this index across
-18 completed experiments. No completed-experiment process required termination.
+At `70da036`, the retained archive contained 39 historical Markdown records plus
+this index across 18 then-completed experiments. No completed-experiment process
+required termination during that cleanup.
 
 Checks actually run after retirement: all ten bootstrap boundary tests and four
 bundle manifest/failure tests passed; offline locked Cargo metadata resolves the
