@@ -57,6 +57,13 @@ standalone amalgamation instead of copying the modular development source;
 Cargo watches that generated C file and its staged headers.
 `make test-packaging` exercises isolated static and Rust-staged C consumers and
 included-feature invalidation, without modifying the checkout's generated files.
+`make cli` builds `$(prefix)/sqlite3` through one file target using the existing
+direct C recipe. It tracks included feature sources, vendor C/headers and the
+connection initializer; an unchanged CLI is not compiled again. The output
+directory is order-only. `make test-unit` still compiles and executes its assertions
+whenever requested, including by the contributor bootstrap.
+As with the other native file targets, changed compiler flags/profiles require a
+fresh output directory; Make does not compare old and new command arguments.
 
 The Rust binding exposes the C initializer with its three pointer arguments and
 SQLite result code. Callers can register on each live connection from their linked

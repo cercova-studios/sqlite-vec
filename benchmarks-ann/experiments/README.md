@@ -117,3 +117,10 @@ suites were rerun during cleanup. Local generated libraries/bundles and Rust tar
 were removed; rebuild them through the normal contributor/bundle guides before
 using those tools. Raw ignored outputs are not backed up; use the reproduction
 procedure above to generate new runs.
+
+## Native CLI build verification
+
+The [single-build CLI repair](2026-11-11-cli-build/README.md) preserves the final
+compiler flags, skips unchanged CLI inputs and still runs C-unit/KNN/FTS checks.
+Its text receipt records the failing baseline, passing regressions, reproduction
+and teardown. Earlier Nix timing results used the pre-repair Make recipes.

@@ -119,6 +119,10 @@ the successful directory directly:
 CFLAGS=-DSQLITE_ENABLE_FTS5 make prefix=/tmp/sqlite-vec-dev loadable cli test-unit
 ```
 
+The CLI is reused when its source/header inputs are unchanged; `test-unit` still
+compiles and runs. Use a fresh output directory when changing the compiler,
+`CFLAGS` or feature profile, because Make does not track command-argument changes.
+
 This direct Make command is also the native build/check route when Python is
 unavailable, after vendor files and `envsubst` are installed. Make creates the
 output directory. It prints build/test output directly and does not produce the
