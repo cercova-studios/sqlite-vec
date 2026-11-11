@@ -214,3 +214,32 @@ record remains in the completed experiment directory. The maintained project
 `flake.nix`/`flake.lock` are setup inputs, not retired experiment artifacts.
 Regeneration needs the pinned source/image/tool inputs and public upstream assets;
 new timings may differ. Main and `.github`/CI remain unchanged.
+
+## Independent publication review — 11 November 2026
+
+The Nix change was integrated onto the published BlitzRank tip `788ce61` in an
+isolated checkout. The only cherry-pick conflict was the experiment index; both
+result rows and the newer historical-cleanup wording were preserved. The flake,
+lockfile, architecture and setup-guide bytes match the original `78f03ad` change.
+No C/Make, adapter, ranking-default or CI source was changed.
+
+The integration reviewer reran all ten bootstrap boundary tests on the macOS
+host. A new container from the same pinned Debian digest independently passed
+four-platform `nix flake check --all-systems --no-build --no-update-lock-file`.
+On Linux arm64, the first doctor returned the expected exit 1 for exactly four
+absent vendor files; explicit vendor setup and the subsequent doctor passed.
+The full Nix bootstrap passed C-unit, KNN and FTS5 checks. The independent
+3-4-5/FTS fixture above matched every expected row; all four vendor hashes matched,
+the lock hash stayed unchanged, and the tracked source checkout remained clean.
+An intentional `exit 7` propagated through `nix develop` unchanged.
+
+These are fresh integration checks, not new onboarding timing samples or fresh
+agent trials. The original comparison remains a single trial per route. Native
+macOS/x86_64 builds, interactive-shell behavior and full Rust/Lance/packaging
+regressions were not repeated during publication review. The Nixpkgs evaluation
+warning about 26.05 being the last Intel macOS release remains visible.
+
+After verification, the review-owned container and newly pulled pinned image were
+removed. All six pre-existing images were preserved; no other container remained.
+The VM was restored to its original stopped state and its review supervisor exited.
+No Nix installation or configuration change was made on the macOS host.
