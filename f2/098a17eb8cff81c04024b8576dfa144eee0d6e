@@ -1,0 +1,47 @@
+scripts/bootstrap.py
+  s_8e1621011687ed::t_ee9e014c09b390 94-96
+  s_8e1621011687ed::t_f47eaafdacc639 9,54-63
+  s_8e1621011687ed::t_ecf2b8007cc1dd 40-41,71,73
+  s_8e1621011687ed::t_7f6a3262e2991e 1-8,10-39,42-53,64-70,72,74-93,97-111
+README.md
+  s_8e1621011687ed::t_465f3da44e738a 45-47
+ARCHITECTURE.md
+  s_8e1621011687ed::t_465f3da44e738a 13-21
+docs/agent-onboarding.md
+  s_8e1621011687ed::t_ee9e014c09b390 114-119
+  s_8e1621011687ed::t_08b27dd03d35cf 88-90
+  s_8e1621011687ed::t_38164a378ee2fc 85-87
+  s_8e1621011687ed::t_a9e4f87d9d1cb4 91-93,111-113
+  s_8e1621011687ed::t_4acac53c4a7ef9 120-122
+  s_8e1621011687ed::t_b847ee7bf0c14a 1-84,94-110,123-173
+.agents/skills/sqlite-vec-workflow/SKILL.md
+  s_eb124f8c9fdf34::t_5dafcb4944a66f 1-51
+tests/test-bootstrap.py
+  s_8e1621011687ed::t_08b27dd03d35cf 1-97
+AGENTS.md
+  s_8e1621011687ed::t_465f3da44e738a 1-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f2098a17eb8cff81c04024b8576dfa144eee0d6e",
+  "prompts": {},
+  "sessions": {
+    "s_8e1621011687ed": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cb7c-1dfe-7473-9908-6093db8c8558",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_eb124f8c9fdf34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a1cb7c-1dfe-7473-9908-6093db8c8558",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
