@@ -144,8 +144,9 @@ These are existing defects/gaps, not changes made by the task writer prototype.
   a shipped capture default. Raw inversion rewinds revisions; undo needs a new revision.
 - [ ] Keep canonical versioned data in ordinary tables. Treat FTS/ANN structures
   as derived, tied to a data/model revision; never merge index shadow-table blobs.
-- [ ] Implement selective undo as a new validated change. Reject conflicts with
-  intervening writes rather than overwriting another agent's work.
+- [ ] Qualify the prototype's selective undo for the supported managed-write
+  interface. Preserve new-revision semantics and rejection of intervening-write
+  conflicts rather than overwriting another agent's work.
 - [ ] Verify attribution and history are atomic with application writes, including
   crash/retry boundaries and all managed writer connections.
 

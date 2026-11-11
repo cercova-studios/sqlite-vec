@@ -64,6 +64,12 @@ generate `sqlite-vec.h`. Rust, models and a server are unnecessary for C-core wo
    regression pass. Output paths accept ASCII letters, digits, `/`, `.`, `_` and
    `-` because Make interprets target names. Existing destinations are rejected.
 
+   Record `git rev-parse HEAD` and `git status --short` for source provenance.
+   Native `vec_debug()`'s `Commit` label comes from the last change to `VERSION`
+   in the Make header recipe; it may precede checkout HEAD. Working-tree edits
+   are included in this contributor build. A bundle instead records its compiled
+   revision and input hashes in `manifest.json`.
+
 After a failure, read the full reported log, fix the cause and choose a fresh
 output directory. Completed outputs are retained. For incremental C work, reuse
 the successful directory directly:
