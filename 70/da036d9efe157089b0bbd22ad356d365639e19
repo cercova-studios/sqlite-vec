@@ -1,0 +1,130 @@
+benchmarks-ann/experiments/2026-11-10-lance-identity/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/README.md
+  s_8e1621011687ed::t_99fc148da22546 72-98,106-108
+  s_eb124f8c9fdf34::t_47cccdaa31555e 99-105
+  s_eb124f8c9fdf34::t_d620347ad0469c 1-62
+  s_8e1621011687ed::t_0ea21a8b9bf7ce 63-71
+benchmarks-ann/experiments/2026-10-26-scifact-hybrid/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-07-write-history/rust-sync.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/recorded/guide.md
+  s_8e1621011687ed::t_3c0adf02d24a00 10
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-03-engine-comparison/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-11-dependency-onboarding/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-03-comparison-followup/REPORT.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,95
+benchmarks-ann/experiments/2026-11-07-local-datastore/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,9-10,128
+benchmarks-ann/experiments/2026-10-26-metadata-compression/REPORT.md
+  s_8e1621011687ed::t_3c0adf02d24a00 73-77
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,78-79
+benchmarks-ann/experiments/2026-11-02-adapter-fts/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-08-late-interaction/REPORT.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,153,190-191,194-195
+benchmarks-ann/experiments/2026-11-08-late-interaction/SPEC.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-07-write-history/rust-review.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,9,127
+benchmarks-ann/experiments/2026-11-08-writer-sync/ACCEPTANCE.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,10,32,54
+benchmarks-ann/experiments/2026-11-01-filtered-fts/REPORT.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,25,52,84,86,141
+benchmarks-ann/experiments/2026-11-03-bounded-witness/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-08-lance-drop/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,47,61-63
+examples/write-prototype/README.md
+  s_8e1621011687ed::t_79f3e30cc29dfb 8-10,18-20
+benchmarks-ann/experiments/2026-11-03-comparison-followup/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-07-write-history/write-contract.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+AGENTS.md
+  s_8e1621011687ed::t_79f3e30cc29dfb 49-53
+  s_8e1621011687ed::t_121248fd78f441 44
+  s_8e1621011687ed::t_a05880f2da3b60 43
+benchmarks-ann/experiments/2026-11-01-filtered-fts/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/REPORT.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,15,49,75
+benchmarks-ann/experiments/2026-10-26-metadata-compression/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-01-filtered-fts/recorded/baseline-guide.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+  s_8e1621011687ed::t_3c0adf02d24a00 10
+benchmarks-ann/experiments/2026-11-03-sparse-flat/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-10-26-scoped-hybrid/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-01-filtered-fts/recorded/candidate-guide.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+  s_8e1621011687ed::t_3c0adf02d24a00 10
+TODO.md
+  s_8e1621011687ed::t_79f3e30cc29dfb 213-214
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,18-19,22,24
+benchmarks-ann/experiments/2026-11-07-write-history/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,34
+benchmarks-ann/experiments/2026-11-11-agent-onboarding/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-02-adapter-fts/REPORT.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,25,56
+benchmarks-ann/experiments/2026-10-26-metadata-compression/recorded/REPORT-original.md
+  s_8e1621011687ed::t_0ea21a8b9bf7ce 72,81
+  s_8e1621011687ed::t_3c0adf02d24a00 73-79
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-11-08-writer-sync/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,9,12
+benchmarks-ann/experiments/2026-11-08-late-interaction/README.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,10
+docs/agent-onboarding.md
+  s_8e1621011687ed::t_79f3e30cc29dfb 156
+benchmarks-ann/experiments/2026-11-03-engine-comparison/REPORT.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+ARCHITECTURE.md
+  s_8e1621011687ed::t_79f3e30cc29dfb 152-161
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/REPORT-original.md
+  s_8e1621011687ed::t_3c0adf02d24a00 37,102,147-155
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-10-26-hnsw-alpha/REPORT.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,37,102,143-152
+benchmarks-ann/experiments/2026-11-07-write-history/rust-prototype.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+benchmarks-ann/experiments/2026-10-26-scifact-hybrid/recorded/guide.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6
+  s_8e1621011687ed::t_3c0adf02d24a00 10
+HANDOFF.md
+  s_8e1621011687ed::t_79f3e30cc29dfb 3-9
+benchmarks-ann/experiments/2026-10-26-scifact-hybrid/REPORT.md
+  s_eb124f8c9fdf34::t_d620347ad0469c 3-6,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "70da036d9efe157089b0bbd22ad356d365639e19",
+  "prompts": {},
+  "sessions": {
+    "s_8e1621011687ed": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cb7c-1dfe-7473-9908-6093db8c8558",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_eb124f8c9fdf34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a1cb7c-1dfe-7473-9908-6093db8c8558",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
