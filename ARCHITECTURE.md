@@ -10,6 +10,14 @@ Very much a WIP.
 
 ## Builds
 
+`flake.nix` and its committed `flake.lock` define an optional native contributor
+shell for Linux and macOS on x86_64 and aarch64. Nix supplies the compiler, Make,
+Git, Python, gettext, curl and unzip; existing Make targets and bootstrap checks
+remain the build contract. Entering the shell does not fetch SQLite vendor
+sources or build the project. The lock pins tool inputs; host SIMD selection,
+explicit vendor acquisition and working-tree sources remain separate inputs.
+Rust/Lance, model runtimes and Python test packages are outside this shell.
+
 `scripts/bootstrap.py` provides a read-only prerequisite report by default.
 Its `dev --output PATH` route builds working-tree C sources through existing Make
 targets in a fresh output directory, then runs C unit and in-memory vector/FTS5

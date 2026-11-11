@@ -18,10 +18,51 @@ committed work. Pin the fork revision when you need its features.
 
 ## Build a contributor environment
 
+### Optional pinned tools with Nix
+
+If Nix is already installed with `nix-command` and `flakes` enabled, the committed
+`flake.nix` and `flake.lock` provide a native contributor shell. It includes a C
+compiler, Make, Git, Python, gettext (`envsubst`), curl and unzip. It excludes the
+optional Rust/Lance and model toolchains. Install Nix explicitly through
+[the official installation guide](https://nix.dev/install-nix.html) if needed;
+the project bootstrap does not install it or change your system configuration.
+
+From a fresh checkout, fetch the documented vendor inputs explicitly, then run
+the same contributor checks inside the pinned environment:
+
+```sh
+nix develop --no-update-lock-file --command bash scripts/vendor.sh
+nix develop --no-update-lock-file --command python3 scripts/bootstrap.py
+nix develop --no-update-lock-file --command python3 scripts/bootstrap.py dev --output /tmp/sqlite-vec-dev
+```
+
+Run the vendor command only when this checkout has no vendor inputs. Use a fresh
+output directory for each bootstrap attempt. For interactive work, run
+`nix develop --no-update-lock-file`; ordinary Make commands remain available.
+If experimental features are disabled, pass
+`--extra-experimental-features 'nix-command flakes'` to `nix` for the command
+instead of editing global configuration. First entry may download toolchains;
+later entries reuse the Nix store. Keep `flake.lock` unchanged during onboarding.
+Maintainers update it explicitly with `nix flake update nixpkgs` and review the
+resulting native checks before committing the update. Run
+`nix flake check --all-systems --no-build --no-update-lock-file` to evaluate every
+declared platform before runtime checks. The stable 26.05 pin includes Intel
+macOS; later Nixpkgs releases can change platform support.
+
+This pins the development tools, not all build inputs or measurements. SQLite
+vendor inputs still come from the explicit setup below, and Make keeps its host
+SIMD selection. A development shell is not an isolation boundary. Work in a
+separate checkout when another contributor has dirty sources. The environment
+does not install Python test packages or replace profile-specific regressions.
+
+### Existing host tools
+
 The automated path supports macOS and Linux. It needs Python 3.9+ (standard library
 only), Git, Make and a C
 compiler available as `cc`. A fresh checkout also needs `envsubst` (gettext) to
-generate `sqlite-vec.h`. Rust, models and a server are unnecessary for C-core work.
+generate `sqlite-vec.h`. Fetching missing SQLite vendor inputs requires Bash,
+curl, unzip and working HTTPS certificate trust. Rust, models and a server are
+unnecessary for C-core work.
 
 1. Clone the development branch into a new directory. Check its current status
    in the wiki before choosing work; create your own branch before editing.

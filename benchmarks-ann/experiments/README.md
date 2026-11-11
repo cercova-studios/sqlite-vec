@@ -60,6 +60,7 @@ can differ. The summaries below are historical findings, not fresh test passes.
 | Lance identity/conversion | Final checks recorded 88 hybrid plus 66 native passes and four skips; actual conversion OOM controls returned SQLITE_NOMEM without staged writes. Seven existing Clippy findings remained. | [2026-11-10-lance-identity](2026-11-10-lance-identity/README.md) |
 | Contributor onboarding | Two context-free agent trials completed native setup and priority recovery. Vendor fail-fast handling, host SIMD preservation and queue/provenance guidance were repaired; Python remained an optional wrapper over Make. | [2026-11-11-agent-onboarding](2026-11-11-agent-onboarding/README.md) |
 | Dependency onboarding | A fresh agent built and relocated a separate consumer. Five installed-bundle checks passed; the retained live starter example fixed quoted backup paths and refuses disabled assertions. | [2026-11-11-dependency-onboarding](2026-11-11-dependency-onboarding/README.md) |
+| Pinned native Nix onboarding | Two fresh agents passed the same native checks on Linux arm64. Cold acquisition/entry was 43.25 s with Nix versus 40.52 s ordinarily; warm doctors were roughly 0.2 s. Nix builds were slower in this single trial; retain it as an optional pinned-tool route without a speed claim. | [2026-11-11-nix-onboarding](2026-11-11-nix-onboarding/README.md) |
 
 ## Active-work exception
 
