@@ -41,9 +41,10 @@ def develop(output):
         raise ValueError('output path may contain only ASCII letters, digits, /, ., _, and -')
     output.mkdir(parents=True, exist_ok=False)
     log = output / 'bootstrap.log'
-    command = ['make', f'prefix={output}', 'CFLAGS=-DSQLITE_ENABLE_FTS5',
-               'loadable', 'cli', 'test-unit']
+    command = ['make', f'prefix={output}', 'loadable', 'cli', 'test-unit']
     env = os.environ.copy()
+    # Environment flags let Make append its host SIMD settings.
+    env['CFLAGS'] = '-DSQLITE_ENABLE_FTS5'
     env['GIT_TERMINAL_PROMPT'] = '0'
     # Keep inherited Make goals/flags from changing this bootstrap's targets.
     for key in ('MAKEFLAGS', 'MFLAGS', 'MAKEFILES'):

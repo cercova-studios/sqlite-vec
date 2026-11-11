@@ -6,6 +6,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import os
+import shutil
+import zipfile
 from unittest.mock import MagicMock, patch
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'scripts/bootstrap.py'
@@ -80,6 +83,65 @@ class Bootstrap(unittest.TestCase):
             with patch.object(bootstrap.subprocess, 'Popen', return_value=self.make_process()), patch.object(bootstrap.subprocess, 'run', return_value=wrong):
                 with self.assertRaisesRegex(ValueError, 'unexpected rows'):
                     bootstrap.develop(Path(directory) / 'wrong')
+
+    def test_native_build_keeps_make_platform_flags(self):
+        with tempfile.TemporaryDirectory() as directory:
+            success = subprocess.CompletedProcess([], 0, '1|0.0\n1\n', '')
+            with patch.object(bootstrap.subprocess, 'Popen', return_value=self.make_process()) as make:
+                with patch.object(bootstrap.subprocess, 'run', return_value=success):
+                    bootstrap.develop(Path(directory) / 'build')
+            args, kwargs = make.call_args
+            self.assertFalse(any(arg.startswith('CFLAGS=') for arg in args[0]))
+            self.assertEqual(kwargs['env']['CFLAGS'], '-DSQLITE_ENABLE_FTS5')
+
+    def test_vendor_download_failure_stops_before_extraction(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'scripts').mkdir()
+            shutil.copyfile(SCRIPT.with_name('vendor.sh'), root / 'scripts/vendor.sh')
+            tools = root / 'bin'
+            tools.mkdir()
+            for name, body in [('curl', 'exit 6'), ('unzip', 'touch unzip-was-run')]:
+                tool = tools / name
+                tool.write_text('#!/bin/sh\n' + body + '\n')
+                tool.chmod(0o755)
+            env = os.environ.copy()
+            env['PATH'] = str(tools) + ':/usr/bin:/bin'
+            result = subprocess.run(['bash', 'scripts/vendor.sh'], cwd=root, env=env,
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 6, result.stderr)
+            self.assertFalse((root / 'unzip-was-run').exists())
+
+    def test_vendor_staging_retry_and_corrupt_archive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'scripts').mkdir()
+            shutil.copyfile(SCRIPT.with_name('vendor.sh'), root / 'scripts/vendor.sh')
+            tools = root / 'bin'
+            tools.mkdir()
+            curl = tools / 'curl'
+            curl.write_text('#!/bin/sh\nwhile [ "$1" != "--output" ]; do shift; done\n'
+                            'cp "$VENDOR_TEST_ARCHIVE" "$2"\n')
+            curl.chmod(0o755)
+            archive = root / 'fixture.zip'
+            with zipfile.ZipFile(archive, 'w') as stream:
+                stream.writestr('sqlite-amalgamation-3450300/sqlite3.c', 'fixture')
+            temporary = root / 'downloads'
+            temporary.mkdir()
+            env = os.environ.copy()
+            env.update(PATH=str(tools) + ':/usr/bin:/bin',
+                       VENDOR_TEST_ARCHIVE=str(archive), TMPDIR=str(temporary))
+            for attempt in range(3):
+                if attempt == 2:
+                    archive.write_text('not a ZIP')
+                result = subprocess.run(['bash', str(root / 'scripts/vendor.sh')],
+                                        cwd=tools, env=env, capture_output=True, text=True)
+                if attempt < 2:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                self.assertEqual((root / 'vendor/sqlite3.c').read_text(), 'fixture')
+                self.assertEqual(list(temporary.iterdir()), [])
 
     def test_timeout_stops_the_build_group(self):
         with tempfile.TemporaryDirectory() as directory:

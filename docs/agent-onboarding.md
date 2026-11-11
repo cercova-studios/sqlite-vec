@@ -18,7 +18,8 @@ committed work. Pin the fork revision when you need its features.
 
 ## Build a contributor environment
 
-The automated path supports macOS and Linux. It needs Python 3, Git, Make and a C
+The automated path supports macOS and Linux. It needs Python 3.9+ (standard library
+only), Git, Make and a C
 compiler available as `cc`. A fresh checkout also needs `envsubst` (gettext) to
 generate `sqlite-vec.h`. Rust, models and a server are unnecessary for C-core work.
 
@@ -43,8 +44,10 @@ generate `sqlite-vec.h`. Rust, models and a server are unnecessary for C-core wo
    your host's package manager explicitly. For a **fresh checkout** without
    `vendor/`, review and run `bash scripts/vendor.sh`: it downloads SQLite 3.45.3
    from sqlite.org and populates ignored vendor inputs. Do not rerun it over
-   another contributor's vendor files. Retain the SQLite source identity when
-   comparing results. No bootstrap command installs tools or downloads data.
+   another contributor's vendor files. The vendor script downloads and extracts
+   in a temporary directory and stops on download/HTTP/extraction errors before
+   copying into `vendor/`. Retain the SQLite source identity when comparing
+   results. No bootstrap command installs tools or downloads data.
 
 3. Build and verify the working-tree C sources into a fresh directory.
 
@@ -66,8 +69,14 @@ output directory. Completed outputs are retained. For incremental C work, reuse
 the successful directory directly:
 
 ```sh
-make prefix=/tmp/sqlite-vec-dev CFLAGS=-DSQLITE_ENABLE_FTS5 loadable cli test-unit
+CFLAGS=-DSQLITE_ENABLE_FTS5 make prefix=/tmp/sqlite-vec-dev loadable cli test-unit
 ```
+
+This direct Make command is also the native build/check route when Python is
+unavailable, after vendor files and `envsubst` are installed. Make creates the
+output directory. It prints build/test output directly and does not produce the
+bootstrap's JSON result, retained log or timeout handling. Set `CFLAGS` in the
+environment as shown so Make can append its host SIMD flags.
 
 For Python regressions, install `uv` explicitly and follow the repository's
 `tests/pyproject.toml` (Python 3.12+). The native suite expects `dist/vec0`, so build
@@ -111,7 +120,10 @@ manifests identify inputs and artifacts; hashes do not authenticate untrusted co
 ## Load project context without reading every chat
 
 Read [AGENTS.md](../AGENTS.md), this page and the relevant sections of
-[ARCHITECTURE.md](../ARCHITECTURE.md). Read the wiki's
+[ARCHITECTURE.md](../ARCHITECTURE.md). Start with the
+[queue's execution order](../TODO.md#execution-order) and open follow-ups for
+current priorities. Read only the relevant heading/receipt in the long handoff;
+its older sections are history, not the current queue. Read the wiki's
 [architecture](https://github.com/cercova-studios/sqlite-vec/wiki/SQLite-First-Architecture),
 [decisions](https://github.com/cercova-studios/sqlite-vec/wiki/Technical-Decisions),
 [evidence](https://github.com/cercova-studios/sqlite-vec/wiki/Evidence-and-Experiments)

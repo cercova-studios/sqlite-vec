@@ -1,6 +1,6 @@
 # Local SQLite datastore roadmap
 
-Current work queue, updated 2026-11-07. This supersedes the old ANN branch plan
+Current work queue, updated 2026-11-11. This supersedes the old ANN branch plan
 and the separate extensionless TODO. [HANDOFF](HANDOFF.md) records completed
 slices and verification; [ARCHITECTURE](ARCHITECTURE.md) describes shipped behavior.
 
@@ -13,13 +13,17 @@ A Beads-like application is a proving workload, not the datastore's domain model
 ## Execution order
 
 P1's local bundle is verified. The P4/V1 contract and capture investigation are
-complete, and the isolated Rust writer prototype is verified. Next: measure the full
-writer/history path and integrate source/FTS/vector synchronization before exposing
-write tools. Develop P2/P3 retrieval
-interfaces on that foundation. Exercise P5 throughout. V2/V3 branch/merge work
+complete, and the isolated Rust writer prototype is verified. The full task-only
+writer/history baseline and independent atomic source/FTS/vector synchronization
+checks are also complete; see the [combined acceptance](benchmarks-ann/experiments/2026-11-08-writer-sync/ACCEPTANCE.md).
+Next: resolve the correctness/reproducibility gaps below, measure indexed writes,
+and qualify schema, recovery and managed-writer enrollment before exposing public
+write tools. Develop P2/P3 retrieval interfaces on that foundation. Exercise P5
+throughout. V2/V3 branch/merge work
 follows a reviewed history/identity design; V4 remote sync is a later gate.
 Existing read-only CLI/MCP behavior remains available while opt-in write tools
-are designed and verified. No push, publishing or CI changes are authorized.
+are designed and verified. Publication and CI actions require authorization for
+the current task; historical permission statements are not standing instructions.
 
 ## Rust review follow-ups
 

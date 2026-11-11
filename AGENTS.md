@@ -11,7 +11,9 @@ Run `python3 scripts/bootstrap.py` for a read-only prerequisite report.
 - Read the [wiki](https://github.com/cercova-studios/sqlite-vec/wiki) for decisions,
   rationale, research outcomes and roadmap. [HANDOFF.md](HANDOFF.md),
   [TODO.md](TODO.md) and linked experiment receipts retain local development
-  context. Recheck current source and revision before relying on historical results.
+  context. Start with TODO's execution order and open follow-ups; use only the
+  relevant handoff heading/receipt rather than loading the whole history.
+  Recheck current source and revision before relying on historical results.
 - For a guided workflow, read
   [.agents/skills/sqlite-vec-workflow/SKILL.md](.agents/skills/sqlite-vec-workflow/SKILL.md).
   No Codex account, private memory, global skill installation or chat access is
