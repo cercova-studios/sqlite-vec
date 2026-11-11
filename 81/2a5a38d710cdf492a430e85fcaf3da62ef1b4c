@@ -1,0 +1,21 @@
+AGENTS.md
+  s_8e1621011687ed::t_20836f71ce6519 54-56
+.agents/skills/experiment-hygiene/SKILL.md
+  s_8e1621011687ed::t_b020e847a1fea9 1-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "812a5a38d710cdf492a430e85fcaf3da62ef1b4c",
+  "prompts": {},
+  "sessions": {
+    "s_8e1621011687ed": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cb7c-1dfe-7473-9908-6093db8c8558",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
