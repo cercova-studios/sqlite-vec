@@ -1,0 +1,86 @@
+{
+  "model": "colbert-ir/colbertv2.0",
+  "revision": "c1e84128e85ef755c096a95bdb06b47793b13acf",
+  "license": "mit",
+  "source_revision": "cc4f3dc91c0b45d2d08c251d9d95178285c65f1c",
+  "files": {
+    "README.md": {
+      "url": "https://huggingface.co/colbert-ir/colbertv2.0/resolve/c1e84128e85ef755c096a95bdb06b47793b13acf/README.md",
+      "sha256": "44e68292037d4fac7db91b9b24ae36535ae5807eef2b323adcc83a615b91751d",
+      "bytes": 10407
+    },
+    "config.json": {
+      "url": "https://huggingface.co/colbert-ir/colbertv2.0/resolve/c1e84128e85ef755c096a95bdb06b47793b13acf/config.json",
+      "sha256": "cbdcc01dc7772fd0e5e1d85d5de695faf8c4935ae3c7ea3fdb6c24397b284f3c",
+      "bytes": 743
+    },
+    "artifact.metadata": {
+      "url": "https://huggingface.co/colbert-ir/colbertv2.0/resolve/c1e84128e85ef755c096a95bdb06b47793b13acf/artifact.metadata",
+      "sha256": "0ddc5a54234cff6d13bc9411250a5479d9d96f3ffbace76d8a1884144377e434",
+      "bytes": 1633
+    },
+    "model.safetensors": {
+      "url": "https://huggingface.co/colbert-ir/colbertv2.0/resolve/c1e84128e85ef755c096a95bdb06b47793b13acf/model.safetensors",
+      "sha256": "3f58890b1dfdfec066ef12ba431fa9d56992da9e30a53489242c4156e37e9017",
+      "bytes": 438349816
+    },
+    "tokenizer.json": {
+      "url": "https://huggingface.co/colbert-ir/colbertv2.0/resolve/c1e84128e85ef755c096a95bdb06b47793b13acf/tokenizer.json",
+      "sha256": "5fd1c882abbd30517dced455a2c9768945ec726b96727927e4959348d9de550b",
+      "bytes": 466081
+    },
+    "tokenizer_config.json": {
+      "url": "https://huggingface.co/colbert-ir/colbertv2.0/resolve/c1e84128e85ef755c096a95bdb06b47793b13acf/tokenizer_config.json",
+      "sha256": "a16a31c8d474339d7a46afe7eb8583b24f8b74806af6e25294506523f9d0acfb",
+      "bytes": 405
+    },
+    "special_tokens_map.json": {
+      "url": "https://huggingface.co/colbert-ir/colbertv2.0/resolve/c1e84128e85ef755c096a95bdb06b47793b13acf/special_tokens_map.json",
+      "sha256": "303df45a03609e4ead04bc3dc1536d0ab19b5358db685b6f3da123d05ec200e3",
+      "bytes": 112
+    },
+    "vocab.txt": {
+      "url": "https://huggingface.co/colbert-ir/colbertv2.0/resolve/c1e84128e85ef755c096a95bdb06b47793b13acf/vocab.txt",
+      "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3",
+      "bytes": 231508
+    }
+  },
+  "sources": {
+    "LICENSE": {
+      "url": "https://raw.githubusercontent.com/stanford-futuredata/ColBERT/cc4f3dc91c0b45d2d08c251d9d95178285c65f1c/LICENSE",
+      "sha256": "641c1a7fc3e22f3ea8521617c690213f0d741bf95ff35eeba99b34ff2102e0ae",
+      "bytes": 1091
+    },
+    "colbert/modeling/colbert.py": {
+      "url": "https://raw.githubusercontent.com/stanford-futuredata/ColBERT/cc4f3dc91c0b45d2d08c251d9d95178285c65f1c/colbert/modeling/colbert.py",
+      "sha256": "29f54b1916a32b5682befc331f5391c5e757642cc7bc2a1842511b28bc7e378b",
+      "bytes": 7547
+    },
+    "colbert/modeling/hf_colbert.py": {
+      "url": "https://raw.githubusercontent.com/stanford-futuredata/ColBERT/cc4f3dc91c0b45d2d08c251d9d95178285c65f1c/colbert/modeling/hf_colbert.py",
+      "sha256": "eee36aa495e6e21935ca104163717b1d8c2fdf295e2e49947c105614cf2e5360",
+      "bytes": 5876
+    },
+    "colbert/modeling/tokenization/query_tokenization.py": {
+      "url": "https://raw.githubusercontent.com/stanford-futuredata/ColBERT/cc4f3dc91c0b45d2d08c251d9d95178285c65f1c/colbert/modeling/tokenization/query_tokenization.py",
+      "sha256": "c765b93f0ad1386de0566edc0d349ec4cca0683f0f77a505b09c036fc025c285",
+      "bytes": 5057
+    },
+    "colbert/modeling/tokenization/doc_tokenization.py": {
+      "url": "https://raw.githubusercontent.com/stanford-futuredata/ColBERT/cc4f3dc91c0b45d2d08c251d9d95178285c65f1c/colbert/modeling/tokenization/doc_tokenization.py",
+      "sha256": "65df0d05ed77abe0667196d9aa4e1d4d13dbf865f23a87fa31ff367f3d6910be",
+      "bytes": 2441
+    },
+    "colbert/modeling/tokenization/utils.py": {
+      "url": "https://raw.githubusercontent.com/stanford-futuredata/ColBERT/cc4f3dc91c0b45d2d08c251d9d95178285c65f1c/colbert/modeling/tokenization/utils.py",
+      "sha256": "d2d48ce274335cc8f5fa95dcb3b117d9aa832d520a7d2ec2b3128866aba6d018",
+      "bytes": 2325
+    },
+    "colbert/infra/config/settings.py": {
+      "url": "https://raw.githubusercontent.com/stanford-futuredata/ColBERT/cc4f3dc91c0b45d2d08c251d9d95178285c65f1c/colbert/infra/config/settings.py",
+      "sha256": "bf71a23e9ab0db9a4385e845bd7f6f31060f49d9ba596595beb3180b9c98467e",
+      "bytes": 4618
+    }
+  },
+  "remote_code_executed": false
+}

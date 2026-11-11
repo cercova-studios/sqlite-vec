@@ -1,0 +1,9 @@
+{
+  "baseline": "dense",
+  "tuning_ndcg10": {
+    "bm25": 0.6955257383157643,
+    "dense": 0.8155507534008507,
+    "rrf": 0.7988085488222044
+  },
+  "primary_late": "rrf_late"
+}

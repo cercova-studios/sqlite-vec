@@ -1,0 +1,25 @@
+test_request_admission_precedes_payload_hashing_and_numeric_decode (test_host_scorer.HostTests.test_request_admission_precedes_payload_hashing_and_numeric_decode) ... FAIL
+
+======================================================================
+FAIL: test_request_admission_precedes_payload_hashing_and_numeric_decode (test_host_scorer.HostTests.test_request_admission_precedes_payload_hashing_and_numeric_decode)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/rohit/sandbox/sqlite-vec/benchmarks-ann/experiments/2026-11-08-late-interaction/test_host_scorer.py", line 128, in test_request_admission_precedes_payload_hashing_and_numeric_decode
+    host.rerank(db,42,"query",[-2,0,7],p,work_limit=1)
+  File "/Users/rohit/sandbox/sqlite-vec/benchmarks-ann/experiments/2026-11-08-late-interaction/.work/initial-attempt/host_scorer.py", line 88, in rerank
+    query = decode(blob, dimensions, 128, 1048576)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rohit/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rohit/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rohit/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+AssertionError: decoded before admission
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (failures=1)

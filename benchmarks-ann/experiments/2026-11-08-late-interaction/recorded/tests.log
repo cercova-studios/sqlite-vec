@@ -1,0 +1,28 @@
+test_aggregate_limit_and_reset_per_document_negative_control (test_host_scorer.HostTests.test_aggregate_limit_and_reset_per_document_negative_control) ... ok
+test_empty_candidates_still_admit_and_validate_query (test_host_scorer.HostTests.test_empty_candidates_still_admit_and_validate_query) ... ok
+test_invalid_shapes_norms_and_global_caps (test_host_scorer.HostTests.test_invalid_shapes_norms_and_global_caps) ... ok
+test_metrics_have_hand_computed_oracles_and_bootstrap_controls (test_host_scorer.HostTests.test_metrics_have_hand_computed_oracles_and_bootstrap_controls) ... ok
+test_missing_stale_model_digest_duplicate_and_no_partial_publication (test_host_scorer.HostTests.test_missing_stale_model_digest_duplicate_and_no_partial_publication) ... ok
+test_ordered_float64_matches_scalar_with_cancellation_and_negative_scores (test_host_scorer.HostTests.test_ordered_float64_matches_scalar_with_cancellation_and_negative_scores) ... ok
+test_request_admission_precedes_payload_hashing_and_numeric_decode (test_host_scorer.HostTests.test_request_admission_precedes_payload_hashing_and_numeric_decode) ... ok
+test_request_ranks_negative_scores_and_counts_real_work (test_host_scorer.HostTests.test_request_ranks_negative_scores_and_counts_real_work) ... ok
+test_seeded_pairs_and_permutation_match_scalar_exactly (test_host_scorer.HostTests.test_seeded_pairs_and_permutation_match_scalar_exactly) ... ok
+test_adjacent_float32_norm_boundary (test_oracle.OracleTests.test_adjacent_float32_norm_boundary) ... ok
+test_deliberately_wrong_maximum_and_omission_controls_fail (test_oracle.OracleTests.test_deliberately_wrong_maximum_and_omission_controls_fail) ... ok
+test_every_row_is_checked_for_finite_components_and_norms (test_oracle.OracleTests.test_every_row_is_checked_for_finite_components_and_norms) ... ok
+test_float64_order_and_no_clamping (test_oracle.OracleTests.test_float64_order_and_no_clamping) ... ok
+test_hand_scores_negative_matches_and_metadata (test_oracle.OracleTests.test_hand_scores_negative_matches_and_metadata) ... ok
+test_invalid_types_shapes_and_huge_integer_bounds (test_oracle.OracleTests.test_invalid_types_shapes_and_huge_integer_bounds) ... ok
+test_little_endian_is_explicit (test_oracle.OracleTests.test_little_endian_is_explicit) ... ok
+test_query_multiplicity_document_duplicates_and_permutation (test_oracle.OracleTests.test_query_multiplicity_document_duplicates_and_permutation) ... ok
+test_relational_oracle_on_seeded_normalized_float32_pairs (test_oracle.OracleTests.test_relational_oracle_on_seeded_normalized_float32_pairs) ... ok
+test_rows_dimensions_and_byte_ceiling_boundaries (test_oracle.OracleTests.test_rows_dimensions_and_byte_ceiling_boundaries) ... ok
+test_scratch_does_not_scale_with_document_components (test_oracle.OracleTests.test_scratch_does_not_scale_with_document_components) ... ok
+test_work_admission_precedes_decode_and_has_one_unit_boundary (test_oracle.OracleTests.test_work_admission_precedes_decode_and_has_one_unit_boundary) ... ok
+test_complete_receipts_and_real_embedding_oracles (test_receipts.ReceiptTests.test_complete_receipts_and_real_embedding_oracles) ... ok
+test_wrong_rank_metric_work_and_missing_timing_are_detected (test_receipts.ReceiptTests.test_wrong_rank_metric_work_and_missing_timing_are_detected) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.279s
+
+OK

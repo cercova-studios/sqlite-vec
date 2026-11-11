@@ -1,0 +1,277 @@
+{
+  "selected_baseline": "dense",
+  "primary": {
+    "mean": -0.07407982153508964,
+    "low": -0.12636929276377118,
+    "high": -0.02245549735475518,
+    "samples": 10000,
+    "seed": 20261110
+  },
+  "quality": {
+    "bm25": {
+      "baseline": {
+        "ndcg10": 0.6672049061699022,
+        "mrr10": 0.6305793650793651,
+        "recall10": 0.7883333333333333,
+        "candidate_recall": 0.8777777777777778
+      },
+      "late": {
+        "ndcg10": 0.6229782770014975,
+        "mrr10": 0.5946190476190476,
+        "recall10": 0.7322222222222222,
+        "candidate_recall": 0.8777777777777778
+      },
+      "paired_same_candidates": {
+        "mean": -0.044226629168404696,
+        "low": -0.09851918792312347,
+        "high": 0.008917224590997842,
+        "samples": 10000,
+        "seed": 20261110
+      }
+    },
+    "dense": {
+      "baseline": {
+        "ndcg10": 0.7088041280824894,
+        "mrr10": 0.6752910052910053,
+        "recall10": 0.8333333333333334,
+        "candidate_recall": 0.9477777777777778
+      },
+      "late": {
+        "ndcg10": 0.6434484853647406,
+        "mrr10": 0.6168518518518519,
+        "recall10": 0.7544444444444445,
+        "candidate_recall": 0.9477777777777778
+      },
+      "paired_same_candidates": {
+        "mean": -0.06535564271774867,
+        "low": -0.11879676651321534,
+        "high": -0.01289091625212219,
+        "samples": 10000,
+        "seed": 20261110
+      }
+    },
+    "rrf": {
+      "baseline": {
+        "ndcg10": 0.6937158645963939,
+        "mrr10": 0.6540264550264551,
+        "recall10": 0.8188888888888889,
+        "candidate_recall": 0.9544444444444444
+      },
+      "late": {
+        "ndcg10": 0.6347243065473998,
+        "mrr10": 0.6053227513227514,
+        "recall10": 0.7588888888888888,
+        "candidate_recall": 0.9544444444444444
+      },
+      "paired_same_candidates": {
+        "mean": -0.05899155804899419,
+        "low": -0.10937512109977561,
+        "high": -0.00898234113572268,
+        "samples": 10000,
+        "seed": 20261110
+      }
+    }
+  },
+  "latency_ms": {
+    "bm25": {
+      "retrieval_ms": {
+        "p50": 2.754417,
+        "p95": 5.649292
+      },
+      "rerank_ms": {
+        "p50": 125.756542,
+        "p95": 130.897583
+      },
+      "live_baseline": {
+        "total_ms": {
+          "p50": 2.691958,
+          "p95": 5.535667
+        },
+        "bge_encode_ms": {
+          "p50": 0.001625,
+          "p95": 0.002208
+        },
+        "colbert_encode_ms": {
+          "p50": 0.00025,
+          "p95": 0.000416
+        },
+        "retrieval_ms": {
+          "p50": 2.682833,
+          "p95": 5.527209
+        },
+        "rerank_ms": {
+          "p50": 0.0,
+          "p95": 0.0
+        }
+      },
+      "live_late": {
+        "total_ms": {
+          "p50": 140.229125,
+          "p95": 143.834208
+        },
+        "bge_encode_ms": {
+          "p50": 0.001,
+          "p95": 0.002459
+        },
+        "colbert_encode_ms": {
+          "p50": 11.523458,
+          "p95": 11.895042
+        },
+        "retrieval_ms": {
+          "p50": 2.659959,
+          "p95": 5.517041
+        },
+        "rerank_ms": {
+          "p50": 125.93425,
+          "p95": 127.900125
+        }
+      }
+    },
+    "dense": {
+      "retrieval_ms": {
+        "p50": 5.369125,
+        "p95": 5.739625
+      },
+      "rerank_ms": {
+        "p50": 126.128583,
+        "p95": 131.300417
+      },
+      "live_baseline": {
+        "total_ms": {
+          "p50": 8.376709,
+          "p95": 9.647583
+        },
+        "bge_encode_ms": {
+          "p50": 2.439792,
+          "p95": 3.587583
+        },
+        "colbert_encode_ms": {
+          "p50": 0.000292,
+          "p95": 0.000458
+        },
+        "retrieval_ms": {
+          "p50": 5.899875,
+          "p95": 6.102167
+        },
+        "rerank_ms": {
+          "p50": 0.0,
+          "p95": 0.0
+        }
+      },
+      "live_late": {
+        "total_ms": {
+          "p50": 145.984792,
+          "p95": 148.36
+        },
+        "bge_encode_ms": {
+          "p50": 2.376875,
+          "p95": 3.576667
+        },
+        "colbert_encode_ms": {
+          "p50": 11.559625,
+          "p95": 12.170709
+        },
+        "retrieval_ms": {
+          "p50": 5.519541,
+          "p95": 5.828542
+        },
+        "rerank_ms": {
+          "p50": 126.03775,
+          "p95": 128.406625
+        }
+      }
+    },
+    "rrf": {
+      "retrieval_ms": {
+        "p50": 8.081833,
+        "p95": 10.784916
+      },
+      "rerank_ms": {
+        "p50": 107.642458,
+        "p95": 118.335709
+      },
+      "live_baseline": {
+        "total_ms": {
+          "p50": 11.228167,
+          "p95": 14.32325
+        },
+        "bge_encode_ms": {
+          "p50": 2.423083,
+          "p95": 3.601292
+        },
+        "colbert_encode_ms": {
+          "p50": 0.000333,
+          "p95": 0.000459
+        },
+        "retrieval_ms": {
+          "p50": 8.519292,
+          "p95": 11.30125
+        },
+        "rerank_ms": {
+          "p50": 0.0,
+          "p95": 0.0
+        }
+      },
+      "live_late": {
+        "total_ms": {
+          "p50": 130.719166,
+          "p95": 140.564375
+        },
+        "bge_encode_ms": {
+          "p50": 2.367875,
+          "p95": 3.531584
+        },
+        "colbert_encode_ms": {
+          "p50": 11.597125,
+          "p95": 12.275208
+        },
+        "retrieval_ms": {
+          "p50": 8.041667,
+          "p95": 10.956458
+        },
+        "rerank_ms": {
+          "p50": 107.68625,
+          "p95": 118.448042
+        }
+      }
+    }
+  },
+  "resources": {
+    "score": {
+      "exit_code": 0,
+      "seconds": 110.51038091699593,
+      "peak_rss_bytes": 102989824,
+      "user_seconds": 108.217094,
+      "system_seconds": 2.196153,
+      "phase": "score",
+      "log_sha256": "99710a352d08a5dcf41b4d89196fcc1ffc979fb4024736bf7d9f24cf0668529e",
+      "resource_units": "macOS ru_maxrss bytes; one fresh child including imports and serialization"
+    },
+    "live": {
+      "exit_code": 0,
+      "seconds": 43.075692457990954,
+      "peak_rss_bytes": 1559478272,
+      "user_seconds": 51.012571,
+      "system_seconds": 1.53611,
+      "phase": "live",
+      "log_sha256": "c1eed6e5d944e0e5ad8afc5c9431c7a4d0b9e8c0cf4b52cbb86374f35225d1ee",
+      "resource_units": "macOS ru_maxrss bytes; one fresh child including imports and serialization"
+    }
+  },
+  "gates": {
+    "quality_gain": false,
+    "quality_confidence": false,
+    "rerank_latency": true,
+    "live_latency": true,
+    "scoring_memory": true,
+    "model_memory": true,
+    "storage": true
+  },
+  "all_gates_pass": false,
+  "storage": {
+    "baseline_bytes": 33976320,
+    "combined_bytes": 461602816,
+    "amplification": 13.586015672091621
+  },
+  "verification": "600 quality rows, 810 timing rows, independent metrics/work/coverage, six real scalar pairs, input/script hashes"
+}

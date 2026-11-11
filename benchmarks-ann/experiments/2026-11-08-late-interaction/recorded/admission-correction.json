@@ -1,0 +1,25 @@
+{
+  "reason": "Candidate/query shape and aggregate work admission now precede query payload loading/hash/numeric decode; valid empty candidate sets retained.",
+  "no_model_split_candidate_or_threshold_change": true,
+  "attempts": {
+    "initial-attempt": {
+      "score_sha256": "32c34e1471b44efb812650ccac1ccad95652cb9a6f735fc14f9525291a003446",
+      "scorer_sha256": "e8607463079838e174ea89d4c0ddecd6b18fcc70ab9d89316f3140063df6ac3c",
+      "all_600_rankings_metrics_counters_identical": true
+    },
+    "admission-interim": {
+      "score_sha256": "3ded5698fd6500178cdb2a727a78c2b5a5f427c5fb6fa04bf504eaa2a74c332a",
+      "scorer_sha256": "380aa1069ad25aed3f5b4b7bc85d143c63ffff7be8dcda41ed0c886e70198c2e",
+      "all_600_rankings_metrics_counters_identical": true
+    }
+  },
+  "final_scorer_sha256": "e6609b4f7a4802eeb0924e4e2fadad04668894f67b68b105e3936da0000c7d01",
+  "final_score_sha256": "e26cf65a345eb5b5b0cf026a8a7d1da97894c1ad3234949f3f734be28336bf87",
+  "final_measurements_repeated": true,
+  "regressions": [
+    "admission-regression-before.log",
+    "admission-regression-after.log",
+    "empty-regression-before.log",
+    "empty-regression-after.log"
+  ]
+}
