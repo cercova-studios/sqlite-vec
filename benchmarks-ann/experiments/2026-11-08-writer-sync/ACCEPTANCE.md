@@ -1,9 +1,13 @@
 # Combined synchronization acceptance
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Implementation: `cfa86e5` (source/FTS/vec0 synchronization). The subsequent
 `ad6b7ef` changes only the wording of an earlier test result. Acceptance ran on
 macOS arm64 with the existing verified default bundle; its native-library SHA256
-is recorded in [consumer-result.json](consumer-result.json).
+is recorded in [consumer-result.json](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-writer-sync/consumer-result.json).
 
 ## Independent checks run in the coordinating chat
 
@@ -25,7 +29,7 @@ that snapshot. It exercises stale-source rejection, claim/undo source stability,
 delete/restore/replayed-delete receipts, same-text vector-only updates and undo,
 foreign-key/integrity checks and reopen. Four deliberate corruptions—wrong model,
 missing lexical row, orphan state and missing state—must reject; left joins check
-both missing and extra index identities/epochs. See [consumer.rs](consumer.rs).
+both missing and extra index identities/epochs. See [consumer.rs](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-writer-sync/consumer.rs).
 
 ```sh
 python3 benchmarks-ann/experiments/2026-11-08-writer-sync/verify_consumer.py \
@@ -47,7 +51,7 @@ The read-only regression copied committed `examples/search-lab` into a temporary
 root, linked the verified bundle extension to `dist/vec0.dylib`, and linked its
 binary to `examples/search-lab/target/release/sqlite-vec-search-lab`. The existing
 workspace venv ran `python -m pytest -q -p no:cacheprovider` over the copied lab.
-[adapter-regression.json](adapter-regression.json) retains the actual output and
+[adapter-regression.json](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-writer-sync/adapter-regression.json) retains the actual output and
 revision. No dirty native sources or changed tests were used.
 
 ## Unresolved regression check

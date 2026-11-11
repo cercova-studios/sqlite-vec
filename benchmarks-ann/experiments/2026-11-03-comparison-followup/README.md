@@ -1,5 +1,9 @@
 # Replay the comparison follow-up
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Read [the findings and limitations](REPORT.md) first. These scripts measure SQL filter construction, flat BLOB access, minimum-hop graphs and Turso/libSQL vectors. They do not change the working C core or application dependencies.
 
 ## Verify the saved archive

@@ -1,5 +1,9 @@
 # P4/V1 capture and undo investigation
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 2026-11-07. No production write API or default build feature changes.
 [Write/history contract](write-contract.md) defines the next prototype; it does
 not enable agent writes. The existing read-only adapter remains unchanged.
@@ -27,7 +31,7 @@ the Session path omits a changed-row lookup index and a production revision ledg
 
 ## Results and limits
 
-The frozen results are [results.json](results.json). On this macOS arm64 host:
+The frozen results are [results.json](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-07-write-history/results.json). On this macOS arm64 host:
 
 | Updates per row/request | No capture median | Session median | SQL log median | Session DB bytes | SQL log DB bytes |
 |---|---:|---:|---:|---:|---:|

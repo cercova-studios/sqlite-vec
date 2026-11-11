@@ -1,5 +1,9 @@
 # P4/V1 write and history contract
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Design for the next experimental slice, not a shipped API. The existing six
 read-only operations in `examples/search-lab/src/lib.rs` and their CLI/MCP
 envelopes remain unchanged. No existing database is enrolled or migrated here.

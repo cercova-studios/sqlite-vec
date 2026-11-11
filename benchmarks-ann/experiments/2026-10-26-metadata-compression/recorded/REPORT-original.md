@@ -1,5 +1,9 @@
 # Optional metadata compression assessment
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../../README.md).
+
 2026-10-26. Assessment only; no engine, schema, dependency or CI changes.
 
 ## Recommendation
@@ -65,16 +69,16 @@ Before implementation, collect a real schema/data sample and its read/write mix.
 
 ## Source anchors and reproducibility
 
-- [Architecture: C-core dependency boundary and zone maps](/Users/rohit/sandbox/sqlite-vec/ARCHITECTURE.md)
-- [Chunk layout sizes](/Users/rohit/sandbox/sqlite-vec/sqlite-vec.c:5536)
-- [Numeric point metadata reads](/Users/rohit/sandbox/sqlite-vec/sqlite-vec.c:5250)
-- [Metadata filter reads and exact-size checks](/Users/rohit/sandbox/sqlite-vec/sqlite-vec.c:8442)
-- [Metadata writes and zone-map maintenance](/Users/rohit/sandbox/sqlite-vec/sqlite-vec.c:10823)
-- [Constructor bounds/default and unknown-option rejection](/Users/rohit/sandbox/sqlite-vec/sqlite-vec.c:6238)
-- [Benchmark script](/tmp/vec-metadata-compression-assess.py)
-- [Raw measurements, timing batches and length-proxy page counts](/tmp/vec-metadata-compression-results.json)
+- [Architecture: C-core dependency boundary and zone maps](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/ARCHITECTURE.md)
+- [Chunk layout sizes](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/sqlite-vec.c#L5536)
+- [Numeric point metadata reads](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/sqlite-vec.c#L5250)
+- [Metadata filter reads and exact-size checks](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/sqlite-vec.c#L8442)
+- [Metadata writes and zone-map maintenance](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/sqlite-vec.c#L10823)
+- [Constructor bounds/default and unknown-option rejection](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/sqlite-vec.c#L6238)
+- [Benchmark script](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-metadata-compression/recorded/benchmark-original.py)
+- [Raw measurements, timing batches and length-proxy page counts](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-metadata-compression/recorded/results.json)
 
-Run from the repository: `UV_CACHE_DIR=/tmp/uv-cache-muse uv run --managed-python --project tests python /tmp/vec-metadata-compression-assess.py`. The script regenerates codec measurements; the additional length-proxy fields and illustrative projection in the saved JSON were calculated separately in this assessment.
+Run from the repository: `UV_CACHE_DIR=/tmp/uv-cache-muse uv run --managed-python --project tests python benchmarks-ann/experiments/2026-10-26-metadata-compression/benchmark.py --output /tmp/metadata-compression-replay.json`. The script regenerates codec measurements; the additional length-proxy fields and illustrative projection in the saved JSON were calculated separately in this assessment.
 
 Environment: {"head": "c85e736b2e7ef008fbfac0733b0de96ad7ed99ef", "platform": "macOS-27.0.1-arm64-arm-64bit", "machine": "arm64", "python": "3.12.13", "sqlite": "3.53.1", "zlib": "1.2.12", "timing": "9 batches of 20 calls after 5 warmups; CPU codec microbenchmarks, not SQL timings", "sqlite_pages": "dbstat bytes for the raw metadata shadow table; excludes other tables/indexes", "scope": "synthetic full chunks from the unchanged vec0 engine; byte-exact roundtrips; no production codec or format change"}.
 

@@ -1,5 +1,9 @@
 # Rust adapter keyword SQL profile
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 This experiment compares the adapter's materialized eligibility `IN` predicate
 with correlated `EXISTS` using its locked `rusqlite` bundled SQLite. It reuses
 all 5,183 public SciFact title/abstract records and all 300 frozen lexical

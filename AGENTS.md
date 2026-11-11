@@ -40,9 +40,14 @@ bootstrap runs C unit and disposable in-memory vector/FTS checks; it does not
 replace profile-specific Python, Rust, packaging or hybrid regressions. Report
 failures and skips as such. Never claim an old receipt as a fresh check.
 
-Update current contracts beside code. Keep plans, detailed validation records and
-historical decisions in the wiki/development archive. Make that context usable
+Update current contracts beside code. Keep plans and historical decisions in the
+wiki. Make that context usable
 without private conversations. Link exact sources and distinguish implemented
 behavior, prototypes, negative results and planned work. Wiki publication, remote
 writes, important-data migrations and destructive operations require authorization;
 guidance and suggested commands do not grant it.
+
+Completed experiment directories retain written reproduction instructions and
+result summaries only. Use the [experiment index](benchmarks-ann/experiments/README.md)
+to recover historical harnesses and receipts from pinned Git revisions. Keep
+active inputs in separate ignored scratch space and coordinate before cleanup.

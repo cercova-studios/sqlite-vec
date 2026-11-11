@@ -1,5 +1,9 @@
 # SciFact late-interaction result
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 **Decision: stop before native MaxSim.** The frozen ColBERTv2 configuration
 reduced relevance against the tuning-selected dense baseline. Faster numerical
 scoring would not repair that ranking loss. Keep the reference scorer and receipts
@@ -146,7 +150,7 @@ measurements were rerun against the repaired source; preparation, model, split
 and acceptance thresholds were unchanged. Initial/interim attempts remain in
 `.work/` with their original script bytes; the correction receipt records their
 identities and ranking parity with the final run in
-[the correction receipt](recorded/admission-correction.json).
+[the correction receipt](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/admission-correction.json).
 
 The encoder adapts the pinned MIT-licensed ColBERT implementation using standard
 Transformers BERT and safe tensor weights. Token markers, attention/masking,
@@ -183,12 +187,12 @@ candidate windows were not tuned after this result.
 
 ## Sources and receipts
 
-- [Frozen protocol](recorded/protocol.json), [analysis plan](recorded/analysis-plan.json),
-  [summary](recorded/summary.json), [retained hashes](recorded/manifest.json).
+- [Frozen protocol](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/protocol.json), [analysis plan](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/analysis-plan.json),
+  [summary](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/summary.json), [retained hashes](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/manifest.json).
 - [ColBERT model revision](https://huggingface.co/colbert-ir/colbertv2.0/tree/c1e84128e85ef755c096a95bdb06b47793b13acf).
 - [Inspected ColBERT source revision](https://github.com/stanford-futuredata/ColBERT/tree/cc4f3dc91c0b45d2d08c251d9d95178285c65f1c),
-  with source-specific URLs/hashes in [model provenance](recorded/model-manifest.json)
-  and the retained [MIT license](UPSTREAM-LICENSE).
+  with source-specific URLs/hashes in [model provenance](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/model-manifest.json)
+  and the retained [MIT license](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-late-interaction/UPSTREAM-LICENSE).
 - [BEIR SciFact archive](https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip),
   SHA256 `536e14446a0ba56ed1398ab1055f39fe852686ecad24a6306c80c490fa8e0165`.
 - [Motivating OpenSearch article](https://opensearch.org/blog/boost-search-relevance-with-late-interaction-models/).

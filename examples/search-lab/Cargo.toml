@@ -16,7 +16,3 @@ rusqlite = { version = "0.41", features = ["trace"] }
 
 [profile.release]
 strip = true
-
-[[example]]
-name = "keyword-profile"
-path = "../../benchmarks-ann/experiments/2026-11-02-adapter-fts/profile.rs"

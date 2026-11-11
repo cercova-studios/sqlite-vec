@@ -1,5 +1,9 @@
 # Scoped hybrid retrieval evaluation
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Compare vector-only, FTS5-only and the published scoped RRF query using explicit
 synthetic relevance judgments and an independent eligibility model. See the
 [report](REPORT.md) for recorded results and limits. The evaluation changes no

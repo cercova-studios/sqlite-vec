@@ -1,5 +1,9 @@
 # Public SciFact hybrid retrieval evaluation
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Completed 2026-10-27; experiment directory retains its 2026-10-26 start date.
 
 ## Decision
@@ -61,7 +65,7 @@ Allocated bytes were 24,244,224 after full assignment and 24,260,608 after the o
 
 ## Provenance, limits and next work
 
-The [README](README.md) contains commands, attribution and artifact roles. Saved receipts include query IDs, public qrels, lexical expressions, complete branch candidates, final rows, source IDs, timings, plans and storage costs. Data/model/array hashes are in the [data manifest](recorded/data-manifest.json); C source/header hashes, excluded dirty C diff, compiler and flags are in the [build manifest](recorded/build-manifest.json). The [guide snapshot](recorded/guide.md) preserves the measured recipe. Downloaded datasets, weights, arrays and compiled libraries remain ignored in `.work/` for replay; none are committed.
+The [README](README.md) contains commands, attribution and artifact roles. Saved receipts include query IDs, public qrels, lexical expressions, complete branch candidates, final rows, source IDs, timings, plans and storage costs. Data/model/array hashes are in the [data manifest](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-scifact-hybrid/recorded/data-manifest.json); C source/header hashes, excluded dirty C diff, compiler and flags are in the [build manifest](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-scifact-hybrid/recorded/build-manifest.json). The [guide snapshot](recorded/guide.md) preserves the measured recipe. Downloaded datasets, weights, arrays and compiled libraries remain ignored in `.work/` for replay; none are committed.
 
 The C snapshot is `fee2050362831a4d65fec74c2a82b38a74a888d8`, excluding the unrelated HNSW helper edit. Compilation targets Apple M1/NEON at O3 and retains the existing DiskANN unused-parameter warning. Runtime: macOS 27.0.1 arm64, Python 3.12.13, NumPy 2.1.3, SQLite 3.53.1, ONNX Runtime 1.23.2 and tokenizers 0.22.1. The metric oracle uses pytrec-eval-terrier 0.5.11.
 

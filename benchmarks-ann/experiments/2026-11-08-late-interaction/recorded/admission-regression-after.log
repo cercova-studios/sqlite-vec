@@ -1,6 +1,0 @@
-test_request_admission_precedes_payload_hashing_and_numeric_decode (test_host_scorer.HostTests.test_request_admission_precedes_payload_hashing_and_numeric_decode) ... ok
-
-----------------------------------------------------------------------
-Ran 1 test in 0.001s
-
-OK

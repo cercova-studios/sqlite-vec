@@ -1,5 +1,9 @@
 # Experimental HNSW alpha pruning — 2026-10-26
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 **Decision: keep α=1.0.** The real-data measurements do not support changing
 production pruning. See [the report](REPORT.md) for recall/QPS tables, plots,
 methodology and limits. This archive adds no SQL option or production code.
@@ -11,13 +15,13 @@ confirmed that the earlier synthetic speedup did not generalize.
 
 ## Recorded evidence
 
-- [results/summary.csv](results/summary.csv) and JSON contain the full sweep.
-- [results/paired_summary.json](results/paired_summary.json) contains the alternating check.
+- [results/summary.csv](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/results/summary.csv) and JSON contain the full sweep.
+- [results/paired_summary.json](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/results/paired_summary.json) contains the alternating check.
 - `results/raw/*.json.gz` and `results/paired_timing.json.gz` preserve per-query
   measurements with lossless gzip compression. There are 640,000 timed queries.
-- [provenance/build-manifest.json](provenance/build-manifest.json) records source
+- [provenance/build-manifest.json](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/build-manifest.json) records source
   hashes, compiler flags, library hashes, HEAD and the pre-existing working diff.
-- [provenance/data-manifest.json](provenance/data-manifest.json) records public
+- [provenance/data-manifest.json](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/data-manifest.json) records public
   URLs, complete dataset hashes and selected-array hashes. Dataset files and
   compiled libraries are excluded from Git.
 - `recorded/scripts/` and [recorded/REPORT-original.md](recorded/REPORT-original.md)

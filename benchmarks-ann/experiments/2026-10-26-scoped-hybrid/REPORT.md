@@ -1,5 +1,9 @@
 # Scoped hybrid retrieval evaluation — 2026-10-26
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 ## Decision
 
 Keep the existing recipe and defaults. This controlled evaluation validates scoped eligibility and lifecycle behavior, but demonstrates no universal relevance benefit from hybrid fusion or larger candidate budgets. Production-corpus evaluation remains the next decision gate. No engine change, alpha tuning, push or CI is included.
@@ -8,7 +12,7 @@ At baseline with no distractors, hybrid macro recall@10 is 96.4%, versus 82.1% f
 
 ## Workload and reference
 
-- Sixteen hand-authored procedure records cover deployment, credential rotation, refunds and backups. Each topic includes a close paraphrase without the query keyword, keyword-bearing close records and a relevant keyword-bearing record far from the query vector. [Fixture](fixture.json) labels relevance independently of retrieved ranks. All four-dimensional vectors are controlled coordinates, not learned embeddings.
+- Sixteen hand-authored procedure records cover deployment, credential rotation, refunds and backups. Each topic includes a close paraphrase without the query keyword, keyword-bearing close records and a relevant keyword-bearing record far from the query vector. [Fixture](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-scoped-hybrid/fixture.json) labels relevance independently of retrieved ranks. All four-dimensional vectors are controlled coordinates, not learned embeddings.
 - Nine queries include four topic searches, valid-from/valid-to boundaries, a missing keyword match, an absent tenant and an unanswerable question within an eligible tenant. Macro recall excludes the two queries without relevant eligible records; each of the remaining seven query forms has equal weight. Relevance sets change when records become ineligible or are replaced.
 - Corpus sizes are 16, 1,016 and 10,016 records. Added records are irrelevant; at time 100, 40% belong to another tenant, 20% have expired, 20% start in the future, 10% are invalidated and 10% are eligible distractors. Earlier/later boundary queries change those eligibility proportions. Ineligible distractors have exact query vectors; eligible distractors have seeded random vectors and keyword-bearing unrelated text.
 - Identical documents are inserted in three orders (seeds 0/1/2). Branch budgets are 10/50, output limit 10. Flat float32 vec0 search avoids ANN approximation as a confound. RRF uses the published equal weighting and constant 60. Larger candidate budgets can promote irrelevant records present in both branches.
@@ -42,7 +46,7 @@ Baseline values pool the three insertion orders. Recall is the arithmetic mean o
 
 With 1,000 distractors, increasing hybrid branch budget from 10 to 50 reduces baseline recall from 53.6% to 39.3%. Candidate overlap can reward irrelevant keyword/vector matches; retrieving more candidates is not a monotonic relevance improvement. This is a counterexample, not evidence to change the default budget.
 
-At 10,000 distractors the keyword path has a 16.4 ms median, compared with 0.66 ms for vector-only; hybrid is about 17.0 ms at budget 10. Boundary queries with more eligible distractors contribute to the pooled p95. [Query plans](recorded/query-plans.json) preserve the observed plans for the main and before-start queries. No CPU/off-CPU profile was collected, so these timings do not establish the cause of scaling. Investigate the filtered FTS query path before considering engine tuning.
+At 10,000 distractors the keyword path has a 16.4 ms median, compared with 0.66 ms for vector-only; hybrid is about 17.0 ms at budget 10. Boundary queries with more eligible distractors contribute to the pooled p95. [Query plans](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-scoped-hybrid/recorded/query-plans.json) preserve the observed plans for the main and before-start queries. No CPU/off-CPU profile was collected, so these timings do not establish the cause of scaling. Investigate the filtered FTS query path before considering engine tuning.
 
 ## Eligibility, empty results and lifecycle
 
@@ -68,7 +72,7 @@ All original records remain stored after invalidation. Raw receipts preserve pag
 
 ## Provenance and verification
 
-Run commands and artifact roles are in [README](README.md). Frozen [raw receipts](recorded/receipts.json.gz), [all 72 summaries](recorded/summary.json), [build manifest](recorded/build-manifest.json), [published guide snapshot](recorded/guide.md) and query plans are retained. `manifest.json` hashes the archive. `verify.py` checks those hashes and regenerates eligibility, relevance and summary metrics from raw IDs and timings.
+Run commands and artifact roles are in [README](README.md). Frozen [raw receipts](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-scoped-hybrid/recorded/receipts.json.gz), [all 72 summaries](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-scoped-hybrid/recorded/summary.json), [build manifest](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-scoped-hybrid/recorded/build-manifest.json), [published guide snapshot](recorded/guide.md) and query plans are retained. `manifest.json` hashes the archive. `verify.py` checks those hashes and regenerates eligibility, relevance and summary metrics from raw IDs and timings.
 
 The extension was built from committed C sources at `52d1f144a75b2ce8faeb3c2ce21cc42b15b99c12` in a temporary directory. The existing HNSW helper edit was excluded and is recorded in the build manifest. Compilation used Apple M1/NEON at O3; the existing DiskANN unused-parameter warning remains. Runtime: macOS 27.0.1 arm64, Python 3.12.13, SQLite 3.53.1. Source/library/harness/fixture/guide hashes are recorded. No production source was edited.
 

@@ -1,6 +1,0 @@
-candidate kind=text returncode=0
-stdout:
-conversion OOM rejected without staging a row; empty-value retry committed
-
-stderr:
-fault mode=text failures=1 armed=0 rc=7

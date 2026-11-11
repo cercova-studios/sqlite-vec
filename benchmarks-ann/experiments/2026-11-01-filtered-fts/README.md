@@ -1,5 +1,9 @@
 # Filtered FTS query profiling
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Compare the published eligibility query with a correlated `EXISTS` predicate on
 public SciFact documents and real BGE embeddings. [REPORT.md](REPORT.md) records
 the diagnosis, paired timings, correctness checks and selectivity tradeoffs.

@@ -1,5 +1,9 @@
 # Comparison follow-up: SQLite filter and graph gaps
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Measured locally on 2026-11-03. This extends the [first engine comparison](../2026-11-03-engine-comparison/REPORT.md), which covers upstream/fork sqlite-vec, Zvec and LanceDB. No production code, defaults, storage format or adapter contract changed. Keep HNSW alpha=1.0.
 
 ## Decisions supported by the results
@@ -88,7 +92,7 @@ Potential product gaps are workspace extraction/chunking, freshness and literal/
 
 ## Evidence and limits
 
-[Replay instructions](README.md), [regenerated summary](recorded/summary.json), raw receipts, query plans, package versions, source/input hashes and retained failures are archived together. New SQL runs comprise 2,200 quality points and 6,600 timed calls. IDs, eligibility, uniqueness, finite scores, distance tolerances and tie-aware recall are checked live against original vectors. Offline verification recomputes quality recall from frozen IDs/masks/tie sets; it cannot independently reconstruct every distance without regenerating the vector inputs. Timed receipts retain validated metrics rather than all row lists. Corrupt quality IDs/recall are explicitly rejected by the verifier.
+[Replay instructions](README.md), [regenerated summary](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-03-comparison-followup/recorded/summary.json), raw receipts, query plans, package versions, source/input hashes and retained failures are archived together. New SQL runs comprise 2,200 quality points and 6,600 timed calls. IDs, eligibility, uniqueness, finite scores, distance tolerances and tie-aware recall are checked live against original vectors. Offline verification recomputes quality recall from frozen IDs/masks/tie sets; it cannot independently reconstruct every distance without regenerating the vector inputs. Timed receipts retain validated metrics rather than all row lists. Corrupt quality IDs/recall are explicitly rejected by the verifier.
 
 All runs are local macOS arm64 on M5 Pro, 18 cores/48 GiB. The diagnostic native library uses the prior committed source snapshot (native code unchanged at follow-up HEAD), Apple clang 21, -O3/M1/NEON, and Python's SQLite 3.53.1. See runtime receipts for exact host versions. The unrelated dirty HNSW helper is excluded. Some diagnostic/engine workers overlapped; there is no CPU pinning or isolated cross-engine timing campaign. New runs and the earlier Zvec/Lance runs must not be combined into a precise speed ranking.
 

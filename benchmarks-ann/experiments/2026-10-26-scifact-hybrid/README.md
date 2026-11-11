@@ -1,5 +1,9 @@
 # SciFact hybrid retrieval evaluation
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Compare the current vector-only, FTS5-only and equal-weight RRF recipe on public
 relevance labels and locally generated BGE embeddings. [REPORT.md](REPORT.md)
 contains the measurements, interpretation and limits. No production defaults change.

@@ -1,5 +1,9 @@
 # Bundled SQLite keyword comparison — 2026-11-02
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Adopt correlated `EXISTS` in the adapter's keyword branch. On its bundled SQLite
 3.54.1, all 600 SciFact query/scope comparisons return exactly equal ordered IDs
 and BM25 doubles under `IN` and `EXISTS`. Historical reference IDs also match.
@@ -18,7 +22,7 @@ rounds, alternating variant order after warmups. These are descriptive percentil
 from a warm in-memory keyword benchmark on one development host. They exclude
 admission, vectors, fusion, MCP cancellation hooks and transport. The eligibility
 table has the adapter's ID/scope columns; other document fields are omitted.
-See [replay and methodology](README.md) and [raw receipt](recorded/results.json.gz).
+See [replay and methodology](README.md) and [raw receipt](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-02-adapter-fts/recorded/results.json.gz).
 
 The plan changes from FTS index `0:=M1` (rowid plus MATCH constraints) to `0:M1`,
 followed by a correlated eligibility lookup with an automatic covering index and
@@ -49,7 +53,7 @@ read-only, snapshot and cancellation tests remain the end-to-end checks.
 
 The initial archived-JSON comparison found last-bit BM25 differences across
 builds/runtimes/parsers; its cause was not isolated. The retained
-[counterexample](recorded/initial-comparison.json) distinguishes that observation
+[counterexample](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-02-adapter-fts/recorded/initial-comparison.json) distinguishes that observation
 from the exact, same-build IN/EXISTS assertion. No score tolerance is used for the
 rewrite. No relevance or ranking improvement was inferred from latency. Models, schemas,
 dependencies and ANN settings are unchanged. Cold-cache, concurrent clients, other platforms,

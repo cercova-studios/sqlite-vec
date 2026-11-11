@@ -1,5 +1,9 @@
 # Bounded witness indexing
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 The native `graph_witness` path now uses temporary hash/list indexes instead of
 repeated full scans. The selected parent chain is reversed for one-pass output.
 All state remains in its existing byte-bounded arena. The implementation reuses

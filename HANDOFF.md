@@ -1,5 +1,12 @@
 # Handoff — read this first
 
+Completed experiment artifacts and generated builds were retired during cleanup.
+The [experiment index](benchmarks-ann/experiments/README.md) preserves reproduction
+instructions, result summaries and the pre-cleanup Git revision. Historical paths,
+receipts and build outputs mentioned below describe their recorded runs; rebuild
+tools or use an isolated historical checkout rather than expecting those artifacts
+to remain in this working tree. Active experiments are handled separately.
+
 ## Current work queue — 2026-11-07
 
 [TODO.md](TODO.md) is the authoritative queue. The user broadened the goal to an

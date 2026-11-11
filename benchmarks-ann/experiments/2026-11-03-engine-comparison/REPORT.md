@@ -1,5 +1,9 @@
 # Filtered-vector comparison — 2026-11-03
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 The fork is competitive with Zvec on these small local workloads, but neither
 wins every filter shape. Zvec is substantially faster on the SIFT 10%-eligible
 case. These results support further targeted investigation rather than an engine

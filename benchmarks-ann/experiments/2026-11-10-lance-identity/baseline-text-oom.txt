@@ -1,4 +1,0 @@
-baseline kind=text returncode=-11
-stdout:
-
-stderr:

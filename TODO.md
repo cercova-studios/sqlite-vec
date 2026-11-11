@@ -210,7 +210,7 @@ auxiliary/metadata/partition columns; dictionary encoding; vtab no-change handli
 auxiliary INSERT caching and batched auxiliary reads. They are not approved work
 or production defects merely because the historical list mentioned them.
 
-The [old ANN plan](benchmarks-ann/experiments/2026-11-07-local-datastore/legacy-ann-todo.md)
-and [old core notes](benchmarks-ann/experiments/2026-11-07-local-datastore/legacy-core-todo.md)
+The [old ANN plan](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-07-local-datastore/legacy-ann-todo.md)
+and [old core notes](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-07-local-datastore/legacy-core-todo.md)
 are preserved as history, including unresolved historical checkboxes. They are
 not instructions to publish, force-push, revive Annoy or change current defaults.

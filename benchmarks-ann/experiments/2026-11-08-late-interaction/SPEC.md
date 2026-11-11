@@ -1,5 +1,9 @@
 # Late-interaction reranking: plan and specification
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Status: L0/L1 executed in this archive; the relevance gate failed. See
 [the measured result](REPORT.md). L2–L4 remain proposals; no native scorer,
 writer integration or transport capability was added.

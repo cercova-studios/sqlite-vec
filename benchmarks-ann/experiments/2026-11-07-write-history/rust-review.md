@@ -1,8 +1,12 @@
 # All-Rust review after the writer prototype
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Reviewed revision `8f0af1b` with the local `rust-engineering` skill, including its
 idiom, concurrency/FFI, verification and review references. The
-[scope inventory](rust-review-scope.json) records all 20 tracked first-party Rust
+[scope inventory](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-07-write-history/rust-review-scope.json) records all 20 tracked first-party Rust
 sources and seven Cargo manifests/templates at that revision. Generated/vendor
 code and concurrent follow-up benchmarks are outside this source inventory.
 Build scripts, callers, unsafe boundaries, transaction state, cancellation and
@@ -120,7 +124,7 @@ examples/search-lab/.venv/bin/python \
 ```
 
 This archived runner creates only disposable fixtures. Its JSON reports violated
-contracts, not passing regression tests. [Recorded output](lance-review.json)
+contracts, not passing regression tests. [Recorded output](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-07-write-history/lance-review.json)
 contains five runtime counterexamples (R1/R2/R4/R5/R6) and the existing hybrid
 artifact's SHA256. A fresh Lance check fails in dependencies because `protoc` is
 missing; the artifact's complete build provenance was not reconstructed. The

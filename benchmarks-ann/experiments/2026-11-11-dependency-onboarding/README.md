@@ -1,5 +1,9 @@
 # Fresh-agent dependency onboarding
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 A native subagent started with `fork_turns=none`: no prior project chat context,
 private memory or other agents' reports. It used an isolated clone of committed
 `c1fde29d23c12efcdf7d66e8f315f8ca49f5ef02`, followed the dependency guide, and built

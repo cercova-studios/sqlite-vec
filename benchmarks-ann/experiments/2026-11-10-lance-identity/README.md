@@ -1,5 +1,9 @@
 # Lance identity and conversion safety
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 `lance0` rejects duplicate logical rowids and honors SQLite's ABORT, IGNORE, FAIL,
 ROLLBACK and REPLACE policies. The vec0 provider already has SQLite rowid-map
 constraints, so it does not perform an additional Lance lookup on every insert.

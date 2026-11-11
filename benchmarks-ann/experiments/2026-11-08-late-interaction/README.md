@@ -1,9 +1,13 @@
 # Late-interaction reference and SciFact experiment
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 The scalar reference and measured SciFact experiment are complete. The frozen
 reranker reduced relevance, so native MaxSim was rejected for this configuration.
 Read [the result](REPORT.md), [specification](SPEC.md) or
-[machine-readable summary](recorded/summary.json).
+[machine-readable summary](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-late-interaction/recorded/summary.json).
 
 ## Verify the retained result offline
 

@@ -149,6 +149,16 @@ the requested candidates using original vectors (`ef >= max(128, 4*k)`). Returne
 distances remain L2; indexed neighbor selection is approximate. Small tables and
 tables without a vector index continue to scan exactly.
 
+## Experiment archive
+
+`benchmarks-ann/experiments/README.md` indexes written reproduction instructions
+and historical results. Completed experiment directories contain Markdown only;
+scripts, lockfiles, raw measurements and generated artifacts are recovered from
+the pinned pre-cleanup Git snapshot when needed. Current tests, application
+examples and reusable benchmark tools remain in their normal source locations.
+Active experiments keep their required scratch inputs isolated until completion;
+they are excluded from completed-experiment teardown.
+
 ## Optional search adapter
 
 `examples/search-lab/src/lib.rs` exposes one host-side `Adapter::call` boundary

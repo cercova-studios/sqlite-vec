@@ -1,5 +1,9 @@
 # Fresh-agent onboarding and bootstrap language review
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Two independent native subagent trials use `fork_turns=none`, with no project
 chat history, private memory or other agents' reports. Each starts from a fresh
 local Git clone and reads the repository's agent instructions and onboarding.

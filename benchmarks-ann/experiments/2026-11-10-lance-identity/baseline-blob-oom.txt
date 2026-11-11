@@ -1,4 +1,0 @@
-baseline kind=blob returncode=-11
-stdout:
-
-stderr:

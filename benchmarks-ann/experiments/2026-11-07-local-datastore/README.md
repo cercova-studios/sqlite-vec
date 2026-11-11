@@ -1,9 +1,13 @@
 # Local datastore roadmap and packaging checks
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 2026-11-07, macOS arm64, Apple clang 21.0.0. Baseline: `c269a71`.
 [Current queue](../../../TODO.md) separates the five local-consumption/retrieval
-priorities from the Dolt-inspired versioning track. The legacy files beside this
-receipt preserve the superseded queues, including unverified historical tasks.
+priorities from the Dolt-inspired versioning track. The pre-cleanup Git snapshot preserves the superseded queues, including
+unverified historical tasks.
 
 ## Verified packaging slice
 
@@ -121,7 +125,7 @@ The build compiles committed `949073f` in fresh temporary source/target director
 excluding the unrelated dirty HNSW change. The invoking builder and guide are copied
 as separately hashed artifacts. No database in an existing project is modified.
 
-The [default manifest](default-manifest.json) and [IVF manifest](ivf-manifest.json)
+The [default manifest](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-07-local-datastore/default-manifest.json) and [IVF manifest](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-07-local-datastore/ivf-manifest.json)
 freeze the measured build inputs and installed output hashes. Both have identical
 source/vendor input hashes; the native library hashes and reported IVF capabilities
 differ. They record native SQLite 3.45.3 and adapter-bundled SQLite 3.54.1 separately.

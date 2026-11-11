@@ -1,7 +1,0 @@
-{
-  "package": "pytrec-eval-terrier",
-  "version": "0.5.11",
-  "metric_comparisons": 4338,
-  "passed": true,
-  "scope": "all answerable saved query/method/context points; ranking order preserved with unique rank scores"
-}

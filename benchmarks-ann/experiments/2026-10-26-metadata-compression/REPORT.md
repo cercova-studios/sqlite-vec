@@ -1,5 +1,9 @@
 # Optional metadata compression assessment
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 2026-10-26. Assessment only; no engine, schema, dependency or CI changes.
 
 ## Recommendation
@@ -66,13 +70,13 @@ Before implementation, collect a real schema/data sample and its read/write mix.
 ## Source anchors and reproducibility
 
 - [Architecture: C-core dependency boundary and zone maps](../../../ARCHITECTURE.md)
-- [Chunk layout sizes](../../../sqlite-vec.c:5536)
-- [Numeric point metadata reads](../../../sqlite-vec.c:5250)
-- [Metadata filter reads and exact-size checks](../../../sqlite-vec.c:8442)
-- [Metadata writes and zone-map maintenance](../../../sqlite-vec.c:10823)
-- [Constructor bounds/default and unknown-option rejection](../../../sqlite-vec.c:6238)
-- [Benchmark script](benchmark.py)
-- [Raw measurements, timing batches and length-proxy page counts](recorded/results.json)
+- [Chunk layout sizes](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/sqlite-vec.c#L5536)
+- [Numeric point metadata reads](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/sqlite-vec.c#L5250)
+- [Metadata filter reads and exact-size checks](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/sqlite-vec.c#L8442)
+- [Metadata writes and zone-map maintenance](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/sqlite-vec.c#L10823)
+- [Constructor bounds/default and unknown-option rejection](https://github.com/cercova-studios/sqlite-vec/blob/c85e736b2e7ef008fbfac0733b0de96ad7ed99ef/sqlite-vec.c#L6238)
+- [Benchmark script](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-metadata-compression/benchmark.py)
+- [Raw measurements, timing batches and length-proxy page counts](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-metadata-compression/recorded/results.json)
 
 See [README](README.md) for the runnable command and archive checks. The script regenerates codec measurements; the additional length-proxy fields and illustrative projection in the saved JSON were calculated separately in this assessment.
 

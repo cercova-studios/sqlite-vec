@@ -1,9 +1,13 @@
 # Hybrid Search
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../../README.md).
+
 Hybrid search combines keyword matches with vector similarity. `sqlite-vec`
 does not include a keyword ranker of its own. Use SQLite's built-in
 [FTS5](https://www.sqlite.org/fts5.html) for BM25 ranking, a `vec0` table for
-KNN, and [`vec_rrf()`](../api-reference.md#vec_rrf) to merge the two ranked
+KNN, and [`vec_rrf()`](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/site/api-reference.md#vec_rrf) to merge the two ranked
 lists with Reciprocal Rank Fusion.
 
 ## Tables

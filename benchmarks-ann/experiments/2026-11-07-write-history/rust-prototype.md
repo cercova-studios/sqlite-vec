@@ -1,5 +1,9 @@
 # Rust claim/retry/undo prototype verification
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 The implementation is [examples/write-prototype](../../../examples/write-prototype/README.md).
 It is an isolated ordinary-task library, not an enabled agent write interface.
 The separate crate is required by a reproduced dependency incompatibility:

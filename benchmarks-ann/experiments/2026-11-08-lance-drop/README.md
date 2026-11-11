@@ -1,5 +1,9 @@
 # Lance DROP rollback repair
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 `LanceStore::destroy` removes SQLite version metadata and retains local/remote
 dataset files. Both the vec0 provider and `lance0` use it. Files remain after a
 committed DROP because rollback and existing readers can still need them. This
@@ -40,7 +44,7 @@ Cargo dependencies and lockfiles are unchanged.
 
 The host had no protoc. An official macOS ARM protoc release was downloaded into a
 temporary directory and verified against the release asset's SHA256 before use.
-[receipt.json](receipt.json) records its version, URL/digest, compilers, source/vendor
+[receipt.json](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-lance-drop/receipt.json) records its version, URL/digest, compilers, source/vendor
 hashes and artifact hashes. No global package installation was made.
 
 | Check | Result |
@@ -54,9 +58,9 @@ hashes and artifact hashes. No global package installation was made.
 | Strict release Lance Clippy | Fails: same seven diagnostic code/message pairs on baseline and candidate |
 | Lance formatting check | Fails: existing crate formatting differences; no bulk formatting applied |
 
-[Negative controls](negative-controls.json), [baseline JUnit](before-rollback_and_readers.json),
-[hybrid JUnit](after-full.xml), [default JUnit](after-core-full.xml) and the
-[Clippy comparison](clippy-comparison.json) retain the actual outcomes. These are
+[Negative controls](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-lance-drop/negative-controls.json), [baseline JUnit](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-lance-drop/before-rollback_and_readers.json),
+[hybrid JUnit](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-lance-drop/after-full.xml), [default JUnit](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-lance-drop/after-core-full.xml) and the
+[Clippy comparison](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-lance-drop/clippy-comparison.json) retain the actual outcomes. These are
 failure controls and scoped passes, not a globally green repository check.
 Raw baseline JUnit and formatter output are JSON-encoded to preserve their exact
 whitespace without adding whitespace violations to the patch.

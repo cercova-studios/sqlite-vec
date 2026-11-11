@@ -1,5 +1,9 @@
 # Optional metadata compression assessment
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 **Decision: defer general compression.** The [assessment report](REPORT.md)
 records synthetic byte-size and codec-cost probes. It establishes neither
 SQL speedups nor production file-size savings. No engine codec was implemented.

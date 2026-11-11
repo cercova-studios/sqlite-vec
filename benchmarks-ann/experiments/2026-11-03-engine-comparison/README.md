@@ -1,5 +1,9 @@
 # Embedded filtered-vector comparison
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Compare upstream sqlite-vec, this fork's exact/HNSW paths, Zvec and standalone
 LanceDB on identical float32 vectors, L2 queries and pre-search eligibility sets.
 Measured on an Apple M5 Pro (18 cores, 48 GiB RAM), macOS arm64.

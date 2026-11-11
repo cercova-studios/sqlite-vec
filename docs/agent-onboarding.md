@@ -153,7 +153,7 @@ host APIs while preserving its transaction and single-writer model.
 | Agent retrieval | Separate Rust CLI/MCP adapter; host-selected corpus and read-only access. [Contract](../examples/search-lab/README.md) describes bounds, exact flat/L2 search and graph operations. |
 | Optional Lance | Separate hybrid build/storage provider. Read the [identity/conversion receipt](../benchmarks-ann/experiments/2026-11-10-lance-identity/README.md) before changing it. |
 | Versioned writes | [Fresh-fixture prototype](../examples/write-prototype/README.md), separate connection and lockfile; public write tools are not enabled. |
-| Research | [Experiment archive](../benchmarks-ann/experiments/) retains specifications, oracles, reports and negative outcomes; these are not all production features. |
+| Research | [Experiment archive](../benchmarks-ann/experiments/README.md) retains written protocols, results and negative outcomes. Recover historical oracles/scripts from its pinned Git snapshot; these are not all production features. |
 
 The wiki and queue carry changing priorities. Do not infer completion from a
 checkbox alone. The [Rust review](../benchmarks-ann/experiments/2026-11-07-write-history/rust-review.md)

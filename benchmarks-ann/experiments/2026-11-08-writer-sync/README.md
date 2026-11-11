@@ -1,11 +1,15 @@
 # Full writer/history measurement
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Measured the committed task writer `8f0af1b7cf6fef3396ff66dc05bb5244b8341d0a`
 through its public Rust API on macOS arm64, before retrieval synchronization.
-The preferred receipt is [baseline-locked.json](baseline-locked.json). It records
+The preferred receipt is [baseline-locked.json](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-writer-sync/baseline-locked.json). It records
 the generated measurement lockfile, exact source/harness/runner hashes, compiler,
 SQLite version, database settings, individual timings, storage sizes and child
-process resource accounting. [baseline.json](baseline.json) is the preliminary
+process resource accounting. [baseline.json](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-11-08-writer-sync/baseline.json) is the preliminary
 successful run; it did not retain its generated measurement lockfile and is not
 the reproducibility reference.
 

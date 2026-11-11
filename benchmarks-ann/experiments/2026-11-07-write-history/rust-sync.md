@@ -1,5 +1,9 @@
 # Indexed writer synchronization verification
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 The follow-up to `8f0af1b` extends the isolated Rust prototype, not the read-only
 adapter, native C core or shipped bundle. Scope and current API are documented in
 [the indexed fixture contract](../../../examples/write-prototype/README.md#indexed-source-fixtures).

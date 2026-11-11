@@ -1,5 +1,9 @@
 # Adaptive flat-vector BLOB reads
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 Flat KNN now reads contiguous runs of surviving vectors when the filtered chunk
 is sparse enough. Whole-chunk reads remain the fallback. The change adds one
 private reader in `sqlite-vec.c`; it keeps the existing chunk scan, filtering

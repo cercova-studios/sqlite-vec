@@ -1,6 +1,0 @@
-test_empty_candidates_still_admit_and_validate_query (test_host_scorer.HostTests.test_empty_candidates_still_admit_and_validate_query) ... ok
-
-----------------------------------------------------------------------
-Ran 1 test in 0.000s
-
-OK

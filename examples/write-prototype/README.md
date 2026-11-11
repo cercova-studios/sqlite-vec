@@ -5,8 +5,9 @@ committed requests, inspect history and undo changes with newer revisions. It ha
 no CLI/MCP routing and does not change the read-only search adapter or local bundle.
 
 ```sh
-export VEC_WRITER_EXTENSION="$PWD/dist/bundles/949073f-default/lib/vec0.dylib"
-python3 scripts/local_bundle.py verify dist/bundles/949073f-default
+python3 scripts/local_bundle.py build --output /tmp/vec-writer-bundle
+python3 scripts/local_bundle.py verify /tmp/vec-writer-bundle
+export VEC_WRITER_EXTENSION="/tmp/vec-writer-bundle/lib/vec0.dylib"
 cargo test --offline --locked --manifest-path examples/write-prototype/Cargo.toml
 cargo test --offline --locked --release --manifest-path examples/write-prototype/Cargo.toml
 cargo clippy --offline --locked --manifest-path examples/write-prototype/Cargo.toml --all-targets -- -D warnings
@@ -14,8 +15,9 @@ cargo clippy --offline --locked --manifest-path examples/write-prototype/Cargo.t
 
 Build prerequisites include Rust, a C compiler, libclang for Session bindings and
 the lockfile's cached dependencies. Indexed tests require a trusted, compatible
-native vec0 library. The commands above use the verified macOS local bundle;
-select the corresponding library for another host. Use `cargo fetch --locked --manifest-path
+native vec0 library. The commands above build a fresh macOS local bundle; see the
+[bundle prerequisites](../../docs/local-bundle.md). Use `vec0.so` on Linux.
+Use `cargo fetch --locked --manifest-path
 examples/write-prototype/Cargo.toml` once if the cache is incomplete.
 
 ## Boundary and use

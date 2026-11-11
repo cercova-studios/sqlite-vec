@@ -1,5 +1,9 @@
 # Experimental HNSW alpha pruning: real-dataset benchmark
 
+> Historical experiment: only written instructions and results remain here.
+> Recover scripts/receipts from Git `4c5a5d1` and run the commands below
+> in that isolated snapshot. See the [reproduction index](../README.md).
+
 2026-10-26. Production alpha remains unchanged; no push, CI, production source edit or project dependency change.
 
 ## Recommendation
@@ -30,7 +34,7 @@ Seed 42 selects train/test subsets without replacement; train and test come from
 - Timings are warm, single-client SQL in an in-memory SQLite database, including Python sqlite3 execution/fetch overhead. QPS is queries / full batch wall time, not the reciprocal of median query latency.
 - Initial QPS is the geometric mean across insertion orders of each order's median over five timing rounds. Error bars show the observed order range, not confidence intervals. Recall is the mean over the three orders; p95 latency is summarized separately.
 
-![Initial recall/QPS sweep](figures/recall-qps.png)
+[Initial recall/QPS sweep](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/figures/recall-qps.png)
 
 ## Initial sweep results
 
@@ -95,7 +99,7 @@ The paired QPS delta is the geometric mean of the ten per-round candidate/baseli
 | SIFT | 128 | -0.35% | -2.73% to +2.42% | -0.020 |
 | SIFT | 256 | -0.90% | -2.28% to +0.59% | -0.010 |
 
-![Alternating timing confirmation](figures/paired-confirmation.png)
+[Alternating timing confirmation](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/figures/paired-confirmation.png)
 
 For GloVe at ef_search 128/256, the timing intervals are positive, but recall is lower. At 32/64 the timing intervals include no gain. For SIFT, every paired point estimate is slower; the ef_search=64 timing interval is negative, with an accompanying recall improvement. This is an accuracy/latency tradeoff, not a universal optimization.
 
@@ -136,16 +140,16 @@ scripts and the path-adapted runnable copies. Replays write to an ignored work
 directory and do not overwrite these results. Downloaded datasets and compiled
 libraries are not included.
 
-- [Summary CSV](results/summary.csv)
-- [Summary JSON with insertion-order ranges](results/summary.json)
-- [Paired timing receipts, gzip JSON](results/paired_timing.json.gz)
-- [Paired timing summary](results/paired_summary.json)
-- [Baseline/oracle validation](provenance/validation.json)
-- [Dataset hashes and selection metadata](provenance/data-manifest.json)
-- [Build commands, source hashes and working-tree patch](provenance/build-manifest.json)
-- [Runnable sweep harness](scripts/benchmark.py)
-- [Independent exact reference](scripts/exact_oracle.c)
-- [Verbatim original scripts](recorded/scripts/)
+- [Summary CSV](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/results/summary.csv)
+- [Summary JSON with insertion-order ranges](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/results/summary.json)
+- [Paired timing receipts, gzip JSON](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/results/paired_timing.json.gz)
+- [Paired timing summary](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/results/paired_summary.json)
+- [Baseline/oracle validation](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/validation.json)
+- [Dataset hashes and selection metadata](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/data-manifest.json)
+- [Build commands, source hashes and working-tree patch](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/provenance/build-manifest.json)
+- [Runnable sweep harness](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/benchmark.py)
+- [Independent exact reference](https://github.com/cercova-studios/sqlite-vec/blob/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/scripts/exact_oracle.c)
+- [Verbatim original scripts](https://github.com/cercova-studios/sqlite-vec/tree/4c5a5d1fcb3e97eaa5389761ca0df944c41cc2dd/benchmarks-ann/experiments/2026-10-26-hnsw-alpha/recorded/scripts)
 - [Verbatim original report](recorded/REPORT-original.md)
 
 ## Limits and next decision
