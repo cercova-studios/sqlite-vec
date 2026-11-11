@@ -53,13 +53,19 @@ select rowid, title, length(image) from items where embedding match :q and k = 1
 
 | Column | Type | Notes |
 |---|---|---|
-| `rowid` | integer | Required on insert. Use it to join to other tables. |
+| `rowid` | integer | Required and unique on insert. Use it to join to other tables. |
 | `label` | text | Filterable metadata. `label = ?` runs inside Lance. |
 | `vector` | blob | float32[dim]. |
 | `payload` | blob | Large binary data such as images or audio. Stored only in Lance. |
 | `distance` | real | Set by KNN queries. |
 | `query`, `k` | hidden | KNN inputs. Supply both to run a vector search. |
 | Table name | hidden | Maintenance command input, for example `docs` for a table named `docs`. |
+
+Duplicate rowids follow SQLite's conflict policy: ordinary inserts fail,
+`INSERT OR IGNORE` keeps the existing row, and `INSERT OR REPLACE` replaces it.
+Rowid-changing updates apply the same policy and preserve unchanged columns.
+TEXT must contain valid UTF-8 after SQLite encoding conversion. Invalid TEXT is
+rejected; SQL NULL, empty TEXT and empty BLOB retain their distinct values.
 
 ## Maintenance
 

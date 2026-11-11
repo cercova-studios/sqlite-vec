@@ -56,6 +56,199 @@ def test_one_load_registers_everything(db):
     assert {"vec_version", "vec_f32", "vec_distance_l2", "vec_rrf", "vec_sparse"} <= functions
 
 
+@pytest.fixture()
+def identity_case(db, root):
+    lance_table(db, root, dim=2)
+    db.execute("create table expected(id integer primary key,label text,vector blob,payload blob)")
+    return db
+
+
+def identity_rows(db):
+    rows = db.execute("select rowid,label,vector,payload from docs order by rowid").fetchall()
+    assert rows == db.execute("select * from expected order by id").fetchall()
+    return rows
+
+
+@pytest.mark.parametrize("committed", [False, True])
+def test_lance0_duplicate_identity_is_rejected(identity_case, committed):
+    db = identity_case
+    db.execute("begin")
+    for table, columns in [("docs", "rowid,label,vector,payload"), ("expected", "id,label,vector,payload")]:
+        db.execute(f"insert into {table}({columns}) values (1,'first',?,x'00ff')", [_f32([1,0])])
+    if committed:
+        db.execute("commit")
+        db.execute("begin")
+    for table in ["docs", "expected"]:
+        with pytest.raises(sqlite3.IntegrityError):
+            db.execute(f"insert into {table} values (1,'duplicate',?,NULL)" if table == "expected"
+                       else "insert into docs(rowid,label,vector) values (1,'duplicate',?)", [_f32([2,0])])
+    assert identity_rows(db)[0][1] == "first"
+    db.execute("commit")
+    assert len(identity_rows(db)) == 1
+
+
+@pytest.mark.parametrize("policy", ["abort", "ignore", "replace", "fail", "rollback"])
+def test_lance0_identity_conflict_policy_matches_sqlite(identity_case, policy):
+    db = identity_case
+    for table, key in [("docs", "rowid"), ("expected", "id")]:
+        db.execute(f"insert into {table}({key},label,vector) values (9,'original',?)", [_f32([9,0])])
+    # Separate transactions permit SQLite OR ROLLBACK to end each independently.
+    results = []
+    for table, key in [("docs", "rowid"), ("expected", "id")]:
+        db.execute("begin")
+        db.execute(f"insert into {table}({key},label,vector) values (1,'prior',?)", [_f32([1,0])])
+        statement = (f"insert or {policy} into {table}({key},label,vector) "
+                     "values (2,'first',?),(9,'conflict',?),(3,'last',?)")
+        if policy in ["ignore", "replace"]:
+            db.execute(statement, [_f32([2,0]),_f32([8,0]),_f32([3,0])])
+        else:
+            with pytest.raises(sqlite3.IntegrityError):
+                db.execute(statement, [_f32([2,0]),_f32([8,0]),_f32([3,0])])
+        results.append((db.in_transaction, db.execute(f"select {key},label,vector,payload from {table} order by {key}").fetchall()))
+        if db.in_transaction:
+            db.execute("commit")
+    assert results[0] == results[1]
+    identity_rows(db)
+
+
+@pytest.mark.parametrize("policy", ["abort", "ignore", "replace"])
+def test_lance0_rowid_change_conflicts_preserve_source_and_payload(identity_case, policy):
+    db = identity_case
+    for table, key in [("docs", "rowid"), ("expected", "id")]:
+        db.executemany(f"insert into {table}({key},label,vector,payload) values (?,?,?,?)",
+                       [(1,"source",_f32([1,0]),b"\x00\xff"),(2,"target",_f32([2,0]),None)])
+    db.execute("begin")
+    for table, key in [("docs", "rowid"), ("expected", "id")]:
+        statement = f"update or {policy} {table} set {key}=2,label='moved' where {key}=1"
+        if policy == "abort":
+            with pytest.raises(sqlite3.IntegrityError):db.execute(statement)
+        else:
+            db.execute(statement)
+    identity_rows(db)
+    db.execute("commit")
+    identity_rows(db)
+
+
+def test_lance0_identity_reuse_savepoint_and_reopen(identity_case, root):
+    db = identity_case
+    db.execute("begin")
+    for table, key in [("docs", "rowid"), ("expected", "id")]:
+        db.execute(f"insert into {table}({key},label,vector,payload) values (1,'a',?,x'00ff')", [_f32([1,0])])
+        db.execute(f"delete from {table} where {key}=1")
+        db.execute(f"insert into {table}({key},label,vector,payload) values (1,'b',?,x'0102')", [_f32([2,0])])
+    db.execute("savepoint prior")
+    for table, key in [("docs", "rowid"), ("expected", "id")]:
+        db.execute(f"update {table} set {key}=? where {key}=1", [-(2**63)])
+    identity_rows(db)
+    db.execute("rollback to prior")
+    db.execute("release prior")
+    assert identity_rows(db)[0][0] == 1
+    for table, key in [("docs", "rowid"), ("expected", "id")]:
+        db.execute(f"update {table} set {key}=? where {key}=1", [2**63-1])
+    expected = identity_rows(db)
+    db.execute("commit")
+    reopened = connect(os.path.join(root,"app.db"))
+    try:
+        assert identity_rows(reopened) == expected
+        for table, key in [("docs", "rowid"), ("expected", "id")]:
+            reopened.execute(f"update {table} set {key}=?", [-(2**63)])
+        assert identity_rows(reopened)[0][0] == -(2**63)
+        # Read and delete the persisted minimum ID, not just its pending overlay.
+        for table, key in [("docs", "rowid"), ("expected", "id")]:
+            assert reopened.execute(f"select label from {table} where {key}=?", [-(2**63)]).fetchone() == ("b",)
+            reopened.execute(f"delete from {table} where {key}=?", [-(2**63)])
+        assert identity_rows(reopened) == []
+    finally:
+        reopened.close()
+
+
+@pytest.mark.parametrize("operation", ["insert", "update"])
+def test_lance0_identity_replacement_rollback(identity_case, root, operation):
+    db = identity_case
+    for table, key in [("docs", "rowid"), ("expected", "id")]:
+        db.executemany(f"insert into {table}({key},label,vector,payload) values (?,?,?,?)",
+                       [(1,"source",_f32([1,0]),b"\x00"),(2,"target",_f32([2,0]),b"")])
+    original = identity_rows(db)
+    db.execute("begin")
+    db.execute("savepoint before_replace")
+    for iteration in range(2):
+        for table, key in [("docs", "rowid"), ("expected", "id")]:
+            if operation == "insert":
+                db.execute(f"insert or replace into {table}({key},label,vector) values (2,'replacement',?)", [_f32([3,0])])
+            else:
+                db.execute(f"update or replace {table} set {key}=2 where {key}=1")
+        identity_rows(db)
+        if iteration == 0:
+            db.execute("rollback to before_replace")
+            db.execute("release before_replace")
+        else:
+            db.execute("rollback")
+        assert identity_rows(db) == original
+    with closing(connect(os.path.join(root,"app.db"))) as reopened:
+        assert identity_rows(reopened) == original
+
+
+@pytest.mark.parametrize("entrypoint", ["lance0", "provider"])
+def test_lance_first_write_inside_nested_savepoints(db, root, entrypoint):
+    if entrypoint == "lance0":
+        lance_table(db, root, name="items", dim=2)
+        db.execute("insert into items(rowid,label,vector) values (1,'original','[1,0]')")
+    else:
+        db.execute(f"create virtual table items using vec0(v float[2],+label text,storage=lance,storage_uri='{root}/items.lance')")
+        db.execute("insert into items(rowid,label,v) values (1,'original','[1,0]')")
+    db.execute("create table expected(id integer primary key,label text)")
+    db.execute("insert into expected values (1,'original')")
+    db.execute("begin")
+    db.execute("savepoint outer_scope")
+    db.execute("savepoint inner_scope")
+    for table in ["items", "expected"]:
+        db.execute(f"update {table} set label='changed'")
+    db.execute("release inner_scope")
+    assert db.execute("select rowid,label from items").fetchall() == [(1,"changed")]
+    db.execute("rollback to outer_scope")
+    db.execute("release outer_scope")
+    expected = db.execute("select * from expected").fetchall()
+    assert db.execute("select rowid,label from items").fetchall() == expected == [(1,"original")]
+    db.execute("commit")
+    with closing(connect(os.path.join(root,"app.db"))) as reopened:
+        assert reopened.execute("select rowid,label from items").fetchall() == expected
+
+
+def test_lance_storage_invalid_text_is_atomic_and_empty_values_round_trip(db, root):
+    db.execute(f"create virtual table t using vec0(v float[2],+title text,+data blob,storage=lance,storage_uri='{root}/text.lance')")
+    db.execute("insert into t(rowid,v,title,data) values (1,'[1,0]','original',NULL)")
+    db.execute("begin")
+    db.execute("insert into t(rowid,v,title,data) values (2,'[2,0]','prior',x'')")
+    with pytest.raises(sqlite3.Error, match="utf-8"):
+        db.execute("insert into t(rowid,v,title,data) values (3,'[3,0]','first',NULL),(4,'[4,0]',CAST(x'ff' AS TEXT),NULL)")
+    with pytest.raises(sqlite3.Error, match="utf-8"):
+        db.execute("update t set title=CAST(x'ff' AS TEXT) where rowid=1")
+    assert db.execute("select rowid,title,typeof(data) from t order by rowid").fetchall() == [(1,"original","null"),(2,"prior","blob")]
+    db.execute("insert into t(rowid,v,title,data) values (3,'[3,0]','',x'')")
+    db.execute("commit")
+    assert db.execute("select title,data,typeof(data) from t where rowid=3").fetchone() == ("",b"","blob")
+
+
+@pytest.fixture(scope="module")
+def lance_fault_driver(tmp_path_factory):
+    executable = tmp_path_factory.mktemp("lance-fault") / "driver"
+    command = ["cc", "-O1", "tests/lance-fault.c", "vendor/sqlite3.c", "-I.", "-Ivendor", "-o", str(executable)]
+    if sys.platform.startswith("linux"):
+        command += ["-ldl", "-lpthread", "-lm"]
+    compiled = subprocess.run(command, capture_output=True, text=True, timeout=120)
+    assert compiled.returncode == 0, compiled.stderr
+    return executable
+
+
+@pytest.mark.parametrize("kind", ["text", "blob"])
+def test_lance_conversion_allocation_failure_is_safe(lance_fault_driver, tmp_path, kind):
+    extension = next(Path().glob(EXT + ".*")).resolve()
+    result = subprocess.run([str(lance_fault_driver), str(extension), str(tmp_path / "data.lance"), kind],
+                            text=True, capture_output=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    assert "empty-value retry committed" in result.stdout
+
+
 # ---------------------------------------------------------------------------
 # One vector format
 # ---------------------------------------------------------------------------

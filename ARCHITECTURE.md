@@ -17,6 +17,10 @@ Very much a WIP.
   `lance0`. Dependencies point only one way: Rust may use the C core, but the
   C core never depends on Rust, Lance or protoc.
 
+The hybrid build also compiles `lance/src/vtab.c`, a private bridge for the
+variadic `sqlite3_vtab_config` call. The loadable Rust FFI wrapper omits its
+variadic argument; the bridge enables SQLite constraint handling for `lance0`.
+
 `make test-unit` builds and runs the C unit tests with the bundled SQLite
 amalgamation and experimental IVF enabled. `tests/test-unit.c` includes the C
 core directly, so tests use the production internal types and definitions.
@@ -78,6 +82,21 @@ The Lance provider (`lance/src/provider.rs`) and `lance0` share
 `lance/src/store.rs` (`LanceStore`), the one implementation of the Lance commit
 rules. Its shadow table `<table>_storage` records the committed Lance version and
 the dataset location.
+
+`lance0` checks rowid uniqueness against pending changes and the recorded Lance
+version before changing rows. Its ID-only lookup does not read vector/BLOB payloads.
+SQLite handles ABORT, IGNORE, FAIL and ROLLBACK conflicts; REPLACE overwrites the
+existing identity. Rowid-changing updates preserve unchanged column values. vec0
+already enforces identity through its SQLite rowid map and needs no extra lookup.
+Rowid filter literals use an explicit integer cast for `i64::MIN`, which Lance's
+parser otherwise rounds through floating point.
+
+The provider checks SQLite conversion buffers before constructing Rust slices,
+preserves `SQLITE_NOMEM`, and rejects invalid UTF-8 TEXT. SQL NULL, empty TEXT and
+empty BLOB remain distinct. Conversion failure stages no provider mutation.
+When SQLite first enlists a store inside nested savepoints, the store records the
+unannounced outer savepoints too. Releasing the inner scope cannot discard the undo
+history needed by an outer rollback.
 
 Both entrypoints route DROP through `LanceStore::destroy`: only the SQLite version
 table is removed, so rollback and WAL readers retain their dataset files. Committed

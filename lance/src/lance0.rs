@@ -18,7 +18,7 @@ use std::sync::OnceLock;
 
 use rusqlite::types::{Value, ValueRef};
 use rusqlite::vtab::{
-    Context, CreateVTab, Filters, IndexConstraintOp, IndexInfo, Inserts, Module, TransactionVTab,
+    ConflictMode, Context, CreateVTab, Filters, IndexConstraintOp, IndexInfo, Inserts, Module, TransactionVTab,
     UpdateVTab, Updates, VTab, VTabConnection, VTabCursor, VTabKind,
 };
 use rusqlite::{Connection, Error, Result, ffi};
@@ -36,10 +36,15 @@ const COL_ROWID: c_int = -1;
 const S_LABEL: usize = 0;
 const S_VECTOR: usize = 1;
 
+unsafe extern "C" {
+    fn vec_lance_constraint_support(db: *mut ffi::sqlite3) -> c_int;
+}
+
 #[repr(C)]
 struct LanceTab {
     /// Base class. Must be first.
     base: ffi::sqlite3_vtab,
+    db: *mut ffi::sqlite3,
     dim: usize,
     store: LanceStore,
 }
@@ -81,6 +86,12 @@ fn f32_blob(v: &[f32]) -> Value {
 impl LanceTab {
     fn connect_create(db: &mut VTabConnection, table_name: &[u8], args: &[&[u8]])
                       -> Result<(Cow<'static, CStr>, Self)> {
+        // SAFETY: connect/create supplies the live host; the vararg enables SQLite conflict handling.
+        let handle = unsafe { db.handle() };
+        let rc = unsafe { vec_lance_constraint_support(handle) };
+        if rc != ffi::SQLITE_OK {
+            return Err(Error::SqliteFailure(ffi::Error::new(rc), None));
+        }
         // Our arguments are the last two: uri, dim.
         if args.len() < 2 {
             return Err(Error::ModuleError(
@@ -98,7 +109,7 @@ impl LanceTab {
             ("vector".to_owned(), Kind::Vector(dim)),
             ("payload".to_owned(), Kind::Blob),
         ];
-        let mut store = LanceStore::open(unsafe { db.handle() }, &format!("{name}_lance"), &uri, cols, false)?;
+        let mut store = LanceStore::open(handle, &format!("{name}_lance"), &uri, cols, false)?;
         store.ann_column = Some(S_VECTOR);
         // A hidden column named after the table takes commands, as in FTS5
         // and vec0: insert into t(t) values ('optimize').
@@ -106,7 +117,7 @@ impl LanceTab {
             "create table x(label text, vector blob, payload blob, distance real, query hidden, k hidden, \"{}\" hidden)",
             name.replace('"', "\"\""),
         )).map_err(|_| Error::ModuleError("lance0: bad table name".into()))?;
-        Ok((Cow::Owned(schema), LanceTab { base: ffi::sqlite3_vtab::default(), dim, store }))
+        Ok((Cow::Owned(schema), LanceTab { base: ffi::sqlite3_vtab::default(), db: handle, dim, store }))
     }
 
     /// Column c (label, vector, payload) as stored.
@@ -196,13 +207,29 @@ impl UpdateVTab<'_> for LanceTab {
         let rowid = rowid.ok_or_else(|| Error::ModuleError("lance0: insert needs an explicit rowid".into()))?;
         let vals: Vec<ValueRef<'_>> = args.iter().skip(2).take(3).collect();
         let row = self.row(&vals)?;
-        self.store.insert(rowid, row)?;
+        if self.store.contains(rowid)? {
+            // SAFETY: insert is the host's xUpdate callback for this live connection.
+            if unsafe { args.on_conflict(self.db) } != ConflictMode::Replace {
+                return Err(Error::SqliteFailure(ffi::Error::new(ffi::SQLITE_CONSTRAINT_ROWID),
+                                              Some("lance0: duplicate rowid".into())));
+            }
+            self.store.replace(rowid, row)?;
+        } else {
+            self.store.insert(rowid, row)?;
+        }
         Ok(rowid)
     }
 
     fn update(&mut self, args: &Updates<'_>) -> Result<()> {
         let old: i64 = args.get(0)?;
         let new: i64 = args.get(1)?;
+        if old != new && self.store.contains(new)? {
+            // SAFETY: update is the host's xUpdate callback for this live connection.
+            if unsafe { args.on_conflict(self.db) } != ConflictMode::Replace {
+                return Err(Error::SqliteFailure(ffi::Error::new(ffi::SQLITE_CONSTRAINT_ROWID),
+                                              Some("lance0: duplicate rowid".into())));
+            }
+        }
         // Columns the UPDATE did not set arrive as "no change" (see column());
         // patch only the others, so a label change never rewrites a vector.
         let unchanged: Vec<bool> = (2..5).map(|i| args.no_change(i)).collect();
@@ -217,7 +244,14 @@ impl UpdateVTab<'_> for LanceTab {
             return if updates.is_empty() { Ok(()) } else { self.store.update_columns(new, updates) };
         }
         let vals: Vec<ValueRef<'_>> = args.iter().skip(2).take(3).collect();
-        let row = self.row(&vals)?;
+        let row = if unchanged.iter().any(|u| *u) {
+            let mut row = self.store.get_many(&[old])?.remove(&old)
+                .ok_or_else(|| Error::ModuleError("lance0: source row disappeared".into()))?;
+            for (c, value) in vals.iter().enumerate() {
+                if !unchanged[c] { row[c] = self.value(c, *value)?; }
+            }
+            row
+        } else { self.row(&vals)? };
         if old != new {
             self.store.delete(old)?;
         }
@@ -289,7 +323,7 @@ unsafe impl VTabCursor for LanceCursor<'_> {
                 },
                 COL_ROWID => {
                     let id = v.as_i64()?;
-                    filters.push(format!("id = {id}"));
+                    filters.push(format!("id = {}", crate::store::id_literal(id)));
                     rowid = Some(id);
                 }
                 COL_QUERY => query = Some(vector_arg(v, tab.dim)?),

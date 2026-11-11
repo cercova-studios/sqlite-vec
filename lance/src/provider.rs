@@ -137,23 +137,29 @@ unsafe fn cstr(p: *const c_char) -> Result<String> {
     Ok(unsafe { CStr::from_ptr(p) }.to_str()?.to_owned())
 }
 
-unsafe fn value_from(v: *mut ffi::sqlite3_value) -> Value {
+unsafe fn value_from(v: *mut ffi::sqlite3_value) -> Result<Value> {
     unsafe {
-        match ffi::sqlite3_value_type(v) {
+        Ok(match ffi::sqlite3_value_type(v) {
             ffi::SQLITE_INTEGER => Value::Integer(ffi::sqlite3_value_int64(v)),
             ffi::SQLITE_FLOAT => Value::Real(ffi::sqlite3_value_double(v)),
             ffi::SQLITE_TEXT => {
                 let p = ffi::sqlite3_value_text(v);
+                if p.is_null() {
+                    return Err(Error::SqliteFailure(ffi::Error::new(ffi::SQLITE_NOMEM), None));
+                }
                 let n = ffi::sqlite3_value_bytes(v) as usize;
-                Value::Text(String::from_utf8_lossy(std::slice::from_raw_parts(p, n)).into_owned())
+                Value::Text(std::str::from_utf8(std::slice::from_raw_parts(p, n))?.to_owned())
             }
             ffi::SQLITE_BLOB => {
                 let n = ffi::sqlite3_value_bytes(v) as usize;
                 let p = ffi::sqlite3_value_blob(v).cast::<u8>();
+                if n != 0 && p.is_null() {
+                    return Err(Error::SqliteFailure(ffi::Error::new(ffi::SQLITE_NOMEM), None));
+                }
                 Value::Blob(if n == 0 { Vec::new() } else { std::slice::from_raw_parts(p, n).to_vec() })
             }
             _ => Value::Null,
-        }
+        })
     }
 }
 
@@ -179,18 +185,18 @@ fn bytes_of(v: &Value) -> Option<&[u8]> {
     }
 }
 
-/// Run `f` on the provider, mapping errors (and panics, which must not cross
-/// into C) to SQLITE_ERROR with a message for xErrmsg.
+/// Preserve SQLite error codes; map other errors and caught panics to SQLITE_ERROR.
 unsafe fn guard(p: *mut Provider, f: impl FnOnce(&mut Provider) -> Result<()>) -> c_int {
     let p = unsafe { &mut *p };
     let out = catch_unwind(AssertUnwindSafe(|| f(p)));
-    let msg = match out {
+    let (rc, msg) = match out {
         Ok(Ok(())) => return ffi::SQLITE_OK,
-        Ok(Err(e)) => e.to_string(),
-        Err(_) => "internal error (panic) in the Lance storage provider".to_owned(),
+        Ok(Err(e)) => (match &e { Error::SqliteFailure(code, _) => code.extended_code,
+                                _ => ffi::SQLITE_ERROR }, e.to_string()),
+        Err(_) => (ffi::SQLITE_ERROR, "internal error (panic) in the Lance storage provider".to_owned()),
     };
     p.err = CString::new(msg.replace('\0', " ")).unwrap_or_default();
-    ffi::SQLITE_ERROR
+    rc
 }
 
 // ------------------------------------------------------------------ methods
@@ -280,7 +286,7 @@ unsafe extern "C" fn x_put(p: *mut Provider, rowid: i64, ap_aux: *mut *mut ffi::
                            ap_vec: *const *const c_void) -> c_int {
     unsafe {
         guard(p, |p| {
-            let mut row: Row = (0..p.n_aux).map(|i| value_from(*ap_aux.add(i))).collect();
+            let mut row: Row = (0..p.n_aux).map(|i| value_from(*ap_aux.add(i))).collect::<Result<_>>()?;
             for (j, &n) in p.vec_bytes.iter().enumerate() {
                 let v = *ap_vec.add(j);
                 row.push(if v.is_null() { Value::Null }
@@ -295,7 +301,7 @@ unsafe extern "C" fn x_set(p: *mut Provider, rowid: i64, i_col: c_int, val: *mut
     unsafe {
         guard(p, |p| {
             let i = p.column_index(i_col)?;
-            p.store.update_columns(rowid, vec![(i, value_from(val))])
+            p.store.update_columns(rowid, vec![(i, value_from(val)?)])
         })
     }
 }

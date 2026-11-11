@@ -13,6 +13,7 @@ fn main() {
     for f in ["sqlite-vec.h.tmpl", "VERSION"] {
         println!("cargo:rerun-if-changed={}", root.join(f).display());
     }
+    println!("cargo:rerun-if-changed=src/vtab.c");
     for entry in fs::read_dir(&root).unwrap().flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
         if name.starts_with("sqlite-vec") && name.ends_with(".c") {
@@ -51,6 +52,7 @@ fn main() {
     let mut build = cc::Build::new();
     build
         .file(root.join("sqlite-vec.c"))
+        .file(root.join("lance/src/vtab.c"))
         .include(&out)
         .include(&vendor)
         .opt_level(3)

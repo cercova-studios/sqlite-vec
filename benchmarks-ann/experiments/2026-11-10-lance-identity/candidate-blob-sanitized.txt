@@ -1,0 +1,6 @@
+candidate kind=blob returncode=0
+stdout:
+conversion OOM rejected without staging a row; empty-value retry committed
+
+stderr:
+fault mode=blob failures=1 armed=0 rc=7

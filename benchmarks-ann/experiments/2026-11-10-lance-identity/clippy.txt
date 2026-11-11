@@ -1,0 +1,82 @@
+    Checking sqlite-vec-lance v0.1.0 (/private/tmp/vec-lance-p1-lseg4_jq/lance)
+error: using `chunks_exact` with a constant chunk size
+  --> src/lance0.rs:60:15
+   |
+60 |             b.chunks_exact(4).map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect()
+   |               ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<4>().0.iter()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+   = note: `-D clippy::chunks-exact-to-as-chunks` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::chunks_exact_to_as_chunks)]`
+
+error: the borrowed expression implements the required traits
+   --> src/lance0.rs:387:44
+    |
+387 |             COL_DISTANCE => ctx.set_result(&r.distance),
+    |                                            ^^^^^^^^^^^ help: change this to: `r.distance`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_borrows_for_generic_args
+    = note: `-D clippy::needless-borrows-for-generic-args` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_borrows_for_generic_args)]`
+
+error: the borrowed expression implements the required traits
+   --> src/lance0.rs:388:33
+    |
+388 |             _ => ctx.set_result(&None::<i64>),
+    |                                 ^^^^^^^^^^^^ help: change this to: `None::<i64>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_borrows_for_generic_args
+
+error: this `if` statement can be collapsed
+   --> src/store.rs:219:9
+    |
+219 | /         if let Some((ver, ds)) = self.opened.borrow().as_ref() {
+220 | |             if *ver == v {
+221 | |                 return Ok(ds.clone());
+222 | |             }
+223 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#collapsible_if
+    = note: `-D clippy::collapsible-if` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+    |
+219 ~         if let Some((ver, ds)) = self.opened.borrow().as_ref()
+220 ~             && *ver == v {
+221 |                 return Ok(ds.clone());
+222 ~             }
+    |
+
+error: doc list item without indentation
+   --> src/store.rs:336:9
+    |
+336 |     /// Returns false for commands this store does not know.
+    |         ^
+    |
+    = help: if this is supposed to be its own paragraph, add a blank line
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#doc_lazy_continuation
+    = note: `-D clippy::doc-lazy-continuation` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::doc_lazy_continuation)]`
+help: indent this line
+    |
+336 |     ///   Returns false for commands this store does not know.
+    |         ++
+
+error: using `chunks_exact` with a constant chunk size
+   --> src/store.rs:682:47
+    |
+682 | ...                   flat.extend(b.chunks_exact(4).map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]])));
+    |                                     ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<4>().0.iter()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+error: using `chunks_exact` with a constant chunk size
+   --> src/store.rs:769:12
+    |
+769 |     Some(b.chunks_exact(4).zip(q)
+    |            ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<4>().0.iter()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+error: could not compile `sqlite-vec-lance` (lib) due to 7 previous errors

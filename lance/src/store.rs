@@ -53,6 +53,12 @@ pub fn block<F: std::future::Future>(f: F) -> F::Output {
     runtime().block_on(f)
 }
 
+pub(crate) fn id_literal(id: i64) -> String {
+    // Lance parses the magnitude of i64::MIN as a float before applying '-'.
+    if id == i64::MIN { "CAST('-9223372036854775808' AS BIGINT)".into() }
+    else { id.to_string() }
+}
+
 /// Rows appended since the rowid index last covered them, before a commit
 /// updates it. Until then Lance scans those rows and uses the index for the
 /// rest. ponytail: fixed threshold; make it a table option if a workload
@@ -268,6 +274,19 @@ impl LanceStore {
         Ok(())
     }
 
+    /// Logical identity, without materializing vector/blob payloads.
+    pub fn contains(&self, id: i64) -> Result<bool> {
+        if let Some(pending) = self.pending.get(&id) {
+            return Ok(pending.row.is_some());
+        }
+        let ds = self.reader()?;
+        let mut scan = ds.scan();
+        scan.project(&["id"]).map_err(lance_err)?;
+        scan.filter(&format!("id = {}", id_literal(id))).map_err(lance_err)?;
+        scan.limit(Some(1), None).map_err(lance_err)?;
+        Ok(block(scan.try_into_batch()).map_err(lance_err)?.num_rows() != 0)
+    }
+
     /// Replace the whole row (or create it).
     pub fn replace(&mut self, id: i64, row: Row) -> Result<()> {
         self.begin_write()?;
@@ -334,7 +353,11 @@ impl LanceStore {
 
     pub fn savepoint(&mut self, id: c_int) {
         self.marks.retain(|m| m.0 < id);
-        self.marks.push((id, self.undo.len(), self.optimize));
+        // First enlistment announces only the innermost already-open savepoint.
+        let first = self.marks.last().map_or(0, |m| m.0 + 1);
+        for nested in first..=id {
+            self.marks.push((nested, self.undo.len(), self.optimize));
+        }
     }
 
     pub fn rollback_to(&mut self, id: c_int) {
@@ -402,7 +425,7 @@ impl LanceStore {
         let latest = block(async move {
             let mut ds = Dataset::open(&uri).await?;
             for chunk in deletes.chunks(1000) {
-                let ids: Vec<String> = chunk.iter().map(|d| d.to_string()).collect();
+                let ids: Vec<String> = chunk.iter().map(|d| id_literal(*d)).collect();
                 ds.delete(&format!("id IN ({})", ids.join(","))).await?;
             }
             // Replaced rows: one upsert instead of a delete plus an append.
@@ -554,7 +577,7 @@ impl LanceStore {
         }
         let ds = self.reader()?;
         for chunk in ids.chunks(1000) {
-            let list: Vec<String> = chunk.iter().map(|d| d.to_string()).collect();
+            let list: Vec<String> = chunk.iter().map(|d| id_literal(*d)).collect();
             for (id, row, _) in self.scan(&ds, Some(format!("id IN ({})", list.join(","))), None)? {
                 out.insert(id, row);
             }

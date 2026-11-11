@@ -18,6 +18,19 @@ keeps the live vtab and avoids finalizing a stale statement pointer. See the
 for fresh baseline/candidate builds, failure controls and validation limits.
 Dataset retention can leave files after DROP; no cleanup command is added.
 
+Lance identity and conversion repair — 2026-11-10: `lance0` now checks logical
+rowid uniqueness with pending writes included and follows SQLite conflict policies.
+Rowid-changing updates preserve unchanged columns, including at both signed integer
+boundaries. The provider rejects NULL conversion buffers with `SQLITE_NOMEM` and
+rejects invalid UTF-8 instead of rewriting it. Shared savepoint bookkeeping now
+retains outer rollback markers when SQLite first enlists a store inside nested
+savepoints. See the [regression receipt](benchmarks-ann/experiments/2026-11-10-lance-identity/README.md).
+Verified: 88 hybrid tests, 66 native loadable tests and four existing skips;
+both conversion OOM cases pass with the C host's ASan/UBSan/debug assertions.
+Strict Lance Clippy still reports seven existing diagnostics.
+Existing duplicate datasets are not repaired. Schema qualification and collation
+remain open P2 work; public writes remain disabled. No push or CI changes.
+
 Completed P1 slice: Rust standalone-source staging and native incremental
 dependencies, verified with isolated C consumers, the Rust test and local Cargo
 package verification. [Receipt and replay](benchmarks-ann/experiments/2026-11-07-local-datastore/README.md).
@@ -67,7 +80,9 @@ contract violations reproduce on fresh fixtures using the cached hybrid artifact
 rolled-back provider DROP loses files, duplicate lance0 rowids are accepted,
 attached schemas collide in metadata, NOCASE equality misses rows, and invalid
 UTF-8 TEXT is silently rewritten. The TEXT conversion also has a source-confirmed
-NULL-slice safety violation on OOM (not fault-injected). Legacy Rust harness input
+NULL-slice safety violation on OOM (not fault-injected during that review). The
+identity/conversion repair above now covers duplicate IDs, invalid UTF-8 and real
+TEXT/BLOB conversion allocation failures. Legacy Rust harness input
 invalidation fails; the Rust adapter suite passed 9 of 10 tests on one run,
 with its timed cancellation test failing.
 That review's fresh Lance check was blocked by missing protoc; the DROP repair

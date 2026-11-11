@@ -1,0 +1,7 @@
+   Compiling sqlite-vec-lance v0.1.0 (/private/tmp/vec-lance-p1-lseg4_jq/lance)
+warning: linker stderr: ld: __eh_frame section too large (max 16MB) to encode dwarf unwind offsets in compact unwind table, performance of exception handling might be affected
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `sqlite-vec-lance` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 9.73s

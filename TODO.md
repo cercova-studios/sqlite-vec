@@ -29,10 +29,13 @@ These are existing defects/gaps, not changes made by the task writer prototype.
 - [x] P1: retain Lance datasets across rolled-back/committed DROP, preserve
   active readers and reject DROP of pending writes without losing state.
   [Regression evidence](benchmarks-ann/experiments/2026-11-08-lance-drop/README.md).
-- [ ] P1: enforce lance0 rowid
-  uniqueness; reject NULL TEXT buffers before constructing Rust slices on OOM.
-- [ ] P2: qualify Lance metadata by SQLite schema; preserve collation semantics;
-  reject unsupported TEXT encoding without lossy replacement.
+- [x] P1: enforce lance0 rowid uniqueness and SQLite conflict policies; reject
+  NULL TEXT/BLOB conversion buffers before constructing Rust slices on OOM.
+  Preserve rollback when first enlisted inside nested savepoints.
+  [Regression evidence](benchmarks-ann/experiments/2026-11-10-lance-identity/README.md).
+- [x] P2: reject invalid UTF-8 TEXT without lossy replacement; preserve NULL and
+  empty TEXT/BLOB values. Evidence is in the same Lance regression receipt.
+- [ ] P2: qualify Lance metadata by SQLite schema; preserve collation semantics.
 - [ ] P2: track all included C/header inputs in the legacy Rust harness/micro builds.
 - [ ] P2: make the adapter cancellation test deterministic without weakening its
   asserted execution boundary. Its observed Rust suite result is 9/10, not a pass.
