@@ -39,7 +39,10 @@ These are existing defects/gaps, not changes made by the task writer prototype.
   [Regression evidence](benchmarks-ann/experiments/2026-11-10-lance-identity/README.md).
 - [x] P2: reject invalid UTF-8 TEXT without lossy replacement; preserve NULL and
   empty TEXT/BLOB values. Evidence is in the same Lance regression receipt.
-- [ ] P2: qualify Lance metadata by SQLite schema; preserve collation semantics.
+- [x] P2: qualify Lance metadata by SQLite schema for both entrypoints, including
+  attached/temp tables, reopen, rename and rollback.
+  [Regression evidence](benchmarks-ann/experiments/2026-11-11-lance-schema/README.md).
+- [ ] P2: preserve SQLite collation semantics in delegated Lance filters.
 - [ ] P2: track all included C/header inputs in the legacy Rust harness/micro builds.
 - [ ] P2: make the adapter cancellation test deterministic without weakening its
   asserted execution boundary. Its observed Rust suite result is 9/10, not a pass.

@@ -56,6 +56,193 @@ def test_one_load_registers_everything(db):
     assert {"vec_version", "vec_f32", "vec_distance_l2", "vec_rrf", "vec_sparse"} <= functions
 
 
+@pytest.fixture(params=["flat", "hnsw", "lance0", "flat-default", "hnsw-default"])
+def attached_case(tmp_path, request):
+    db = connect(str(tmp_path / "main.db"))
+    other = '"other ""db.name"'
+    db.execute("pragma foreign_keys=ON")
+    db.execute(f"attach database ? as {other}", [str(tmp_path / "other.db")])
+    kind = request.param.split("-")[0]
+    projection = "rowid,vector,payload" if kind == "lance0" else "rowid,v,doc"
+    shadow = "items_lance" if kind == "lance0" else "items_storage"
+    try:
+        for i, schema in enumerate(["main", other]):
+            uri = str(tmp_path / f"dataset-{i}.lance")
+            if kind == "lance0":
+                definition = f"lance0('{uri}',2)"
+            else:
+                index = "indexed by hnsw()" if kind == "hnsw" else ""
+                location = "" if request.param.endswith("-default") else f",storage_uri='{uri}'"
+                definition = f"vec0(v float[2] {index},+doc blob,storage=lance{location})"
+            db.execute(f"create virtual table {schema}.items using {definition}")
+            assert db.execute(f"select count(*) from {schema}.sqlite_schema where name=?",
+                              [shadow]).fetchone() == (1,)
+            db.execute(f"create table {schema}.expected(id integer primary key,v blob,doc blob)")
+            row = (1, _f32([i + 1, 0]), bytes([i, 255]))
+            db.execute(f"insert into {schema}.items({projection}) values (?,?,?)", row)
+            db.execute(f"insert into {schema}.expected values (?,?,?)", row)
+        yield db, other, projection, shadow
+    finally:
+        db.close()
+
+
+def check_schema_rows(db, schema, projection, table="items"):
+    expected = db.execute(f"select * from {schema}.expected order by id").fetchall()
+    assert db.execute(f'select {projection} from {schema}."{table}" order by rowid').fetchall() == expected
+    predicate = "query='[0,0]'" if projection == "rowid,vector,payload" else "v match '[0,0]'"
+    neighbors = db.execute(f'select rowid,distance from {schema}."{table}" '
+                           f"where {predicate} and k=10 order by distance").fetchall()
+    distances = [(rowid, sum(x * x for x in struct.unpack("2f", vector)) ** .5)
+                 for rowid, vector, _ in expected]
+    assert neighbors == sorted(distances, key=lambda row: (row[1], row[0]))
+
+
+def test_lance_attached_schema_transactions(attached_case):
+    db, other, projection, shadow = attached_case
+    schemas = ["main", other]
+    db.execute("begin")
+    for i, schema in enumerate(schemas):
+        row = (2, _f32([i + 3, 0]), bytes([i, 42]))
+        db.execute(f"insert into {schema}.items({projection}) values (?,?,?)", row)
+        db.execute(f"insert into {schema}.expected values (?,?,?)", row)
+        check_schema_rows(db, schema, projection)
+    db.execute("savepoint changes")
+    for schema in schemas:
+        db.execute(f"delete from {schema}.items where rowid=1")
+        db.execute(f"delete from {schema}.expected where id=1")
+        check_schema_rows(db, schema, projection)
+    db.execute("rollback to changes")
+    db.execute("release changes")
+    for schema in schemas:
+        check_schema_rows(db, schema, projection)
+    db.execute("commit")
+    main_version = db.execute(f"select v from main.{shadow} where k='version'").fetchone()
+    db.execute("begin")
+    db.execute(f"delete from {other}.items where rowid=2")
+    db.execute(f"delete from {other}.expected where id=2")
+    db.execute("commit")
+    assert db.execute(f"select v from main.{shadow} where k='version'").fetchone() == main_version
+    db.execute("begin")
+    for schema in schemas:
+        db.execute(f"delete from {schema}.items")
+        db.execute(f"delete from {schema}.expected")
+        check_schema_rows(db, schema, projection)
+    db.execute("rollback")
+    for schema in schemas:
+        check_schema_rows(db, schema, projection)
+    db.execute("begin")
+    db.execute("savepoint outer_write")
+    db.execute("savepoint inner_write")
+    for schema in schemas:
+        db.execute(f"delete from {schema}.items where rowid=1")
+        db.execute(f"delete from {schema}.expected where id=1")
+    db.execute("release inner_write")
+    db.execute("rollback to outer_write")
+    db.execute("release outer_write")
+    db.execute("commit")
+    for schema in schemas:
+        check_schema_rows(db, schema, projection)
+
+
+def test_lance_attached_schema_failed_commit_and_reopen(attached_case, tmp_path):
+    db, other, projection, shadow = attached_case
+    db.execute("create table parent(id primary key)")
+    db.execute("create table child(id references parent deferrable initially deferred)")
+    db.execute("begin")
+    db.execute("insert into child values (99)")
+    for schema in ["main", other]:
+        row = (2, _f32([9, 0]), b"pending")
+        db.execute(f"insert into {schema}.items({projection}) values (?,?,?)", row)
+        db.execute(f"insert into {schema}.expected values (?,?,?)", row)
+    with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
+        db.execute("commit")
+    assert db.in_transaction
+    db.execute("rollback")
+    with closing(connect(str(tmp_path / "main.db"))) as reopened:
+        # Attachment aliases belong to connections, not persisted store identity.
+        reopened.execute("attach database ? as different_alias", [str(tmp_path / "other.db")])
+        for schema in ["main", "different_alias"]:
+            check_schema_rows(reopened, schema, projection)
+            assert reopened.execute(f"pragma {schema}.integrity_check").fetchone() == ("ok",)
+        uris = [reopened.execute(f"select v from {schema}.{shadow} where k='uri'").fetchone()[0]
+                for schema in ["main", "different_alias"]]
+        assert uris[0] != uris[1]
+
+
+@pytest.mark.parametrize("ending", ["rollback", "savepoint"])
+def test_lance_attached_schema_maintenance_and_drop(attached_case, ending):
+    db, other, projection, shadow = attached_case
+    metadata = [db.execute(f"select * from {schema}.{shadow} order by k").fetchall()
+                for schema in ["main", other]]
+    dataset = Path(dict(metadata[1])["uri"])
+    original = dataset_files(dataset)
+    db.execute("begin")
+    db.execute("savepoint maintenance")
+    db.execute(f"insert into {other}.items(items) values ('optimize')")
+    db.execute("rollback to maintenance")
+    db.execute("release maintenance")
+    db.execute("commit")
+    assert dataset_files(dataset) == original
+    db.execute(f"insert into {other}.items(items) values ('optimize')")
+    assert db.execute(f"select * from main.{shadow} order by k").fetchall() == metadata[0]
+    check_schema_rows(db, other, projection)
+    metadata[1] = db.execute(f"select * from {other}.{shadow} order by k").fetchall()
+    original = dataset_files(dataset)
+    db.execute("begin")
+    if ending == "savepoint":
+        db.execute("savepoint before_drop")
+    db.execute(f"drop table {other}.items")
+    check_schema_rows(db, "main", projection)
+    if ending == "savepoint":
+        db.execute("rollback to before_drop")
+        db.execute("release before_drop")
+        db.execute("commit")
+    else:
+        db.execute("rollback")
+    for schema, expected in zip(["main", other], metadata):
+        check_schema_rows(db, schema, projection)
+        assert db.execute(f"select * from {schema}.{shadow} order by k").fetchall() == expected
+    db.execute(f"drop table {other}.items")
+    assert dataset_files(dataset) == original
+    assert db.execute(f"select count(*) from {other}.sqlite_schema where name=?",
+                      [shadow]).fetchone() == (0,)
+    check_schema_rows(db, "main", projection)
+
+
+@pytest.mark.parametrize("attached_case", ["flat", "hnsw", "flat-default", "hnsw-default"], indirect=True)
+def test_lance_attached_schema_provider_rename(attached_case, tmp_path):
+    db, other, projection, shadow = attached_case
+    uri = db.execute(f"select v from {other}.{shadow} where k='uri'").fetchone()
+    db.execute("begin")
+    db.execute(f'alter table {other}.items rename to "renamed items"')
+    check_schema_rows(db, other, projection, "renamed items")
+    check_schema_rows(db, "main", projection)
+    db.execute("rollback")
+    check_schema_rows(db, other, projection)
+    assert db.execute(f"select v from {other}.{shadow} where k='uri'").fetchone() == uri
+    db.execute(f'alter table {other}.items rename to "renamed items"')
+    with closing(connect(str(tmp_path / "main.db"))) as reopened:
+        reopened.execute(f"attach database ? as {other}", [str(tmp_path / "other.db")])
+        check_schema_rows(reopened, "main", projection)
+        check_schema_rows(reopened, other, projection, "renamed items")
+        assert reopened.execute(f'select v from {other}."renamed items_storage" where k=\'uri\'').fetchone() == uri
+
+
+@pytest.mark.parametrize("attached_case", ["flat", "lance0"], indirect=True)
+def test_lance_attached_schema_temp_table(attached_case, tmp_path):
+    db, other, projection, shadow = attached_case
+    uri = str(tmp_path / "temporary.lance")
+    definition = (f"lance0('{uri}',2)" if shadow == "items_lance" else
+                  f"vec0(v float[2],+doc blob,storage=lance,storage_uri='{uri}')")
+    db.execute(f"create virtual table temp.items using {definition}")
+    row = (1, _f32([8, 0]), b"temporary")
+    db.execute(f"insert into temp.items({projection}) values (?,?,?)", row)
+    assert db.execute(f"select {projection} from temp.items").fetchall() == [row]
+    assert db.execute(f"select v from temp.{shadow} where k='uri'").fetchone() == (uri,)
+    check_schema_rows(db, "main", projection)
+    check_schema_rows(db, other, projection)
+
+
 @pytest.fixture()
 def identity_case(db, root):
     lance_table(db, root, dim=2)

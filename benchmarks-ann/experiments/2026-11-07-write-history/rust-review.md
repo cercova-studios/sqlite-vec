@@ -65,6 +65,9 @@ and [Rust slice safety](https://doc.rust-lang.org/std/slice/fn.from_raw_parts.ht
 
 ### R4 — P2: attached schemas share unqualified Lance metadata names
 
+Resolved by the [2026-11-11 attached-schema repair](../2026-11-11-lance-schema/README.md).
+The following describes the reviewed pre-fix behavior.
+
 `provider.rs:206-209` receives a schema name but passes only a bare shadow-table
 name to `LanceStore`; `store.rs:163-171` creates/reads that name without a database
 qualifier. `lance0.rs:134-136` also discards `_database_name`.

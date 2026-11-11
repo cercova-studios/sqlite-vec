@@ -212,7 +212,7 @@ unsafe extern "C" fn x_open(db: *mut ffi::sqlite3, z_schema: *const c_char, z_ta
         let schema = unsafe { cstr(z_schema) }?;
         let table = unsafe { cstr(z_table) }?;
         let shadow = format!("{table}_storage");
-        let recorded = if b_create == 0 { LanceStore::recorded_uri(db, &shadow) } else { None };
+        let recorded = if b_create == 0 { LanceStore::recorded_uri(db, &schema, &shadow) } else { None };
         let uri = if let Some(uri) = recorded {
             uri
         } else if z_uri.is_null() {
@@ -247,7 +247,7 @@ unsafe extern "C" fn x_open(db: *mut ffi::sqlite3, z_schema: *const c_char, z_ta
             vec_bytes.push(unsafe { *a_vec_bytes.add(j) } as usize);
             cols.push((name, if dims > 0 { Kind::Vector(dims) } else { Kind::Blob }));
         }
-        let store = LanceStore::open(db, &shadow, &uri, cols, b_create != 0)?;
+        let store = LanceStore::open(db, &schema, &shadow, &uri, cols, b_create != 0)?;
         Ok(Provider { db, schema: CString::new(schema).unwrap_or_default(), store, n_aux: n_aux as usize,
                       vec_bytes, cache: HashMap::new(), columns: HashMap::new(), cache_version: u32::MAX,
                       read_buf: Value::Null, err: CString::default() })

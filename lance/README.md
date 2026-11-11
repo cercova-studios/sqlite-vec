@@ -23,6 +23,15 @@ select rowid, distance from docs where query = :q and k = 10 and label = 'cat' o
 
 Vectors use sqlite-vec's formats: a little-endian float32 BLOB (for example from `vec_f32()`) or JSON text such as `'[1, 2, 3]'`. Distances are L2, in the same units `vec0` reports.
 
+Both Lance entrypoints keep version metadata in the same SQLite database as their
+virtual table. Same-named tables in `main`, attached databases and `temp` have
+separate metadata; use separate dataset locations for independent tables.
+Reattaching a database under a different alias preserves its recorded versions.
+For `vec0 storage=lance`, the default dataset location follows the selected
+database file, and renaming the table preserves its recorded dataset location.
+Existing databases with metadata misplaced by an older build need a separate
+data-recovery review; this change does not migrate or disambiguate that metadata.
+
 ## vec0 tables with Lance storage
 
 A `vec0` table can keep its auxiliary columns (`+name type`) in Lance while its index stays in SQLite:

@@ -35,8 +35,23 @@ savepoints. See the [regression receipt](benchmarks-ann/experiments/2026-11-10-l
 Verified: 88 hybrid tests, 66 native loadable tests and four existing skips;
 both conversion OOM cases pass with the C host's ASan/UBSan/debug assertions.
 Strict Lance Clippy still reports seven existing diagnostics.
-Existing duplicate datasets are not repaired. Schema qualification and collation
-remain open P2 work; public writes remain disabled. No push or CI changes.
+Existing duplicate datasets are not repaired. Schema qualification is addressed
+by the 2026-11-11 repair below; collation remains open P2 work. Public writes
+remain disabled. No push or CI changes.
+
+Lance attached-schema repair — 2026-11-11: both entrypoints now retain the SQLite
+database name in `LanceStore`. Metadata creation, URI/version reads, commit updates,
+provider rename and DROP qualify the database and table identifiers separately.
+Same-named tables in `main`, quoted attached schemas and `temp` keep independent
+metadata. Reattachment under a different alias and default provider locations work.
+The clean baseline fails all five targeted configurations because the attached
+metadata table is absent; the fixed hybrid passes all 114 tests, including 26 new
+cases with ordinary SQLite row and independent coordinate-distance oracles.
+Tests preserve nested/savepoint/full rollback, failed commits, maintenance, provider
+rename/reopen and retained-dataset DROP. See the
+[receipt and reproduction instructions](benchmarks-ann/experiments/2026-11-11-lance-schema/README.md).
+The metadata format and transaction callbacks are unchanged. No automatic migration
+of old misplaced metadata, collation repair, push, CI or ranking-default change.
 
 Completed P1 slice: Rust standalone-source staging and native incremental
 dependencies, verified with isolated C consumers, the Rust test and local Cargo

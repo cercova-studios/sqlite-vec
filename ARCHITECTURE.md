@@ -117,6 +117,13 @@ The Lance provider (`lance/src/provider.rs`) and `lance0` share
 rules. Its shadow table `<table>_storage` records the committed Lance version and
 the dataset location.
 
+Each store retains the SQLite database name supplied by its virtual-table callback.
+Metadata creation, URI/version lookup, commit updates, rename and DROP qualify the
+database and shadow-table identifiers separately. Same-named tables in `main`,
+attached databases and `temp` therefore keep separate version metadata. Attachment
+aliases are connection-local; reopening under a different alias uses that schema's
+metadata. Transaction and savepoint callbacks keep their existing pending/undo rules.
+
 `lance0` checks rowid uniqueness against pending changes and the recorded Lance
 version before changing rows. Its ID-only lookup does not read vector/BLOB payloads.
 SQLite handles ABORT, IGNORE, FAIL and ROLLBACK conflicts; REPLACE overwrites the

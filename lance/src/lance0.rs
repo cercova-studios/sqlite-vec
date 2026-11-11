@@ -84,7 +84,7 @@ fn f32_blob(v: &[f32]) -> Value {
 }
 
 impl LanceTab {
-    fn connect_create(db: &mut VTabConnection, table_name: &[u8], args: &[&[u8]])
+    fn connect_create(db: &mut VTabConnection, database_name: &[u8], table_name: &[u8], args: &[&[u8]])
                       -> Result<(Cow<'static, CStr>, Self)> {
         // SAFETY: connect/create supplies the live host; the vararg enables SQLite conflict handling.
         let handle = unsafe { db.handle() };
@@ -103,13 +103,14 @@ impl LanceTab {
         let uri = arg(args.len() - 2)?;
         let dim: usize = arg(args.len() - 1)?.parse().ok().filter(|d| *d > 0)
             .ok_or_else(|| Error::ModuleError("lance0: dim must be a positive integer".into()))?;
+        let database = std::str::from_utf8(database_name)?;
         let name = std::str::from_utf8(table_name)?;
         let cols = vec![
             ("label".to_owned(), Kind::Text),
             ("vector".to_owned(), Kind::Vector(dim)),
             ("payload".to_owned(), Kind::Blob),
         ];
-        let mut store = LanceStore::open(handle, &format!("{name}_lance"), &uri, cols, false)?;
+        let mut store = LanceStore::open(handle, database, &format!("{name}_lance"), &uri, cols, false)?;
         store.ann_column = Some(S_VECTOR);
         // A hidden column named after the table takes commands, as in FTS5
         // and vec0: insert into t(t) values ('optimize').
@@ -142,9 +143,9 @@ unsafe impl<'vtab> VTab<'vtab> for LanceTab {
     type Aux = ();
     type Cursor = LanceCursor<'vtab>;
 
-    fn connect(db: &mut VTabConnection, _aux: Option<&()>, _module_name: &[u8], _database_name: &[u8],
+    fn connect(db: &mut VTabConnection, _aux: Option<&()>, _module_name: &[u8], database_name: &[u8],
                table_name: &[u8], args: &[&[u8]]) -> Result<(Cow<'static, CStr>, Self)> {
-        Self::connect_create(db, table_name, args)
+        Self::connect_create(db, database_name, table_name, args)
     }
 
     /// The SQL-to-Lance translation: SQLite hands us the constraints it can

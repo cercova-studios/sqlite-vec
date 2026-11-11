@@ -105,6 +105,7 @@ struct Pending {
 
 pub struct LanceStore {
     db: *mut ffi::sqlite3,
+    database: String, // SQLite schema containing the virtual table and its metadata
     shadow: String, // unquoted name of the version table
     uri: String,
     pub cols: Vec<(String, Kind)>,
@@ -126,10 +127,14 @@ fn quote(name: &str) -> String {
     format!("\"{}\"", name.replace('"', "\"\""))
 }
 
+fn qualified(database: &str, table: &str) -> String {
+    format!("{}.{}", quote(database), quote(table))
+}
+
 impl LanceStore {
     /// Open (or, with `create`, create) the store. `shadow` is the SQLite
     /// table that records the committed Lance version.
-    pub fn open(db: *mut ffi::sqlite3, shadow: &str, uri: &str, cols: Vec<(String, Kind)>,
+    pub fn open(db: *mut ffi::sqlite3, database: &str, shadow: &str, uri: &str, cols: Vec<(String, Kind)>,
                 create: bool) -> Result<Self> {
         let mut fields = vec![Field::new("id", DataType::Int64, false)];
         for (name, kind) in &cols {
@@ -145,6 +150,7 @@ impl LanceStore {
         }
         let store = LanceStore {
             db,
+            database: database.to_owned(),
             shadow: shadow.to_owned(),
             uri: uri.to_owned(),
             cols,
@@ -168,7 +174,7 @@ impl LanceStore {
 
     fn init(&self, create: bool) -> Result<()> {
         let conn = self.conn()?;
-        let shadow = quote(&self.shadow);
+        let shadow = qualified(&self.database, &self.shadow);
         conn.execute(&format!("create table if not exists {shadow}(k primary key, v)"), [])?;
         let recorded: Option<i64> = conn
             .query_row(&format!("select v from {shadow} where k = 'version'"), [], |r| r.get(0))
@@ -199,14 +205,14 @@ impl LanceStore {
     }
 
     /// The dataset location recorded by an earlier `open`, if any.
-    pub fn recorded_uri(db: *mut ffi::sqlite3, shadow: &str) -> Option<String> {
+    pub fn recorded_uri(db: *mut ffi::sqlite3, database: &str, shadow: &str) -> Option<String> {
         let conn = unsafe { Connection::from_handle(db) }.ok()?;
-        conn.query_row(&format!("select v from {} where k = 'uri'", quote(shadow)), [], |r| r.get(0)).ok()
+        conn.query_row(&format!("select v from {} where k = 'uri'", qualified(database, shadow)), [], |r| r.get(0)).ok()
     }
 
     fn committed_version(&self) -> Result<u64> {
         let v: i64 = self.conn()?.query_row(
-            &format!("select v from {} where k = 'version'", quote(&self.shadow)),
+            &format!("select v from {} where k = 'version'", qualified(&self.database, &self.shadow)),
             [],
             |r| r.get(0),
         )?;
@@ -414,7 +420,7 @@ impl LanceStore {
         let uri = self.uri.clone();
         let schema = self.schema.clone();
         let conn = self.conn()?;
-        let shadow = quote(&self.shadow);
+        let shadow = qualified(&self.database, &self.shadow);
         let lag: i64 = conn
             .query_row(&format!("select v from {shadow} where k = 'unindexed'"), [], |r| r.get(0))
             .unwrap_or(0)
@@ -721,13 +727,13 @@ impl LanceStore {
         if self.in_write {
             return Err(lance_err("cannot drop with uncommitted Lance writes or maintenance; commit or roll back first"));
         }
-        self.conn()?.execute(&format!("drop table if exists {}", quote(&self.shadow)), [])?;
+        self.conn()?.execute(&format!("drop table if exists {}", qualified(&self.database, &self.shadow)), [])?;
         Ok(())
     }
 
     pub fn rename(&mut self, new_shadow: &str) -> Result<()> {
         self.conn()?.execute(
-            &format!("alter table {} rename to {}", quote(&self.shadow), quote(new_shadow)),
+            &format!("alter table {} rename to {}", qualified(&self.database, &self.shadow), quote(new_shadow)),
             [],
         )?;
         self.shadow = new_shadow.to_owned();
