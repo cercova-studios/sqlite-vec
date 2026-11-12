@@ -5,5 +5,6 @@ fn main() {
     cc::Build::new()
         .file("sqlite-vec.c")
         .define("SQLITE_CORE", None)
+        .define("SQLITE_VEC_STATIC", None)
         .compile("sqlite_vec0");
 }

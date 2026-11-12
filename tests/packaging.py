@@ -54,7 +54,7 @@ class Packaging(unittest.TestCase):
             (self.root/name).parent.mkdir(parents=True,exist_ok=True)
             (self.root/name).write_bytes(data)
         for name in ['Makefile','VERSION','sqlite-vec.h.tmpl','scripts/amalgamate.py',
-                     'bindings/rust/Makefile','bindings/rust/Cargo.toml.tmpl']:
+                     'bindings/rust/Makefile']:
             path = self.root/name
             path.parent.mkdir(parents=True,exist_ok=True)
             path.write_bytes(subprocess.check_output(['git','show','HEAD:'+name],cwd=REPO) if BASELINE else (REPO/name).read_bytes())
@@ -62,6 +62,8 @@ class Packaging(unittest.TestCase):
         for name in ['sqlite3.c','sqlite3.h','sqlite3ext.h','shell.c']:
             shutil.copyfile(REPO/'vendor'/name,self.root/'vendor'/name)
         shutil.copyfile(REPO/'sqlite-vec.h',self.root/'sqlite-vec.h')
+        for name in ['LICENSE-MIT','LICENSE-APACHE']:
+            shutil.copyfile(REPO/name,self.root/name)
 
     def run_command(self, command, cwd=None, expected=0):
         result = subprocess.run(command,cwd=cwd or self.root,capture_output=True,text=True)

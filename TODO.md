@@ -43,11 +43,14 @@ These are existing defects/gaps, not changes made by the task writer prototype.
 - [ ] P2: track all included C/header inputs in the legacy Rust harness/micro builds.
 - [ ] P2: make the adapter cancellation test deterministic without weakening its
   asserted execution boundary. Its observed Rust suite result is 9/10, not a pass.
-- [ ] Repair the stale generated-version Rust binding lock and existing lint/format
-  gaps; qualify fresh Lance builds once protoc is available. Do not bulk-rewrite code.
+- [ ] Address existing lint/format gaps; qualify fresh Lance builds once protoc is
+  available. Do not bulk-rewrite code.
 
 ## P1 — Reliable local consumption (verified on macOS arm64)
 
+- [x] Commit a self-contained Cargo package for revision-pinned Git dependencies;
+  verify bundled rusqlite, the Cargo archive and flat vec0 interchange with 0.1.9.
+  [Rust setup and checks](bindings/rust/README.md). Catalog measurements remain open.
 - [x] Stage a standalone amalgamation for the Rust binding and regenerate it
   when an included C feature changes. Verify a consumer outside this checkout.
 - [x] Repair native static/CLI feature dependencies and ship the static header.

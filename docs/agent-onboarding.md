@@ -8,7 +8,8 @@ Codex conversations is optional. Start with the route that matches your job.
 
 | Job | First action | Working contract |
 | --- | --- | --- |
-| Use this fork in another project | Build a local bundle below | [Bundle guide](local-bundle.md) |
+| Use this fork from Rust | Pin a Git dependency | [Rust binding](../bindings/rust/README.md) |
+| Use this fork's native CLI or search tools | Build a local bundle below | [Bundle guide](local-bundle.md) |
 | Fix an issue or contribute | Run the contributor bootstrap below | [Architecture](../ARCHITECTURE.md) |
 | Research a search strategy | Read the wiki and the closest experiment's report | [Experiment archive](../benchmarks-ann/experiments/) |
 | Continue existing work | Read the wiki roadmap, then the relevant receipt | [Handoff](../HANDOFF.md) and [queue](../TODO.md) |
@@ -149,6 +150,12 @@ For changes to the bootstrap itself, run `python3 tests/test-bootstrap.py -v` an
 exercise the `dev` command in an isolated checkout with a fresh output directory.
 
 ## Use the fork as a dependency
+
+For a Rust application, use the committed [Cargo package](../bindings/rust/README.md)
+as a revision-pinned Git dependency with the application's own SQLite runtime.
+Consumer builds need Cargo and a C compiler; native source generation is already
+included in the package. The Rust guide describes bundled rusqlite registration
+and the 0.1.9 compatibility checks.
 
 Reuse the existing builder. It builds **committed HEAD**, excluding working-tree
 source edits, into a new destination. Read [bundle prerequisites and recovery](local-bundle.md)

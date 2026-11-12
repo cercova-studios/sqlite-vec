@@ -1,0 +1,9 @@
+[package]
+name = "sqlite-vec-compat"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+sqlite-vec = "=0.1.9"
+rusqlite = { version = "=0.41.0", features = ["bundled"] }

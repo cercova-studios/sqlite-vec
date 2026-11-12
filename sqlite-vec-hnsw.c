@@ -990,8 +990,7 @@ static int hnsw_drop_shadow_tables(vec0_vtab *p, int col) {
 // ============================================================================
 
 static int hnsw_allowed(struct HnswCtx *x, const struct Array *a, int32_t idx) {
-  i64 rowid = x->c->rowid[idx];
-  return !a || bsearch(&rowid, a->z, a->length, sizeof(i64), _cmp) != NULL;
+  return vec0_rowids_contains(a, x->c->rowid[idx]);
 }
 
 static void hnsw_visit_reset(struct HnswCache *c) {
