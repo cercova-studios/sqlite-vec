@@ -51,7 +51,11 @@ Tests preserve nested/savepoint/full rollback, failed commits, maintenance, prov
 rename/reopen and retained-dataset DROP. See the
 [receipt and reproduction instructions](benchmarks-ann/experiments/2026-11-11-lance-schema/README.md).
 The metadata format and transaction callbacks are unchanged. No automatic migration
-of old misplaced metadata, collation repair, push, CI or ranking-default change.
+of old misplaced metadata, collation repair, CI or ranking-default change.
+The initial repair was local commit `7da74c0`; subsequent integration onto the
+published Make repair `e499938`, including fresh 114 hybrid and 14 build/bootstrap
+passes, is recorded in the same receipt. Historical local-only instructions do
+not override that later explicit publication authorization.
 
 Completed P1 slice: Rust standalone-source staging and native incremental
 dependencies, verified with isolated C consumers, the Rust test and local Cargo

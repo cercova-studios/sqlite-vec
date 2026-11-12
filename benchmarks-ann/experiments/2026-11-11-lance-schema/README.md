@@ -105,5 +105,54 @@ PROTOC=/absolute/path/to/protoc cargo clippy --offline --locked --release \
 
 These lint commands remain failures as recorded above. Native allocator/sanitizer,
 power-loss/crash, other-platform and full C-only/Rust-adapter suites were not rerun
-for this scoped Rust metadata fix. No main, CI, remote branch or ranking default
-was changed; the commit is local only.
+for the original scoped Rust metadata fix. That repair was committed locally as
+`7da74c0`, without a push. The authorized integration below is a later task;
+main, CI and ranking defaults remain unchanged.
+
+## Integration with the published Make repair — 11 November 2026
+
+The repair was cherry-picked onto published Make commit
+`e499938acab28496297ebad0cedbf94ba399c116` in an isolated checkout. The merge was
+clean. The Makefile, packaging tests and onboarding guide are byte-identical to
+that published parent; the three Lance Rust files and hybrid test file are
+byte-identical to `7da74c0`. The architecture retains both the Make build contract
+and Lance storage changes. All previous experiment-index content is preserved.
+
+Fresh combined-tree verification on macOS arm64 passed:
+
+| Check | Result |
+| --- | --- |
+| Packaging regressions | All four passed, including one fresh CLI compilation, zero unchanged rebuilds, dependency invalidation and standalone consumers |
+| Bootstrap boundary tests | All ten passed |
+| Fresh native bootstrap | C-unit, exact KNN and FTS5 checks passed |
+| Existing-output Make check | C-unit assertions executed; CLI bytes and modification time unchanged |
+| Independent native SQL | SQLite/version rows, L2 distances 0/5/10 and FTS IDs 10/30 matched |
+| Fresh `make hybrid` and full hybrid suite | **114 passed**, including 26 attached-schema cases; no skips |
+| Published pre-fix negative control | All five selected configurations fail on absent attached metadata, with pytest exit 1 |
+| Baseline-created main databases | Integrated library reopens all five with exact row/BLOB parity and successful integrity checks |
+
+The integrated hybrid library SHA256 is
+`3b4f1887149a23b50fcb61f001d5c82aa567d4c18af4e0fd8983d585442fad7a`.
+Build paths differ from the original repair; the original artifact hash above
+is historical. The combined build used Rust/Cargo 1.99.1, task-local verified
+protoc 36.2 and the same Python environment/vendor hashes. Cargo.lock remained
+unchanged. The existing compact-unwind linker warning remains.
+
+The actual hybrid Make route used a private target directory and the existing
+Make variable for its built artifact:
+
+```sh
+PROTOC=/absolute/path/to/protoc CARGO_NET_OFFLINE=true CARGO_BUILD_JOBS=2 \
+  CARGO_TARGET_DIR=/tmp/lance-integration-target make hybrid \
+  HYBRID_BUILT=/tmp/lance-integration-target/release/libsqlite_vec_lance.dylib
+python -B -m pytest tests/test-hybrid.py -q
+```
+
+Use fresh paths and provide the C-only collection library as described above.
+The new packaging checks and native bootstrap use the commands in the
+[published Make receipt](../2026-11-11-cli-build/README.md). The negative control
+uses a separate checkout of `e499938` with only the new hybrid test file overlaid.
+The original formatting/Clippy comparisons were not rerun for integration: Rust
+source bytes are unchanged, and those seven diagnostics/format failures remain
+open. Other-platform, sanitizer, Rust-adapter and complete bundle checks were not
+rerun. No migration of old misplaced metadata or collation change is included.
