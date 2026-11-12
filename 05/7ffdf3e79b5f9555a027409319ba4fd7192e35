@@ -1,0 +1,91 @@
+docs/agent-onboarding.md
+  s_80c303e6f431fa::t_ca8bb2b46da9d8 11-12,153-158
+.github/workflows/release.yaml
+  s_80c303e6f431fa::t_961effdb73ab49 318
+bindings/rust/sqlite-vec.c
+  s_83d6bd65233bf5::t_e08d17ef8370ce 1-20365
+bindings/rust/README.md
+  s_80c303e6f431fa::t_ca8bb2b46da9d8 1,3-4,6-9,12-17,29-79,81-84
+bindings/rust/Cargo.toml
+  s_80c303e6f431fa::t_168f63f182818d 1-17
+tests/rust-compat/Cargo.toml
+  s_80c303e6f431fa::t_f81c149713fdf4 1-9
+TODO.md
+  s_80c303e6f431fa::t_a20e0bb76e86bd 46-47,51-53
+ARCHITECTURE.md
+  s_80c303e6f431fa::t_ca8bb2b46da9d8 55-62,75-77
+HANDOFF.md
+  s_80c303e6f431fa::t_fbdaaea9148f36 34-36
+  s_80c303e6f431fa::t_a20e0bb76e86bd 10-33,37
+tests/packaging.py
+  s_80c303e6f431fa::t_168f63f182818d 57,65-66
+bindings/rust/.gitignore
+  s_80c303e6f431fa::t_bcd3ea97582986 2
+tests/rust-compat/src/main.rs
+  s_80c303e6f431fa::t_6377f53d0df657 96
+  s_80c303e6f431fa::t_f81c149713fdf4 1-9,14-20,28,35-48,51-52,56-61,63,65-67,75-77,102-103,105-106,112-114,124-129
+  s_80c303e6f431fa::t_89507177b1a4e2 53,62,64,70-72,104
+  s_80c303e6f431fa::t_3b02169f7ec4b4 10-13,21-27,29-34,49-50,54-55,68-69,73-74,79-82,91-95,107-111,115-123
+  s_80c303e6f431fa::t_2224ee42f2276a 78,83-90,97-101
+tests/rust-packaging.py
+  s_80c303e6f431fa::t_de1c1fb408c3a8 77-85
+  s_80c303e6f431fa::t_961effdb73ab49 72
+  s_80c303e6f431fa::t_0e7f2427785b05 32-36,64,66,76,86
+  s_80c303e6f431fa::t_2224ee42f2276a 102-104
+  s_80c303e6f431fa::t_f81c149713fdf4 1-31,37-63,65,67-71,73-75,87-101,105-117
+bindings/rust/build.rs
+  s_80c303e6f431fa::t_168f63f182818d 8
+bindings/rust/Makefile
+  s_80c303e6f431fa::t_168f63f182818d 3,17-21
+  s_80c303e6f431fa::t_efb2b0629d8656 22
+Makefile
+  s_80c303e6f431fa::t_6377f53d0df657 220-223
+bindings/rust/LICENSE-MIT
+  s_83d6bd65233bf5::t_e08d17ef8370ce 1-21
+bindings/rust/LICENSE-APACHE
+  s_83d6bd65233bf5::t_e08d17ef8370ce 1-201
+bindings/rust/sqlite3ext.h
+  s_83d6bd65233bf5::t_e08d17ef8370ce 1-719
+sqlite-vec-hnsw.c
+  s_ca7d5125ef33b2::t_aaf95e40c47375 993
+bindings/rust/sqlite3.h
+  s_83d6bd65233bf5::t_e08d17ef8370ce 1-13374
+bindings/rust/Cargo.lock
+  s_83d6bd65233bf5::t_b1765e5b6cc01f 3,7,9,19,21,25,27,31,33-37,41,43,57-62,94,96,100,102,106,108,115,117,136-141,144,146,150,158,160,169,171,181,183,187,189,196,198
+bindings/rust/sqlite-vec.h
+  s_83d6bd65233bf5::t_0804fb50fd609e 1-137
+tests/rust-compat/Cargo.lock
+  s_83d6bd65233bf5::t_4bee7d70bae669 1-202
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "057ffdf3e79b5f9555a027409319ba4fd7192e35",
+  "prompts": {},
+  "sessions": {
+    "s_80c303e6f431fa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ce43-4434-7120-8b75-50a6682410d9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_83d6bd65233bf5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a1ce43-4434-7120-8b75-50a6682410d9",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_ca7d5125ef33b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a170f3-5879-74f3-9c33-b7634e37e388",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
