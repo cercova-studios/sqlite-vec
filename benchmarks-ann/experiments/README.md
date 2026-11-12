@@ -61,17 +61,26 @@ can differ. The summaries below are historical findings, not fresh test passes.
 | Contributor onboarding | Two context-free agent trials completed native setup and priority recovery. Vendor fail-fast handling, host SIMD preservation and queue/provenance guidance were repaired; Python remained an optional wrapper over Make. | [2026-11-11-agent-onboarding](2026-11-11-agent-onboarding/README.md) |
 | Dependency onboarding | A fresh agent built and relocated a separate consumer. Five installed-bundle checks passed; the retained live starter example fixed quoted backup paths and refuses disabled assertions. | [2026-11-11-dependency-onboarding](2026-11-11-dependency-onboarding/README.md) |
 | Pinned native Nix onboarding | Two fresh agents passed the same native checks on Linux arm64. Cold acquisition/entry was 43.25 s with Nix versus 40.52 s ordinarily; warm doctors were roughly 0.2 s. Nix builds were slower in this single trial; retain it as an optional pinned-tool route without a speed claim. | [2026-11-11-nix-onboarding](2026-11-11-nix-onboarding/README.md) |
+| SciFact BlitzRank, 150 queries | RRF + BlitzRank nDCG@10 0.798189 vs dense 0.708804; gain +0.089385, paired 95% interval [+0.042886,+0.138554]. Gate passed; 450 successful requests; total API estimate $1.3865075, conservative $1.677428 under the original $5 cap. Added-query p95 about 19 s. | [Result](2026-11-11-blitzrank/REPORT.md), [reproduction](2026-11-11-blitzrank/README.md) |
 
 ## Active-work exception
 
-The in-progress BlitzRank experiment is excluded from completed-experiment
-teardown. Its owner copied 17 required input/helper files (179,933,010 bytes) into
-its own ignored workspace; their SHA256 hashes were independently verified before
-old copies were removed. Its active directory, virtual environment, upstream
-checkout and task cache remain intact. Current source examples/tests, shared
-development Python environments and shared Cargo/uv/model caches are preserved.
+At the earlier cleanup commit `70da036`, BlitzRank was still in progress and
+was excluded from completed-experiment teardown. Its owner copied 17 required
+input/helper files (179,933,010 bytes) into an ignored workspace; their SHA256
+hashes were independently verified before the old copies were removed. That
+cleanup preserved the active directory, environment, upstream checkout, task
+cache, current source examples/tests and shared development/model caches.
+
+The full 150-query BlitzRank evaluation is now complete. Its current archive is
+Markdown-only; see the [measured result](2026-11-11-blitzrank/REPORT.md) and
+[verified recovery snapshot](2026-11-11-blitzrank/RECOVERY.md). Its retained
+scratch inputs remain protected separately.
 
 ## Cleanup verification — 11 November 2026
+
+The counts and checks below describe the earlier cleanup at `70da036`; they are
+not a current archive inventory.
 
 | Removed category | Files | Logical bytes |
 | --- | ---: | ---: |
@@ -85,8 +94,9 @@ development Python environments and shared Cargo/uv/model caches are preserved.
 These are removed logical file sizes, not a measurement of net filesystem free
 space. Git history, shared caches and active work remain. The archive removal
 also unlinked three virtual-environment symlinks without touching their targets.
-The retained archive has 39 historical Markdown records plus this index across
-18 completed experiments. No completed-experiment process required termination.
+At `70da036`, the retained archive contained 39 historical Markdown records plus
+this index across 18 then-completed experiments. No completed-experiment process
+required termination during that cleanup.
 
 Checks actually run after retirement: all ten bootstrap boundary tests and four
 bundle manifest/failure tests passed; offline locked Cargo metadata resolves the
