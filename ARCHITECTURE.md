@@ -52,9 +52,14 @@ The harness rejects `NDEBUG` builds to prevent silently disabling assertions.
 Native loadable/static/amalgamation builds track every included `sqlite-vec-*.c`
 feature file. `make static` stages `dist/sqlite-vec.h` beside the archive. Build
 directories are order-only prerequisites, so directory timestamps do not force
-recompilation. The Rust binding's `make -C bindings/rust deps` generates a
-standalone amalgamation instead of copying the modular development source;
-Cargo watches that generated C file and its staged headers.
+recompilation. The Rust binding commits a standalone Cargo manifest, C
+amalgamation, extension header, SQLite 3.45.3 headers and licenses. Clean-clone
+and revision-pinned Git dependency builds require Cargo and a C compiler only.
+Maintainers refresh those inputs with `make -C bindings/rust deps` after
+regenerating the root header; consumers do not run Make. Cargo watches the
+committed C/header inputs. `tests/rust-packaging.py` checks freshness against
+the modular sources, bundled-rusqlite registration, Cargo archive completeness,
+a clean pinned Git consumer and flat vec0 file interchange with registry 0.1.9.
 `make test-packaging` exercises isolated static and Rust-staged C consumers and
 included-feature invalidation, without modifying the checkout's generated files.
 `make cli` builds `$(prefix)/sqlite3` through one file target using the existing
@@ -67,7 +72,9 @@ fresh output directory; Make does not compare old and new command arguments.
 
 The Rust binding exposes the C initializer with its three pointer arguments and
 SQLite result code. Callers can register on each live connection from their linked
-SQLite runtime. Apple system SQLite rejects process-global `sqlite3_auto_extension`;
+SQLite runtime. The static archive contains no SQLite implementation; the
+application supplies one runtime, including through rusqlite's bundled feature.
+Apple system SQLite rejects process-global `sqlite3_auto_extension`;
 per-connection registration works without dynamic extension loading. Tests retain
 auto-extension registration on hosts that support it. See
 [Rust registration](bindings/rust/README.md).

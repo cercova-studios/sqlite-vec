@@ -7,6 +7,34 @@ receipts and build outputs mentioned below describe their recorded runs; rebuild
 tools or use an isolated historical checkout rather than expecting those artifacts
 to remain in this working tree. Active experiments are handled separately.
 
+## Rust Git consumption and 0.1.9 interchange — 2026-11-12
+
+The Rust binding now commits its Cargo manifest, standalone C/header inputs,
+SQLite 3.45.3 headers and licenses. Cargo consumers need no Make or vendor setup.
+The manifest template is removed, the stale lockfile is refreshed, and native
+inputs still refresh through the existing maintainer Make target. The existing
+HNSW membership edit delegates to the identical shared rowid helper and is
+included in the amalgamation.
+
+Fresh local checks on macOS arm64: all three `tests/rust-packaging.py` checks,
+all four native packaging checks, C unit tests, and all 47 HNSW/zone-map Python
+regressions passed. The Cargo checks build an unpacked archive and a clean local
+Git consumer pinned to its full commit. Bundled rusqlite 0.31 tests registration;
+the Git consumer and separate registry-0.1.9 executable use bundled rusqlite 0.41.
+Flat float32/L2 fixtures cover numeric metadata, auxiliary text, exact distances,
+committed writes, savepoint/full rollback, reopen and new chunks in legacy tables.
+The downgrade fixture clears fork zone maps before 0.1.9 writes, then verifies
+the fork sees the changed row. Legacy tables retain their unpruned scan path.
+The new freshness check also detected and corrected a stale generated root header.
+
+`make test-rust-packaging` reruns the Cargo checks after the two documented
+locked registry fetches. No catalog benchmark, important-data migration, push,
+CI run, other-platform qualification or general data-format guarantee is claimed.
+The existing DiskANN unused-parameter compiler warning remains.
+The staged whitespace check reports inherited trailing whitespace/EOF blanks
+in the verbatim generated C and SQLite extension header. Those inputs retain
+their source bytes; this is not a whitespace-check pass.
+
 ## Current work queue — 2026-11-07
 
 [TODO.md](TODO.md) is the authoritative queue. The user broadened the goal to an
