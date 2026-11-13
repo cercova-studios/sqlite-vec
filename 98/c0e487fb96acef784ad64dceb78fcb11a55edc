@@ -1,0 +1,21 @@
+HANDOFF.md
+  s_80c303e6f431fa::t_5108445416f6c2 25-27
+.github/workflows/cargo.yaml
+  s_80c303e6f431fa::t_5108445416f6c2 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "98c0e487fb96acef784ad64dceb78fcb11a55edc",
+  "prompts": {},
+  "sessions": {
+    "s_80c303e6f431fa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ce43-4434-7120-8b75-50a6682410d9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
