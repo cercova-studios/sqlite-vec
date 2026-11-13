@@ -1,0 +1,34 @@
+name: Rust package
+on:
+  push:
+    branches: [main, codex/dev-local-datastore]
+  pull_request:
+    branches: [main, codex/dev-local-datastore]
+permissions:
+  contents: read
+jobs:
+  cargo-compatibility:
+    name: Cargo and 0.1.9 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install stable Rust
+        run: rustup toolchain install stable --profile minimal --no-self-update
+      - name: Fetch SQLite headers for freshness checks
+        run: bash scripts/vendor.sh
+      - name: Cache locked registry inputs
+        run: |
+          cargo fetch --locked --manifest-path bindings/rust/Cargo.toml
+          cargo fetch --locked --manifest-path tests/rust-compat/Cargo.toml
+      - name: Check package freshness, bundled SQLite and 0.1.9 interchange
+        run: make test-rust-packaging

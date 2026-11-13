@@ -7,6 +7,24 @@ receipts and build outputs mentioned below describe their recorded runs; rebuild
 tools or use an isolated historical checkout rather than expecting those artifacts
 to remain in this working tree. Active experiments are handled separately.
 
+## Cargo development-branch integration and CI — 2026-11-12
+
+Applied the packaging fix on top of `af71877`, preserving the newer Lance
+schema-qualification commit and its acceptance records. The Lance source tree
+and hybrid regression file are byte-for-byte unchanged from that integration
+base. The `Rust package` workflow now exercises package freshness, bundled
+rusqlite, Cargo archive builds, pinned Git consumption and 0.1.9 interchange
+on Linux x86_64 and macOS arm64 for development/default-branch pushes and PRs.
+It fetches the two locked registry graphs and SQLite headers before running
+the same `make test-rust-packaging` used locally, without regenerating inputs.
+
+Fresh local integration checks passed on macOS arm64: three Cargo checks,
+four native packaging checks, C unit tests and 47 HNSW/zone-map regressions.
+Workflow YAML/trigger/matrix checks and whitespace checks for the CI change
+also passed. These local results do not stand in for the remote workflow run.
+Lance was preserved without a new hybrid build; the catalog benchmark remains
+deferred until application data is available. No production-data writes occur.
+
 ## Rust Git consumption and 0.1.9 interchange — 2026-11-12
 
 The Rust binding now commits its Cargo manifest, standalone C/header inputs,

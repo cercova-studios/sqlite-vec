@@ -82,4 +82,8 @@ The suite needs Python 3.11+, Git, Cargo and a C compiler. It checks package
 freshness, bundled-rusqlite 0.31 registration, an unpacked Cargo archive, and a
 clean revision-pinned Git consumer with bundled rusqlite 0.41. Registry builds
 use cached dependencies; Git fetching uses only a disposable local repository.
+The `Rust package` workflow runs the same suite on Linux x86_64 and macOS arm64
+for pushes and pull requests to `main` and `codex/dev-local-datastore`. CI checks
+the committed inputs without regenerating them, so stale amalgamations or headers
+fail the freshness check.
 The existing [example](../../examples/simple-rust/demo.rs) selects this fork by path.

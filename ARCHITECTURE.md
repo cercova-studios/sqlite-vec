@@ -60,6 +60,10 @@ regenerating the root header; consumers do not run Make. Cargo watches the
 committed C/header inputs. `tests/rust-packaging.py` checks freshness against
 the modular sources, bundled-rusqlite registration, Cargo archive completeness,
 a clean pinned Git consumer and flat vec0 file interchange with registry 0.1.9.
+The `Rust package` GitHub Actions workflow runs those same checks on Linux x86_64
+and macOS arm64 for pushes and pull requests to `main` and
+`codex/dev-local-datastore`. CI fetches locked registry inputs and vendor headers
+before testing; it does not regenerate the committed package inputs.
 `make test-packaging` exercises isolated static and Rust-staged C consumers and
 included-feature invalidation, without modifying the checkout's generated files.
 `make cli` builds `$(prefix)/sqlite3` through one file target using the existing
