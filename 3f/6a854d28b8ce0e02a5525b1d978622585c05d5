@@ -1,0 +1,27 @@
+.github/workflows/cargo.yaml
+  s_80c303e6f431fa::t_99916fab47fee1 25
+  s_80c303e6f431fa::t_5bcad11cd3c8cf 1-13,16-24,27-34
+  s_80c303e6f431fa::t_d3441368ae738c 14-15,26
+ARCHITECTURE.md
+  s_80c303e6f431fa::t_5bcad11cd3c8cf 63-66
+HANDOFF.md
+  s_80c303e6f431fa::t_9446698ffb7ed8 10-27
+bindings/rust/README.md
+  s_80c303e6f431fa::t_5bcad11cd3c8cf 85-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3f6a854d28b8ce0e02a5525b1d978622585c05d5",
+  "prompts": {},
+  "sessions": {
+    "s_80c303e6f431fa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ce43-4434-7120-8b75-50a6682410d9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
