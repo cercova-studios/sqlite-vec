@@ -22,6 +22,9 @@ Fresh local integration checks passed on macOS arm64: three Cargo checks,
 four native packaging checks, C unit tests and 47 HNSW/zone-map regressions.
 Workflow YAML/trigger/matrix checks and whitespace checks for the CI change
 also passed. These local results do not stand in for the remote workflow run.
+The initial remote run rejected the inherited `macos-14` runner before any
+steps (`macos-14-arm64-us-default` unsupported); the Cargo matrix now uses
+GitHub's supported `macos-15` arm64 runner.
 Lance was preserved without a new hybrid build; the catalog benchmark remains
 deferred until application data is available. No production-data writes occur.
 
