@@ -1,0 +1,41 @@
+ARCHITECTURE.md
+  s_339384270fc0f7::t_4196ef60efa537 86-98
+  s_339384270fc0f7::t_e3a7a4bf7a5362 99
+.gitignore
+  s_339384270fc0f7::t_4196ef60efa537 2-3,38
+bindings/python/README.md
+  s_339384270fc0f7::t_4196ef60efa537 1-107
+MANIFEST.in
+  s_339384270fc0f7::t_4196ef60efa537 1-7
+pyproject.toml
+  s_339384270fc0f7::t_4196ef60efa537 1-31
+README.md
+  s_339384270fc0f7::t_4196ef60efa537 48-50
+setup.py
+  s_339384270fc0f7::t_4196ef60efa537 1-50
+Makefile
+  s_339384270fc0f7::t_4196ef60efa537 224-226
+  s_339384270fc0f7::t_542596a1c743ce 227
+tests/python-packaging.py
+  s_339384270fc0f7::t_4196ef60efa537 1-107
+docs/agent-onboarding.md
+  s_339384270fc0f7::t_4196ef60efa537 12,155-159
+bindings/python/__init__.py
+  s_339384270fc0f7::t_4196ef60efa537 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b953105a57f447bcf476b9f5407aa94f9c4967be",
+  "prompts": {},
+  "sessions": {
+    "s_339384270fc0f7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e0d6-c8cc-7250-b8eb-927d9f12c8ba",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
