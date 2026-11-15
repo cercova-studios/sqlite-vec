@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sqlite-vec"
+dynamic = ["version"]
+description = "Cercova's SQLite vector search and graph extension"
+readme = "bindings/python/README.md"
+requires-python = ">=3.9"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
+
+[project.urls]
+Repository = "https://github.com/cercova-studios/sqlite-vec"
+
+[tool.setuptools]
+packages = ["sqlite_vec"]
+package-dir = { sqlite_vec = "bindings/python" }
+include-package-data = false
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "setup.py" },
+    { file = "MANIFEST.in" },
+    { file = "VERSION" },
+    { file = "bindings/python/*.py" },
+    { file = "bindings/rust/sqlite-vec.c" },
+    { file = "bindings/rust/*.h" },
+]

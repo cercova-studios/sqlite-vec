@@ -221,6 +221,10 @@ test-packaging: sqlite-vec.h
 test-rust-packaging:
 	python3 tests/rust-packaging.py -v
 
+.PHONY: test-python-packaging
+test-python-packaging:
+	python3 tests/python-packaging.py -v
+
 fuzz-build:
 	$(MAKE) -C tests/fuzz all
 

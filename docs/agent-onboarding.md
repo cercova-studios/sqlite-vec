@@ -9,6 +9,7 @@ Codex conversations is optional. Start with the route that matches your job.
 | Job | First action | Working contract |
 | --- | --- | --- |
 | Use this fork from Rust | Pin a Git dependency | [Rust binding](../bindings/rust/README.md) |
+| Use this fork from Python | Install the local package or pin a Git dependency | [Python package](../bindings/python/README.md) |
 | Use this fork's native CLI or search tools | Build a local bundle below | [Bundle guide](local-bundle.md) |
 | Fix an issue or contribute | Run the contributor bootstrap below | [Architecture](../ARCHITECTURE.md) |
 | Research a search strategy | Read the wiki and the closest experiment's report | [Experiment archive](../benchmarks-ann/experiments/) |
@@ -150,6 +151,11 @@ For changes to the bootstrap itself, run `python3 tests/test-bootstrap.py -v` an
 exercise the `dev` command in an isolated checkout with a fresh output directory.
 
 ## Use the fork as a dependency
+
+For a Python application, install the root [Python package](../bindings/python/README.md)
+from this checkout or a pinned fork revision. It uses the application's SQLite
+runtime and includes this fork's C features. The guide covers local `uv` setup,
+per-connection loading and wheel builds.
 
 For a Rust application, use the committed [Cargo package](../bindings/rust/README.md)
 as a revision-pinned Git dependency with the application's own SQLite runtime.
