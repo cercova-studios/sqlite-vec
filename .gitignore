@@ -1,4 +1,6 @@
 /target
+/build/
+/*.egg-info/
 .vscode
 sift/
 *.tar.gz
