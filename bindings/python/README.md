@@ -64,6 +64,31 @@ An unqualified `pip install sqlite-vec` selects the upstream registry package;
 use an explicit local, wheel or Git source for fork features. Install one provider
 of `sqlite_vec` per environment.
 
+## Install a released build
+
+Releases publish wheels and a source archive to a public Google Artifact Registry
+index. Installing needs no credentials. Route only this package to that index:
+
+```toml
+[project]
+dependencies = ["sqlite-vec>=0.1.10a4"]
+
+[[tool.uv.index]]
+name = "cercova"
+url = "https://us-east4-python.pkg.dev/gen-lang-client-0026636413/sqlite-vec-python/simple/"
+explicit = true
+
+[tool.uv.sources]
+sqlite-vec = { index = "cercova" }
+```
+
+`explicit = true` keeps every other dependency on PyPI, so the upstream
+`sqlite-vec` there is never selected by accident. uv installs a pre-release only
+when the requirement names one, as `>=0.1.10a4` does. Wheels cover manylinux
+x86_64/aarch64, macOS x86_64/arm64 and Windows x86_64; other platforms build the
+source archive and need a C compiler. The same files are attached to each
+[GitHub release](https://github.com/cercova-studios/sqlite-vec/releases).
+
 ## Build a wheel or source archive
 
 From this repository's root:

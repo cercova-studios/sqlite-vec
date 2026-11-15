@@ -122,6 +122,37 @@ and `xRollbackTo` undo pending state, and SQLite's shadow table
 `tests/test-hybrid.py` checks the shared vector format, queries that join both
 table types, and transactions that write to both.
 
+### Releases
+
+`.github/workflows/release.yaml` builds every artifact on a pull request that
+touches packaging inputs, on manual dispatch, and on a published GitHub release.
+Only a published release writes anywhere. The `plan` job requires the tag to be
+`v` + `VERSION`, `bindings/rust/Cargo.toml` to carry the same version, and the
+release's pre-release flag to match the `VERSION` label (`-alpha`, `-beta` or
+`-rc` marks a pre-release and selects the npm dist-tag; no label is `latest`).
+
+Native extensions build per platform (desktop, Android, iOS, WASM, Cosmopolitan
+CLI) and feed `sqlite-dist`, which produces the GitHub release assets and npm
+tarballs. Python wheels come from `cibuildwheel` (manylinux, macOS, Windows;
+`py3-none` per platform) plus a source archive. Each wheel is installed into a
+fresh environment and checked with `tests/python-packaging.py --probe-installed`.
+`scripts/scope_npm.py` renames the npm packages into the `@cercova-studios` scope;
+the loader keeps resolving its platform package as a sibling inside that scope.
+The `package` job installs the scoped main and linux-x64 packages offline and
+resolves the loadable path before anything is published.
+
+Publishing uploads release assets with `--clobber`, then authenticates to Google
+Artifact Registry (`us-east4`, project `gen-lang-client-0026636413`) through
+GitHub OIDC workload identity, with no stored key. Python files go to
+`sqlite-vec-python` through `uv publish --check-url`, which skips files already
+present. npm tarballs go to `sqlite-vec-npm`, skipping versions that exist. A
+rerun of a partially failed release therefore completes it. Both repositories
+are publicly readable. The workflow reads the provider and service account from
+the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER` and
+`GCP_SERVICE_ACCOUNT`. Upstream's PyPI, npmjs, RubyGems and crates.io
+publishing is not used: those names belong to upstream. Rust consumers pin a Git
+revision. Third-party actions are pinned to commit SHAs.
+
 ### Storage providers
 
 `sqlite3_vec_storage_methods` (in `sqlite-vec.h`) lets a vec0 table keep its

@@ -104,4 +104,7 @@ class PythonPackaging(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    if sys.argv[1:] == ["--probe-installed"]:
+        exec(PROBE)
+    else:
+        unittest.main()
