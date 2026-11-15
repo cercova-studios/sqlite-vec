@@ -1,0 +1,7 @@
+include VERSION
+include bindings/python/README.md
+include bindings/rust/sqlite-vec.c
+include bindings/rust/sqlite-vec.h
+include bindings/rust/sqlite3.h
+include bindings/rust/sqlite3ext.h
+prune tests

@@ -79,6 +79,18 @@ per-connection registration works without dynamic extension loading. Tests retai
 auto-extension registration on hosts that support it. See
 [Rust registration](bindings/rust/README.md).
 
+The root Python package builds a SQLite loadable library from the same committed
+`bindings/rust` C amalgamation and headers. `setup.py` uses setuptools to compile
+portable scalar kernels, with no Python C API or bundled SQLite runtime. Wheels
+carry `py3-none` plus a platform tag; `bindings/python` provides the existing
+serialization helpers and explicit per-connection `load`/`get_loadable_path` API.
+The application enables and disables extension loading. The package retains the
+`sqlite-vec` distribution name with a `+cercova.1` local version suffix; consumers
+select an explicit fork source. Native input refresh is shared with Rust.
+`tests/python-packaging.py` checks freshness, source/wheel installation and native
+SQL behavior from disposable consumer environments. See the
+[Python package guide](bindings/python/README.md).
+
 `scripts/local_bundle.py` builds a project-local bundle from committed HEAD in a
 temporary source tree and fresh Cargo target directory. It stages the native
 SQLite CLI (vendor SQLite with FTS5), the existing read-only Rust CLI/MCP adapter,
