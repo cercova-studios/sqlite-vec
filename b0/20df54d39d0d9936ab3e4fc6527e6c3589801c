@@ -1,0 +1,29 @@
+.github/workflows/release.yaml
+  s_d31fc1338fa299::t_0c7a2e8e1bea56 5-18,21-27,29-33,35,37-82,84,86,89,91,93-95,98-102,110,112,114-116,119,122-125,127-129,131,135,138-141,143-144,146,148-151,155-158,160-163,167-171,173,175-177,180,182-183,185-189,191-199,201-257,259-262,264-271,273-274,276-281,284-303,305-313,315-317,319-320,323-326,328,330-332,334-365
+scripts/scope_npm.py
+  s_d31fc1338fa299::t_238a1e29b686df 1-67
+sqlite-dist.toml
+  s_d31fc1338fa299::t_be20dc78e02d53 4-7
+ARCHITECTURE.md
+  s_d31fc1338fa299::t_126c30be0064ee 125-155
+bindings/python/README.md
+  s_d31fc1338fa299::t_0c7f17dc841d8c 67-91
+tests/python-packaging.py
+  s_d31fc1338fa299::t_4f7ef0efdb0afb 107-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b020df54d39d0d9936ab3e4fc6527e6c3589801c",
+  "prompts": {},
+  "sessions": {
+    "s_d31fc1338fa299": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7626c582-b65a-4b01-94c3-ee292578d54f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
