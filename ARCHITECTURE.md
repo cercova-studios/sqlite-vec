@@ -151,7 +151,9 @@ are publicly readable. The workflow reads the provider and service account from
 the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER` and
 `GCP_SERVICE_ACCOUNT`. Upstream's PyPI, npmjs, RubyGems and crates.io
 publishing is not used: those names belong to upstream. Rust consumers pin a Git
-revision. Third-party actions are pinned to commit SHAs.
+revision. Every workflow pins third-party actions to commit SHAs, disables
+persisted checkout credentials and sets job timeouts; Dependabot proposes grouped
+action updates weekly after a seven-day cooldown.
 
 ### Storage providers
 
