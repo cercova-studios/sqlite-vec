@@ -98,9 +98,10 @@ python3 tests/python-packaging.py -v
 For example, use `uv run --no-project --with 'setuptools>=77' python
 tests/python-packaging.py -v` to supply setuptools in a separate environment.
 
-The checks build a source archive and wheel outside the checkout, install them
-into disposable environments, and exercise vectors, fork graph/index features,
-transactions and reopening. They also check shared-source freshness and reject a
-wheel tagged as platform independent. Use a disposable database to qualify an
-existing application's schema before switching writers; see
+The smoke check builds a source archive and wheel outside the checkout, validates
+the wheel's platform/ABI tags, and installs the wheel into a fresh environment.
+It loads the installed extension and runs one HNSW query to confirm fork features
+are present. Shared-source freshness is checked by `tests/rust-packaging.py`;
+native regressions cover transaction and graph behavior. Use a disposable database
+to qualify an existing application's schema before switching writers; see
 [database compatibility](../rust/README.md#database-compatibility).

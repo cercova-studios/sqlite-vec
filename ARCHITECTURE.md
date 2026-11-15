@@ -87,8 +87,10 @@ serialization helpers and explicit per-connection `load`/`get_loadable_path` API
 The application enables and disables extension loading. The package retains the
 `sqlite-vec` distribution name with a `+cercova.1` local version suffix; consumers
 select an explicit fork source. Native input refresh is shared with Rust.
-`tests/python-packaging.py` checks freshness, source/wheel installation and native
-SQL behavior from disposable consumer environments. See the
+`tests/python-packaging.py` builds a source archive and wheel, checks the wheel's
+platform/ABI tags, and verifies installation, extension loading and one HNSW query
+in a disposable Python environment. Shared-source freshness remains covered by
+`tests/rust-packaging.py`. See the
 [Python package guide](bindings/python/README.md).
 
 `scripts/local_bundle.py` builds a project-local bundle from committed HEAD in a
