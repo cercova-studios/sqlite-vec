@@ -1,0 +1,23 @@
+.github/workflows/test.yaml
+  s_4aa9c58e8e86f6::t_a9fac5b40955de 52,60-63
+ARCHITECTURE.md
+  s_4aa9c58e8e86f6::t_d49dd02ea7616f 161-164
+tests/test-graph.py
+  s_4aa9c58e8e86f6::t_d7a7b0505cdb69 272,276-290,295-298
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a9e352612f9f5cac13c8680c675f21b38280ab89",
+  "prompts": {},
+  "sessions": {
+    "s_4aa9c58e8e86f6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e1b8-6340-7121-b227-05c6cba1d9d3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
