@@ -269,18 +269,33 @@ def test_graph_witness_cancellation(db):
     data = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(data)
     db.execute("create table evidence_edges(id,src,dst)")
-    # Hash collisions keep native validation running after the SQL scan finishes.
+    # Hash collisions exercise the native validation work limit.
     db.executemany("insert into evidence_edges values (?,?,?)", [(edge,i,i+1) for i,edge in enumerate(data.colliding_ids(10000))])
     with pytest.raises(sqlite3.Error, match='work limit'):
         witness(db, source=7, target=7, work=100000, memory=4*1024*1024)
-    timer = threading.Timer(0.02, db.interrupt)
-    timer.start()
+    ready, cancelled = threading.Event(), threading.Event()
+
+    def cancel_running_query():
+        if ready.wait(5):
+            db.interrupt()
+            cancelled.set()
+
+    def pause_running_query():
+        ready.set()
+        cancelled.wait(5)
+        return 0
+
+    worker = threading.Thread(target=cancel_running_query)
+    db.set_progress_handler(pause_running_query, 1000)
+    worker.start()
     try:
         with pytest.raises(sqlite3.OperationalError, match="interrupt"):
             witness(db, target=10000, work=10**12, memory=4*1024*1024)
     finally:
-        timer.cancel()
-        timer.join()
+        db.set_progress_handler(None, 0)
+        ready.set()
+        worker.join(5)
+    assert cancelled.is_set() and not worker.is_alive()
     assert db.execute("select count(*) from evidence_edges").fetchone()[0] == 10000
     assert witness(db, source=7, target=7, work=10**12, memory=4*1024*1024) == [[7,None]]
 

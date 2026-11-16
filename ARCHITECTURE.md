@@ -158,7 +158,10 @@ revision. Workflows use major-version action tags where upstream publishes them.
 Checkouts disable persisted credentials and jobs have timeouts. Dependabot proposes
 grouped action updates weekly after a seven-day cooldown. Wheel probes use
 uv-managed Python, which supports SQLite extension loading on macOS. Site deployment
-is manual while GitHub Pages is disabled on the fork.
+is manual while GitHub Pages is disabled on the fork. The hybrid CI job caches Lance
+Cargo dependencies and allows 60 minutes for a cold build and cache upload.
+Its cancellation test synchronizes an interrupt with a running SQLite statement;
+it does not depend on a fixed wall-clock delay or measure native-only latency.
 
 ### Storage providers
 
