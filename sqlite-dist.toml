@@ -1,10 +1,10 @@
 [package]
 name = "sqlite-vec"
 license = "MIT OR Apache-2.0"
-homepage = "https://alexgarcia.xyz/sqlite-vec"
-repo = "https://github.com/asg017/sqlite-vec"
-description = "A vector search SQLite extension."
-authors = ["Alex Garcia"]
+homepage = "https://github.com/cercova-studios/sqlite-vec"
+repo = "https://github.com/cercova-studios/sqlite-vec"
+description = "Cercova's SQLite vector search and graph extension."
+authors = ["Alex Garcia", "Cercova Studios"]
 git_tag_format = "v$VERSION"
 
 [targets]
@@ -12,11 +12,4 @@ github_releases = {}
 sqlpkg = {}
 spm = {}
 amalgamation = {include=["sqlite-vec.c", "sqlite-vec.h"]}
-
-pip = { extra_init_py = "bindings/python/extra_init.py" }
-datasette = {}
-sqlite_utils = {}
-
 npm = {}
-
-gem = { module_name = "SqliteVec" }

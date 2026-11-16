@@ -270,6 +270,25 @@ done:
 }
 
 /**
+ * The cache keys on sqlite3_txn_state() and sqlite3_total_changes64(), both
+ * SQLite 3.37+. Older SQLite still loads the extension; graph calls fail here.
+ */
+static int graph_counters(sqlite3 *db, int *pInWrite, i64 *pChanges, char **pzErr) {
+#if SQLITE_VERSION_NUMBER >= 3037000
+  if (sqlite3_libversion_number() >= 3037000) {
+    *pInWrite = sqlite3_txn_state(db, NULL) == SQLITE_TXN_WRITE;
+    *pChanges = sqlite3_total_changes64(db);
+    return SQLITE_OK;
+  }
+#endif
+  UNUSED_PARAMETER(db);
+  UNUSED_PARAMETER(pInWrite);
+  UNUSED_PARAMETER(pChanges);
+  *pzErr = sqlite3_mprintf("graph_bfs and graph_shortest_path require SQLite 3.37.0 or later");
+  return SQLITE_ERROR;
+}
+
+/**
  * The current graph for (table, src, dst). *pFresh is set when the caller owns
  * the result (write transaction) and must free it after the statement's scan.
  */
@@ -277,13 +296,16 @@ static int graph_get(sqlite3 *db, GraphCache *c, const char *zTable,
                      const char *zSrc, const char *zDst, GraphCsr **out,
                      int *pFresh, char **pzErr) {
   *pFresh = 0;
-  if (sqlite3_txn_state(db, NULL) == SQLITE_TXN_WRITE) {
+  int inWrite = 0;
+  i64 changes = 0;
+  int rc = graph_counters(db, &inWrite, &changes, pzErr);
+  if (rc != SQLITE_OK) return rc;
+  if (inWrite) {
     *pFresh = 1;
     return graph_build(db, zTable, zSrc, zDst, out, pzErr);
   }
   u32 dv = 0;
   int known = sqlite3_file_control(db, "main", SQLITE_FCNTL_DATA_VERSION, &dv) == SQLITE_OK;
-  i64 changes = sqlite3_total_changes64(db);
   char *zKey = sqlite3_mprintf("%s\x1f%s\x1f%s", zTable, zSrc, zDst);
   if (!zKey) return SQLITE_NOMEM;
   int victim = 0;
@@ -302,7 +324,7 @@ static int graph_get(sqlite3 *db, GraphCache *c, const char *zTable,
     if (!g || (c->a[victim] && g->lastUse < c->a[victim]->lastUse)) victim = i;
   }
   GraphCsr *g;
-  int rc = graph_build(db, zTable, zSrc, zDst, &g, pzErr);
+  rc = graph_build(db, zTable, zSrc, zDst, &g, pzErr);
   if (rc != SQLITE_OK) { sqlite3_free(zKey); return rc; }
   g->zKey = zKey;
   g->dataVersion = dv;
@@ -829,10 +851,6 @@ done:
 
 /** Registers graph_bfs and graph_shortest_path with one shared per-connection cache. */
 static int graph_register(sqlite3 *db, char **pzErrMsg) {
-  if (sqlite3_libversion_number() < 3037000) {
-    *pzErrMsg = sqlite3_mprintf("graph_bfs requires SQLite 3.37.0 or later");
-    return SQLITE_ERROR;
-  }
   GraphCache *c = sqlite3_malloc(sizeof(*c));
   if (!c) return SQLITE_NOMEM;
   memset(c, 0, sizeof(*c));

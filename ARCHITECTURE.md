@@ -122,6 +122,47 @@ and `xRollbackTo` undo pending state, and SQLite's shadow table
 `tests/test-hybrid.py` checks the shared vector format, queries that join both
 table types, and transactions that write to both.
 
+### Releases
+
+`.github/workflows/release.yaml` builds every artifact on a pull request that
+touches packaging inputs, on manual dispatch, and on a published GitHub release.
+Only a published release writes anywhere. The `plan` job requires the tag to be
+`v` + `VERSION`, `bindings/rust/Cargo.toml` to carry the same version, and the
+release's pre-release flag to match the `VERSION` label (`-alpha`, `-beta` or
+`-rc` marks a pre-release and selects the npm dist-tag; no label is `latest`).
+
+Native extensions build per platform (desktop, Android, iOS, WASM, Cosmopolitan
+CLI) and feed `sqlite-dist`, which produces the GitHub release assets and npm
+tarballs. Python wheels come from `cibuildwheel` (manylinux, macOS, Windows;
+`py3-none` per platform) plus a source archive. Each wheel is installed into a
+fresh environment and checked with `tests/python-packaging.py --probe-installed`.
+`scripts/scope_npm.py` renames the npm packages into the `@cercova-studios` scope;
+the CJS and ESM loaders resolve the platform package by its scoped name.
+An unrecognized generated loader fails before a package can be published.
+The `package` job installs the scoped main and linux-x64 packages offline and
+resolves the loadable path before anything is published.
+
+Publishing uploads release assets with `--clobber`, then authenticates to Google
+Artifact Registry (`us-east4`, project `gen-lang-client-0026636413`) through
+GitHub OIDC workload identity, with no stored key. Python files go to
+`sqlite-vec-python` through `uv publish --check-url`, which skips files already
+present. npm tarballs go to `sqlite-vec-npm`, skipping versions that exist. A
+rerun of a partially failed release therefore completes it. Both repositories
+are publicly readable. The workflow reads the provider and service account from
+the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER` and
+`GCP_SERVICE_ACCOUNT`. Upstream's PyPI, npmjs, RubyGems and crates.io
+publishing is not used: those names belong to upstream. Rust consumers pin a Git
+revision. Workflows use major-version action tags where upstream publishes them.
+`setup-uv` uses its full version tag because recent releases have no major alias;
+`setup-sqlite-dist` uses its only branch, `main`, because it publishes no tags.
+Checkouts disable persisted credentials and jobs have timeouts. Dependabot proposes
+grouped action updates weekly after a seven-day cooldown. Wheel probes use
+uv-managed Python, which supports SQLite extension loading on macOS. Site deployment
+is manual while GitHub Pages is disabled on the fork. The hybrid CI job caches Lance
+Cargo dependencies and allows 60 minutes for a cold build and cache upload.
+Its cancellation test synchronizes an interrupt with a running SQLite statement;
+it does not depend on a fixed wall-clock delay or measure native-only latency.
+
 ### Storage providers
 
 `sqlite3_vec_storage_methods` (in `sqlite-vec.h`) lets a vec0 table keep its
@@ -271,6 +312,10 @@ returns edge identities or path multiplicities.
 
 Each connection caches up to eight CSR graphs with at most 16 MiB of resident adjacency allocations, measured with `sqlite3_msize`. LRU eviction enforces both bounds; an oversized graph is used uncached. Build scratch, the new graph before admission and cursor output are outside the resident-cache bound. `graph_cache_bytes()` reports retained adjacency bytes. Write transactions rebuild rather
 than reuse cached adjacency so own writes and savepoint rollback remain visible.
+The cache keys on `sqlite3_txn_state` and `sqlite3_total_changes64`, so both
+helpers need SQLite 3.37+. Older SQLite, at compile time or at run time, still
+loads the extension and `vec0`; a graph query there fails with a version error.
+`tests/minimum` checks this against SQLite 3.31.1.
 Native traversal materializes its output before SQL limits apply. The search-lab
 [graph contract and fixtures](examples/search-lab/graph-semantics.md) distinguish
 these native semantics from catalog admission, typed fixture identities, scoped

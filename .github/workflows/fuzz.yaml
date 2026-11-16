@@ -13,12 +13,20 @@ on:
 
 permissions:
   contents: read
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  DURATION: ${{ inputs.duration || '60' }}
 
 jobs:
   fuzz-linux:
+    timeout-minutes: 120
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Install LLVM 18
         run: |
           wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- 18
@@ -30,7 +38,6 @@ jobs:
         run: make -C tests/fuzz all FUZZ_CC=$FUZZ_CC FUZZ_LDFLAGS=
       - name: Run fuzz targets
         run: |
-          DURATION=${{ github.event.inputs.duration || '60' }}
           EXIT_CODE=0
           for target in tests/fuzz/targets/*; do
             [ -f "$target" ] && [ -x "$target" ] || continue
@@ -51,7 +58,7 @@ jobs:
           exit $EXIT_CODE
       - name: Upload crash artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fuzz-crashes-linux
           path: |
@@ -60,7 +67,8 @@ jobs:
             timeout-*
 
   fuzz-macos:
-    runs-on: macos-14
+    timeout-minutes: 120
+    runs-on: macos-15
     # Best-effort: Homebrew LLVM 18 runtime dylibs pull in
     # __ZnwmSt19__type_descriptor_t (typed allocation ABI) which
     # macOS 14's system libc++ doesn't provide, causing dyld to abort.
@@ -68,7 +76,9 @@ jobs:
     # TODO: fix macOS fuzzing (pin older compiler-rt, or static runtime).
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Install LLVM 18
         run: brew install llvm@18
       - run: ./scripts/vendor.sh
@@ -82,7 +92,6 @@ jobs:
             FUZZ_LDFLAGS="-Wl,-ld_classic"
       - name: Run fuzz targets
         run: |
-          DURATION=${{ github.event.inputs.duration || '60' }}
           EXIT_CODE=0
           for target in tests/fuzz/targets/*; do
             [ -f "$target" ] && [ -x "$target" ] || continue
@@ -103,7 +112,7 @@ jobs:
           exit $EXIT_CODE
       - name: Upload crash artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fuzz-crashes-macos
           path: |
@@ -112,12 +121,15 @@ jobs:
             timeout-*
 
   fuzz-windows:
+    timeout-minutes: 120
     # Best-effort: libFuzzer works on Windows via LLVM but ASAN/UBSAN
     # support is less reliable. Leak detection is not available.
     runs-on: windows-2022
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Install LLVM
         run: choco install llvm -y
       - run: bash ./scripts/vendor.sh
@@ -146,7 +158,6 @@ jobs:
         shell: bash
         run: |
           export PATH="/c/Program Files/LLVM/bin:$PATH"
-          DURATION=${{ github.event.inputs.duration || '60' }}
           for target in tests/fuzz/targets/*.exe; do
             [ -f "$target" ] || continue
             name=$(basename "$target" .exe)
@@ -159,7 +170,7 @@ jobs:
           done
       - name: Upload crash artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fuzz-crashes-windows
           path: |

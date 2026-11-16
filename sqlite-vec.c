@@ -9173,11 +9173,14 @@ static int vec0Filter_knn_diskann(
   // A small rowid filter names its candidates, so each is ranked by its
   // exact distance from _vectorsNN, which holds the buffered rows too. A
   // larger one is applied during the graph search and the buffer scan.
+#if COMPILER_SUPPORTS_VTAB_IN
   if (rc == SQLITE_OK && vec0_rowids_rank_exact(rowidsIn)) {
     rc = diskann_knn_rowids_in(p, vectorColumnIdx, rowidsIn,
                                queryVector, dimensions, elementType, k,
                                resultRowids, resultDistances, &resultCount);
-  } else if (rc == SQLITE_OK) {
+  } else
+#endif
+  if (rc == SQLITE_OK) {
     rc = diskann_search(p, vectorColumnIdx, queryVector, dimensions,
                         elementType, (int)k, 0, rowidsIn,
                         resultRowids, resultDistances, &resultCount);

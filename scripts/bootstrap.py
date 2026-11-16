@@ -11,6 +11,7 @@ import subprocess
 import sys
 
 REPO = Path(__file__).resolve().parents[1]
+SUPPORTED_PLATFORMS = ('darwin', 'linux')
 
 
 class Parser(argparse.ArgumentParser):
@@ -28,7 +29,7 @@ def inspect():
     missing += [str(path) for path in (
         Path('vendor') / name for name in ('sqlite3.c', 'sqlite3.h', 'sqlite3ext.h', 'shell.c')
     ) if not (REPO / path).is_file()]
-    if sys.platform not in ('darwin', 'linux'):
+    if sys.platform not in SUPPORTED_PLATFORMS:
         missing.append('macOS or Linux host')
     return dict(repo=str(REPO), executable=str(Path(__file__).resolve()),
                 tools=tools, missing=missing,

@@ -16,6 +16,10 @@ spec = importlib.util.spec_from_file_location('bootstrap', SCRIPT)
 bootstrap = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bootstrap)
 
+posix_only = unittest.skipUnless(
+    sys.platform in bootstrap.SUPPORTED_PLATFORMS,
+    'the dev route supports macOS and Linux hosts only')
+
 
 class Bootstrap(unittest.TestCase):
     def make_process(self, returncode=0):
@@ -42,9 +46,10 @@ class Bootstrap(unittest.TestCase):
                 state = bootstrap.inspect()
             self.assertIn('cc', state['missing'])
             self.assertIn('envsubst', state['missing'])
-            self.assertIn('vendor/sqlite3.c', state['missing'])
+            self.assertIn(str(Path('vendor') / 'sqlite3.c'), state['missing'])
             self.assertEqual(list(Path(directory).iterdir()), [])
 
+    @posix_only
     def test_existing_output_is_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)
@@ -55,6 +60,7 @@ class Bootstrap(unittest.TestCase):
             self.assertEqual(sentinel.read_text(), 'unchanged')
             self.assertEqual(list(output.iterdir()), [sentinel])
 
+    @posix_only
     def test_make_path_syntax_is_rejected_before_effects(self):
         with tempfile.TemporaryDirectory() as directory:
             for name in ('has space', '$(touch injected)', 'semi;colon', 'line\nbreak'):
@@ -63,6 +69,7 @@ class Bootstrap(unittest.TestCase):
                     bootstrap.develop(output)
                 self.assertFalse(output.exists())
 
+    @posix_only
     def test_partial_failure_retains_log_and_allows_fresh_retry(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / 'failed'
@@ -77,6 +84,7 @@ class Bootstrap(unittest.TestCase):
                 result = bootstrap.develop(Path(directory) / 'retry')
             self.assertIn('vector-knn', result['checks'])
 
+    @posix_only
     def test_wrong_smoke_rows_fail(self):
         with tempfile.TemporaryDirectory() as directory:
             wrong = subprocess.CompletedProcess([], 0, '2|1.0\n0\n', '')
@@ -84,6 +92,7 @@ class Bootstrap(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'unexpected rows'):
                     bootstrap.develop(Path(directory) / 'wrong')
 
+    @posix_only
     def test_native_build_keeps_make_platform_flags(self):
         with tempfile.TemporaryDirectory() as directory:
             success = subprocess.CompletedProcess([], 0, '1|0.0\n1\n', '')
@@ -94,6 +103,7 @@ class Bootstrap(unittest.TestCase):
             self.assertFalse(any(arg.startswith('CFLAGS=') for arg in args[0]))
             self.assertEqual(kwargs['env']['CFLAGS'], '-DSQLITE_ENABLE_FTS5')
 
+    @posix_only
     def test_vendor_download_failure_stops_before_extraction(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -112,6 +122,7 @@ class Bootstrap(unittest.TestCase):
             self.assertEqual(result.returncode, 6, result.stderr)
             self.assertFalse((root / 'unzip-was-run').exists())
 
+    @posix_only
     def test_vendor_staging_retry_and_corrupt_archive(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -143,6 +154,7 @@ class Bootstrap(unittest.TestCase):
                 self.assertEqual((root / 'vendor/sqlite3.c').read_text(), 'fixture')
                 self.assertEqual(list(temporary.iterdir()), [])
 
+    @posix_only
     def test_timeout_stops_the_build_group(self):
         with tempfile.TemporaryDirectory() as directory:
             context = self.make_process()
