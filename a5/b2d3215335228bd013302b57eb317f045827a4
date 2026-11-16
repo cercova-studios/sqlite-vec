@@ -1,0 +1,34 @@
+ARCHITECTURE.md
+  s_fb6c5b8f70f079::t_ec5e6baf6a1731 140-141
+scripts/scope_npm.py
+  s_d31fc1338fa299::t_238a1e29b686df 35
+  s_fb6c5b8f70f079::t_ec5e6baf6a1731 27-34
+.github/workflows/release.yaml
+  s_fb6c5b8f70f079::t_ccd35c6a6423b6 18,301,309
+tests/npm-packaging.py
+  s_fb6c5b8f70f079::t_ccd35c6a6423b6 1-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a5b2d3215335228bd013302b57eb317f045827a4",
+  "prompts": {},
+  "sessions": {
+    "s_d31fc1338fa299": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7626c582-b65a-4b01-94c3-ee292578d54f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_fb6c5b8f70f079": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a1e1b8-6340-7121-b227-05c6cba1d9d3",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
