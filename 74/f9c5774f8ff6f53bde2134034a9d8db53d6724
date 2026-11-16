@@ -1,0 +1,23 @@
+.github/workflows/fuzz.yaml
+  s_d31fc1338fa299::t_cd54e866433b23 71
+.github/workflows/release.yaml
+  s_d31fc1338fa299::t_5e8be7d37a1dee 82,155,234,248,254-255
+.github/workflows/test.yaml
+  s_d31fc1338fa299::t_852d4e623150bf 24,51,135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "74f9c5774f8ff6f53bde2134034a9d8db53d6724",
+  "prompts": {},
+  "sessions": {
+    "s_d31fc1338fa299": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7626c582-b65a-4b01-94c3-ee292578d54f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
