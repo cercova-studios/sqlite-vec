@@ -304,6 +304,10 @@ returns edge identities or path multiplicities.
 
 Each connection caches up to eight CSR graphs with at most 16 MiB of resident adjacency allocations, measured with `sqlite3_msize`. LRU eviction enforces both bounds; an oversized graph is used uncached. Build scratch, the new graph before admission and cursor output are outside the resident-cache bound. `graph_cache_bytes()` reports retained adjacency bytes. Write transactions rebuild rather
 than reuse cached adjacency so own writes and savepoint rollback remain visible.
+The cache keys on `sqlite3_txn_state` and `sqlite3_total_changes64`, so both
+helpers need SQLite 3.37+. Older SQLite, at compile time or at run time, still
+loads the extension and `vec0`; a graph query there fails with a version error.
+`tests/minimum` checks this against SQLite 3.31.1.
 Native traversal materializes its output before SQL limits apply. The search-lab
 [graph contract and fixtures](examples/search-lab/graph-semantics.md) distinguish
 these native semantics from catalog admission, typed fixture identities, scoped
