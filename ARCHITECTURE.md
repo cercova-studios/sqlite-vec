@@ -151,9 +151,13 @@ are publicly readable. The workflow reads the provider and service account from
 the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER` and
 `GCP_SERVICE_ACCOUNT`. Upstream's PyPI, npmjs, RubyGems and crates.io
 publishing is not used: those names belong to upstream. Rust consumers pin a Git
-revision. Every workflow pins third-party actions to commit SHAs, disables
-persisted checkout credentials and sets job timeouts; Dependabot proposes grouped
-action updates weekly after a seven-day cooldown.
+revision. Workflows use major-version action tags where upstream publishes them.
+`setup-uv` uses its full version tag because recent releases have no major alias;
+`setup-sqlite-dist` uses its only branch, `main`, because it publishes no tags.
+Checkouts disable persisted credentials and jobs have timeouts. Dependabot proposes
+grouped action updates weekly after a seven-day cooldown. Wheel probes use
+uv-managed Python, which supports SQLite extension loading on macOS. Site deployment
+is manual while GitHub Pages is disabled on the fork.
 
 ### Storage providers
 

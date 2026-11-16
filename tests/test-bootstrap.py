@@ -46,7 +46,7 @@ class Bootstrap(unittest.TestCase):
                 state = bootstrap.inspect()
             self.assertIn('cc', state['missing'])
             self.assertIn('envsubst', state['missing'])
-            self.assertIn('vendor/sqlite3.c', state['missing'])
+            self.assertIn(str(Path('vendor') / 'sqlite3.c'), state['missing'])
             self.assertEqual(list(Path(directory).iterdir()), [])
 
     @posix_only
@@ -103,6 +103,7 @@ class Bootstrap(unittest.TestCase):
             self.assertFalse(any(arg.startswith('CFLAGS=') for arg in args[0]))
             self.assertEqual(kwargs['env']['CFLAGS'], '-DSQLITE_ENABLE_FTS5')
 
+    @posix_only
     def test_vendor_download_failure_stops_before_extraction(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -121,6 +122,7 @@ class Bootstrap(unittest.TestCase):
             self.assertEqual(result.returncode, 6, result.stderr)
             self.assertFalse((root / 'unzip-was-run').exists())
 
+    @posix_only
     def test_vendor_staging_retry_and_corrupt_archive(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
