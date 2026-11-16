@@ -1,0 +1,31 @@
+tests/test-bootstrap.py
+  s_fb6c5b8f70f079::t_eb55cdaaaecab7 49,106,125
+.github/workflows/cargo.yaml
+  s_fb6c5b8f70f079::t_eb55cdaaaecab7 24,27
+.github/workflows/fuzz.yaml
+  s_fb6c5b8f70f079::t_eb55cdaaaecab7 27,61,79,115,130,173
+.github/workflows/release.yaml
+  s_fb6c5b8f70f079::t_eb55cdaaaecab7 36,86,91,101,104-105,113,131,135,139,148,165,168,176,186,189,195,206,220,242,245,253,258,268,271,273,283,286,295,307,312,322,341,349,354
+.github/workflows/test.yaml
+  s_fb6c5b8f70f079::t_eb55cdaaaecab7 28,31,42,54,57,66,76,79-80,91,110,114,118,127,145,148,156,166,169,175,186,189,198,208,219,229
+ARCHITECTURE.md
+  s_fb6c5b8f70f079::t_eb55cdaaaecab7 154-160
+.github/workflows/site.yaml
+  s_fb6c5b8f70f079::t_eb55cdaaaecab7 20,23,30-31,35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b52ab66086297874a7ad6c861b7dee793c6d5aaa",
+  "prompts": {},
+  "sessions": {
+    "s_fb6c5b8f70f079": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01a1e1b8-6340-7121-b227-05c6cba1d9d3",
+        "model": "unknown"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
