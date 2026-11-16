@@ -15,6 +15,7 @@ on:
       - scripts/scope_npm.py
       - scripts/vendor.sh
       - tests/python-packaging.py
+      - tests/npm-packaging.py
   workflow_dispatch:
 permissions:
   contents: read
@@ -297,6 +298,7 @@ jobs:
           VERSION: ${{ needs.plan.outputs.version }}
         run: sqlite-dist build --set-version "$VERSION"
       - run: python3 scripts/scope_npm.py .sqlite-dist/npm release/npm --scope "$NPM_SCOPE"
+      - run: python3 tests/npm-packaging.py -v
       - name: Resolve the scoped npm package on linux-x64
         run: |
           mkdir smoke && cd smoke && npm init -y >/dev/null
@@ -304,6 +306,7 @@ jobs:
           platform=$(ls ../release/npm/*-sqlite-vec-linux-x64.tgz)
           npm install --offline --omit=optional --no-audit --no-fund "$main" "$platform"
           node -e "const p=require('$NPM_SCOPE/sqlite-vec').getLoadablePath(); if(!require('fs').existsSync(p)) process.exit(1); console.log(p)"
+          node --input-type=module -e "import {getLoadablePath} from '$NPM_SCOPE/sqlite-vec'; import {existsSync} from 'node:fs'; if(!existsSync(getLoadablePath())) process.exit(1)"
       - uses: actions/download-artifact@v8
         with:
           pattern: python-*

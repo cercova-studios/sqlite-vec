@@ -137,7 +137,8 @@ tarballs. Python wheels come from `cibuildwheel` (manylinux, macOS, Windows;
 `py3-none` per platform) plus a source archive. Each wheel is installed into a
 fresh environment and checked with `tests/python-packaging.py --probe-installed`.
 `scripts/scope_npm.py` renames the npm packages into the `@cercova-studios` scope;
-the loader keeps resolving its platform package as a sibling inside that scope.
+the CJS and ESM loaders resolve the platform package by its scoped name.
+An unrecognized generated loader fails before a package can be published.
 The `package` job installs the scoped main and linux-x64 packages offline and
 resolves the loadable path before anything is published.
 

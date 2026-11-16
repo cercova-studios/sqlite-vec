@@ -24,6 +24,15 @@ def rewrite(member: str, data: bytes, scope: str) -> bytes:
             for name, version in manifest.get("optionalDependencies", {}).items()
         }
         return json.dumps(manifest, indent=2).encode() + b"\n"
+    if member in ("package/index.cjs", "package/index.mjs"):
+        loader = data.decode()
+        assignment = "const packageName = platformPackageName(platform, arch);"
+        if loader.count(assignment) != 1:
+            raise ValueError(f"{member}: unexpected sqlite-dist loader; review package resolution")
+        return loader.replace(
+            assignment,
+            f"const packageName = {json.dumps(scope + '/')} + platformPackageName(platform, arch);",
+        ).encode()
     return data
 
 
