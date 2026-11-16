@@ -21,7 +21,7 @@ jobs:
           - { name: linux-x86_64, runner: ubuntu-22.04 }
           - { name: linux-aarch64, runner: ubuntu-22.04-arm }
           - { name: macos-x86_64, runner: macos-15-intel }
-          - { name: macos-aarch64, runner: macos-14 }
+          - { name: macos-aarch64, runner: macos-15 }
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
@@ -48,7 +48,7 @@ jobs:
   # The hybrid extension (C core + lance0). Separate job so the C-only jobs
   # stay free of Rust and protoc.
   hybrid-macos-aarch64:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -132,7 +132,7 @@ jobs:
 
   ios:
     name: ios (${{ matrix.platforms.name }})
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
     strategy:
       fail-fast: false
