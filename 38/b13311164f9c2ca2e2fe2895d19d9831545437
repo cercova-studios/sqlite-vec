@@ -1,0 +1,41 @@
+sqlite-vec-graph.c
+  s_d31fc1338fa299::t_c6ebe1dfe548b9 273-290,299-303
+  s_d31fc1338fa299::t_b8693f465585d7 272,327
+tests/minimum/demo.c
+  s_d31fc1338fa299::t_36e9e394cc1979 26-47
+  s_055bf0a65c238a::t_a9b837b768ebd4 6
+ARCHITECTURE.md
+  s_d31fc1338fa299::t_ad84d795e7ce38 307-310
+bindings/rust/sqlite-vec.c
+  s_d31fc1338fa299::t_7d8723fb828723 12356-12374,12383-12387,12411,16830,16835-16837
+scripts/bootstrap.py
+  s_d31fc1338fa299::t_453faa2751d6f2 14,32
+sqlite-vec.c
+  s_d31fc1338fa299::t_257e371f534123 9176,9181-9183
+tests/test-bootstrap.py
+  s_d31fc1338fa299::t_f67a9a1ac8d046 19-22,52,63,72,87,95,155
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "38b13311164f9c2ca2e2fe2895d19d9831545437",
+  "prompts": {},
+  "sessions": {
+    "s_055bf0a65c238a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c979245e-6f2a-4e62-88c7-b1c351a1f58a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    },
+    "s_d31fc1338fa299": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7626c582-b65a-4b01-94c3-ee292578d54f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohit Nair <6954311+rnair98@users.noreply.github.com>"
+    }
+  }
+}
